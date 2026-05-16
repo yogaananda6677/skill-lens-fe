@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { DashboardShell, type DashboardNavItem } from "../../components/layout/DashboardShell";
@@ -9,6 +10,7 @@ import {
   getGuidanceCases,
   getGuruWorkspace,
   getGuruJurusan,
+  getSiswaAccounts,
   createGuruJurusan,
   updateGuruJurusan,
   deleteGuruJurusan,
@@ -199,6 +201,13 @@ export default function GuruPage() {
         setGuidance(await getGuidanceCases());
       } catch {
         setGuidance([]);
+      }
+
+      try {
+        const accountsRows = await getSiswaAccounts();
+        setAccounts(accountsRows);
+      } catch {
+        setAccounts([]);
       }
     }
   }

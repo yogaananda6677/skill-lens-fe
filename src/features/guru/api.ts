@@ -88,6 +88,10 @@ export type GeneratedAccount = {
   akun_baru: boolean;
 };
 
+export async function getSiswaAccounts() {
+  return apiFetch<GeneratedAccount[]>("/guru/accounts");
+}
+
 export async function getGuruWorkspace() {
   return apiFetch<GuruWorkspace>("/guru/workspace");
 }

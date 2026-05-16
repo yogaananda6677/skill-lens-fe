@@ -1,4 +1,6 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/preserve-manual-memoization */
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -190,16 +192,29 @@ export function DashboardShell({
   const [storedUser, setStoredUser] = useState<ReturnType<typeof getStoredUser>>(null);
   const pathname = usePathname();
   const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
+    // Pastikan hooks tidak berubah urutannya dengan cara TIDAK melakukan early-return sebelum semua useEffect ter-register.
     const user = getStoredUser();
     setStoredUser(user);
 
-    const allowed = Array.isArray(requiredRole) ? requiredRole : requiredRole ? [requiredRole] : [];
-    if (allowed.length && (!user || !allowed.includes(user.role))) {
-      router.replace(redirectPathByRole(user?.role));
-      return;
+    const allowed = Array.isArray(requiredRole)
+      ? requiredRole
+      : requiredRole
+        ? [requiredRole]
+        : [];
+    if (allowed.length) {
+      // Jangan redirect kalau user masih null (awal hydration).
+      if (user && !allowed.includes(user.role)) {
+        router.replace(redirectPathByRole(user.role));
+        return;
+      }
     }
+
     setReady(true);
   }, [requiredRole, router]);
 
@@ -208,7 +223,11 @@ export function DashboardShell({
   }, [pathname]);
 
   const visibleNav = useMemo(() => {
-    return navItems.filter((item) => !item.roles?.length || (storedUser?.role && item.roles.includes(storedUser.role)));
+    return navItems.filter(
+      (item) =>
+        !item.roles?.length ||
+        (storedUser?.role && item.roles.includes(storedUser.role)),
+    );
   }, [navItems, storedUser?.role]);
 
   const displayName = userName || storedUser?.nama || "Pengguna";

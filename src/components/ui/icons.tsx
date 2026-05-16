@@ -49,6 +49,8 @@ export function Icon({ name, className = "h-5 w-5", ...props }: Props) {
     strokeLinecap: "round" as const,
     strokeLinejoin: "round" as const,
     className,
+    // Prevent hydration mismatch when browser extensions (ex: Darkreader) inject attributes.
+    suppressHydrationWarning: true,
     ...props,
   };
 

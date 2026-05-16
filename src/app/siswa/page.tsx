@@ -90,6 +90,8 @@ function OptionPicker({ title, subtitle, options, selected, onToggle }: { title:
 }
 
 function RecommendationCard({ item }: { item: Recommendation }) {
+  const title = typeof item.title === 'string' ? item.title : JSON.stringify(item.title);
+  const category = typeof item.category === 'string' ? item.category : '';
   return (
     <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex items-start justify-between gap-4">
