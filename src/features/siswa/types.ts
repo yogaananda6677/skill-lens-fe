@@ -10,11 +10,25 @@ export type StudentProfileForm = {
   interests: string[];
   hobbies: string[];
   talents: string[];
-  skills: string[];
+  experiences: string[];
   achievements: string;
   goal: string;
-  learningPreference: string;
-  constraints: string;
+};
+
+export type MasterTagOption = {
+  id: number;
+  tipe: "minat" | "bakat" | "hobi" | "pengalaman" | string;
+  label: string;
+  mapped_key: string;
+  kategori_hint?: string | null;
+  sort_order?: number;
+};
+
+export type MasterTagGroups = {
+  minat: MasterTagOption[];
+  bakat: MasterTagOption[];
+  hobi: MasterTagOption[];
+  pengalaman: MasterTagOption[];
 };
 
 export type CriteriaBreakdown = {

@@ -1,5 +1,5 @@
 import { apiFetch } from "../../lib/axios";
-import type { AcademicScores, CareerRoadmap, Recommendation, StudentProfileForm } from "./types";
+import type { AcademicScores, CareerRoadmap, MasterTagGroups, Recommendation, StudentProfileForm } from "./types";
 
 function safeString(value: unknown, defaultValue: string): string {
   if (typeof value === 'string') return value;
@@ -27,11 +27,9 @@ export type SiswaMeResponse = {
   minat?: string[];
   hobi?: string[];
   bakat?: string[];
-  skill?: string[];
+  pengalaman?: string[];
   prestasi?: string;
   tujuan?: string;
-  preferensi_belajar?: string;
-  kendala?: string;
   nilai_akademik?: AcademicScores;
 };
 
@@ -39,15 +37,17 @@ export type SiswaProfilePayload = {
   minat: string[];
   hobi: string[];
   bakat: string[];
-  skill: string[];
+  pengalaman: string[];
   prestasi: string;
-  tujuan: string;
-  preferensi_belajar: string;
-  kendala: string;
+  tujuan_karir: string;
 };
 
 export async function getSiswaMe() {
   return apiFetch<SiswaMeResponse>("/siswa/me");
+}
+
+export async function getMasterTags() {
+  return apiFetch<MasterTagGroups>("/master-tags");
 }
 
 export async function saveSiswaProfile(payload: SiswaProfilePayload) {
@@ -77,6 +77,7 @@ type SpkRawRecommendation = {
   title?: unknown;
   nama?: unknown;
   label?: unknown;
+  alternatif?: unknown;
 
   category?: unknown;
   kategori?: unknown;
@@ -84,6 +85,7 @@ type SpkRawRecommendation = {
   score?: unknown;
   nilai?: unknown;
   skor?: unknown;
+  persentase_kecocokan?: unknown;
 
   fuzzyLabel?: unknown;
   fuzzy_label?: unknown;
@@ -95,9 +97,9 @@ type SpkRawRecommendation = {
   summary?: unknown;
   ringkasan?: unknown;
   deskripsi?: unknown;
+  alasan?: unknown;
 
   reasons?: unknown;
-  alasan?: unknown;
 
   suggestedMajors?: unknown;
   jurusan_saran?: unknown;
@@ -121,20 +123,22 @@ function normalizeRecommendation(item: SpkRawRecommendation, index: number): Rec
 
   return {
     id: String(item.id ?? item.career_id ?? item.kode ?? `rec-${index + 1}`),
-    title: safeString(item.title ?? item.nama ?? item.label, `Rekomendasi ${index + 1}`),
+    title: safeString(item.title ?? item.nama ?? item.label ?? item.alternatif, `Rekomendasi ${index + 1}`),
     category: safeString(item.category ?? item.kategori, "Karier"),
-    score: toNumberSafe(item.score ?? item.nilai ?? item.skor, 0),
+    score: toNumberSafe(item.score ?? item.nilai ?? item.skor ?? item.persentase_kecocokan, 0),
     fuzzyLabel: safeString(item.fuzzyLabel ?? item.fuzzy_label ?? item.status, "Diproses"),
     topsisRank: toNumberSafe(item.topsisRank ?? item.rank ?? index + 1, index + 1),
     summary: safeString(
-      item.summary ?? item.ringkasan ?? item.deskripsi,
+      item.summary ?? item.ringkasan ?? item.deskripsi ?? item.alasan,
       "Hasil rekomendasi dari layanan SPK Python.",
     ),
     reasons: Array.isArray(item.reasons)
       ? (item.reasons as unknown[]).map((r) => String(r))
       : Array.isArray(item.alasan)
         ? (item.alasan as unknown[]).map((r) => String(r))
-        : [],
+        : typeof item.alasan === 'string'
+          ? [item.alasan]
+          : [],
     suggestedMajors: Array.isArray(item.suggestedMajors)
       ? (item.suggestedMajors as unknown[]).map((m) => String(m))
       : Array.isArray(item.jurusan_saran)
@@ -171,6 +175,9 @@ export async function processSiswaSpk(payload: SiswaProfilePayload) {
     (typeof maybeData === "object" && maybeData !== null
       ? (maybeData as Record<string, unknown>).rekomendasi
       : undefined) ??
+    (typeof maybeData === "object" && maybeData !== null
+      ? (maybeData as Record<string, unknown>).top_rekomendasi
+      : undefined) ??
     (maybeData as unknown[] | undefined) ??
     [];
 
@@ -199,11 +206,9 @@ export function toStudentProfile(data: SiswaMeResponse): StudentProfileForm {
     interests: data.minat ?? [],
     hobbies: data.hobi ?? [],
     talents: data.bakat ?? [],
-    skills: data.skill ?? [],
+    experiences: data.pengalaman ?? [],
     achievements: data.prestasi ?? "",
     goal: data.tujuan ?? "",
-    learningPreference: data.preferensi_belajar ?? "",
-    constraints: data.kendala ?? "",
   };
 }
 

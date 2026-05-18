@@ -3,9 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { DashboardShell, type DashboardNavItem } from "../../components/layout/DashboardShell";
-import { getSiswaMe, processSiswaSpk, saveSiswaProfile, toStudentProfile } from "../../features/siswa/api";
-import type { AcademicScores, Recommendation, StudentProfileForm } from "../../features/siswa/types";
-import { hobbyOptions, interestOptions, skillOptions, talentOptions } from "../../data/profile-options";
+import { getMasterTags, getSiswaMe, processSiswaSpk, saveSiswaProfile, toStudentProfile } from "../../features/siswa/api";
+import type { AcademicScores, MasterTagGroups, MasterTagOption, Recommendation, StudentProfileForm } from "../../features/siswa/types";
 
 const emptyProfile: StudentProfileForm = {
   name: "",
@@ -17,11 +16,9 @@ const emptyProfile: StudentProfileForm = {
   interests: [],
   hobbies: [],
   talents: [],
-  skills: [],
+  experiences: [],
   achievements: "",
   goal: "",
-  learningPreference: "",
-  constraints: "",
 };
 
 const studentNav = [
@@ -30,8 +27,8 @@ const studentNav = [
   { key: "hasil", label: "Hasil SPK", description: "Rekomendasi", href: "#hasil", icon: "result" },
 ] as const satisfies readonly DashboardNavItem[];
 
-type ArrayField = "interests" | "hobbies" | "talents" | "skills";
-type TextField = "achievements" | "goal" | "learningPreference" | "constraints";
+type ArrayField = "interests" | "hobbies" | "talents" | "experiences";
+type TextField = "achievements" | "goal";
 
 function Panel({ children, id, className = "" }: { children: ReactNode; id?: string; className?: string }) {
   return <section id={id} className={`rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 ${className}`}>{children}</section>;
@@ -63,12 +60,16 @@ function ToggleChip({ label, active, onClick }: { label: string; active: boolean
   );
 }
 
-function OptionPicker({ title, subtitle, options, selected, onToggle }: { title: string; subtitle: string; options: readonly string[]; selected: string[]; onToggle: (value: string) => void }) {
+function OptionPicker({ title, subtitle, options, selected, onToggle }: { title: string; subtitle: string; options: readonly MasterTagOption[]; selected: string[]; onToggle: (value: string) => void }) {
   const [query, setQuery] = useState("");
   const visible = useMemo(() => {
     const keyword = query.trim().toLowerCase();
-    const filtered = keyword ? options.filter((item) => item.toLowerCase().includes(keyword)) : options;
-    const pinned = selected.filter((item) => !filtered.includes(item));
+    const filtered = keyword
+      ? options.filter((item) => item.label.toLowerCase().includes(keyword) || item.mapped_key.toLowerCase().includes(keyword))
+      : options;
+    const pinned = selected
+      .filter((key) => !filtered.some((item) => item.mapped_key === key))
+      .map((key) => ({ id: -1, tipe: "custom", label: key, mapped_key: key }));
     return [...pinned, ...filtered].slice(0, 24);
   }, [options, query, selected]);
 
@@ -83,7 +84,14 @@ function OptionPicker({ title, subtitle, options, selected, onToggle }: { title:
       </div>
       <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari pilihan..." className="mt-4 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium outline-none focus:border-slate-950" />
       <div className="mt-4 flex max-h-56 flex-wrap gap-2 overflow-y-auto pr-1">
-        {visible.map((option) => <ToggleChip key={option} label={option} active={selected.includes(option)} onClick={() => onToggle(option)} />)}
+        {visible.map((option) => (
+          <ToggleChip
+            key={`${option.tipe}-${option.mapped_key}`}
+            label={option.label}
+            active={selected.includes(option.mapped_key)}
+            onClick={() => onToggle(option.mapped_key)}
+          />
+        ))}
       </div>
     </div>
   );
@@ -111,6 +119,7 @@ function RecommendationCard({ item }: { item: Recommendation }) {
 
 export default function SiswaPage() {
   const [profile, setProfile] = useState<StudentProfileForm>(emptyProfile);
+  const [tagOptions, setTagOptions] = useState<MasterTagGroups>({ minat: [], bakat: [], hobi: [], pengalaman: [] });
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [activeSection, setActiveSection] = useState("profil");
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -122,8 +131,9 @@ export default function SiswaPage() {
     async function load() {
       try {
         setLoadingProfile(true);
-        const data = await getSiswaMe();
+        const [data, tags] = await Promise.all([getSiswaMe(), getMasterTags()]);
         setProfile(toStudentProfile(data));
+        setTagOptions(tags);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Gagal mengambil data siswa.");
       } finally {
@@ -152,11 +162,9 @@ export default function SiswaPage() {
         minat: profile.interests,
         hobi: profile.hobbies,
         bakat: profile.talents,
-        skill: profile.skills,
+        pengalaman: profile.experiences,
         prestasi: profile.achievements,
-        tujuan: profile.goal,
-        preferensi_belajar: profile.learningPreference,
-        kendala: profile.constraints,
+        tujuan_karir: profile.goal,
       });
       setMessage("Profil berhasil disimpan.");
     } catch (err) {
@@ -173,11 +181,9 @@ export default function SiswaPage() {
         minat: profile.interests,
         hobi: profile.hobbies,
         bakat: profile.talents,
-        skill: profile.skills,
+        pengalaman: profile.experiences,
         prestasi: profile.achievements,
-        tujuan: profile.goal,
-        preferensi_belajar: profile.learningPreference,
-        kendala: profile.constraints,
+        tujuan_karir: profile.goal,
       };
       await saveSiswaProfile(payload);
       const result = await processSiswaSpk(payload);
@@ -208,7 +214,7 @@ export default function SiswaPage() {
       activeKey={activeSection}
       navItems={studentNav}
       title="Profil dan Rekomendasi Siswa"
-      subtitle="Lengkapi minat, hobi, bakat, skill, dan tujuan. Nilai akademik dibaca dari data sekolah, bukan diinput siswa."
+      subtitle="Lengkapi minat, hobi, bakat, pengalaman, dan tujuan. Nilai akademik dibaca dari data sekolah, bukan diinput siswa."
       userName={profile.name || "Siswa"}
       userLabel={profile.className || "Siswa"}
       schoolName={profile.school || profile.major || "Data sekolah"}
@@ -228,7 +234,7 @@ export default function SiswaPage() {
           </div>
         </Panel>
         <Panel><p className="text-sm font-medium text-slate-500">Rata-rata akademik</p><p className="mt-3 text-4xl font-semibold">{academicAverage}</p><p className="mt-2 text-sm font-semibold text-slate-500">Dari data sekolah</p></Panel>
-        <Panel><p className="text-sm font-medium text-slate-500">Profil nonakademik</p><p className="mt-3 text-4xl font-semibold">{profile.interests.length + profile.hobbies.length + profile.talents.length + profile.skills.length}</p><p className="mt-2 text-sm font-semibold text-slate-500">Pilihan terisi</p></Panel>
+        <Panel><p className="text-sm font-medium text-slate-500">Profil nonakademik</p><p className="mt-3 text-4xl font-semibold">{profile.interests.length + profile.hobbies.length + profile.talents.length + profile.experiences.length}</p><p className="mt-2 text-sm font-semibold text-slate-500">Pilihan terisi</p></Panel>
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_0.8fr]">
@@ -236,14 +242,14 @@ export default function SiswaPage() {
           <Panel id="profil">
             <div className="mb-6">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Profil nonakademik</p>
-              <h2 className="mt-2 text-2xl font-semibold text-slate-950">Minat, hobi, bakat, dan skill</h2>
+              <h2 className="mt-2 text-2xl font-semibold text-slate-950">Minat, hobi, bakat, dan pengalaman</h2>
               <p className="mt-2 text-sm font-semibold leading-7 text-slate-500">Bagian ini diisi siswa. Nilai akademik tetap berasal dari sekolah.</p>
             </div>
             <div className="space-y-4">
-              <OptionPicker title="Minat" subtitle="Pilih bidang yang paling menarik." options={interestOptions} selected={profile.interests} onToggle={(value) => toggleArrayValue("interests", value)} />
-              <OptionPicker title="Hobi" subtitle="Pilih aktivitas yang sering dilakukan." options={hobbyOptions} selected={profile.hobbies} onToggle={(value) => toggleArrayValue("hobbies", value)} />
-              <OptionPicker title="Bakat" subtitle="Pilih kemampuan yang paling menonjol." options={talentOptions} selected={profile.talents} onToggle={(value) => toggleArrayValue("talents", value)} />
-              <OptionPicker title="Skill" subtitle="Pilih skill yang sudah dimiliki." options={skillOptions} selected={profile.skills} onToggle={(value) => toggleArrayValue("skills", value)} />
+              <OptionPicker title="Minat" subtitle="Pilih bidang yang paling menarik." options={tagOptions.minat} selected={profile.interests} onToggle={(value) => toggleArrayValue("interests", value)} />
+              <OptionPicker title="Hobi" subtitle="Pilih aktivitas yang sering dilakukan." options={tagOptions.hobi} selected={profile.hobbies} onToggle={(value) => toggleArrayValue("hobbies", value)} />
+              <OptionPicker title="Bakat" subtitle="Pilih kemampuan yang paling menonjol." options={tagOptions.bakat} selected={profile.talents} onToggle={(value) => toggleArrayValue("talents", value)} />
+              <OptionPicker title="Pengalaman" subtitle="Pilih pengalaman atau aktivitas yang pernah dilakukan." options={tagOptions.pengalaman} selected={profile.experiences} onToggle={(value) => toggleArrayValue("experiences", value)} />
             </div>
           </Panel>
 
@@ -253,8 +259,6 @@ export default function SiswaPage() {
             <div className="mt-6 space-y-4">
               <label className="block"><span className="text-sm font-semibold text-slate-700">Prestasi / pengalaman</span><textarea value={profile.achievements} onChange={(e) => updateText("achievements", e.target.value)} className="mt-2 min-h-24 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-medium leading-7 outline-none focus:border-slate-950 focus:bg-white" /></label>
               <label className="block"><span className="text-sm font-semibold text-slate-700">Tujuan setelah lulus</span><textarea value={profile.goal} onChange={(e) => updateText("goal", e.target.value)} className="mt-2 min-h-24 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-medium leading-7 outline-none focus:border-slate-950 focus:bg-white" /></label>
-              <label className="block"><span className="text-sm font-semibold text-slate-700">Preferensi belajar</span><input value={profile.learningPreference} onChange={(e) => updateText("learningPreference", e.target.value)} className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-medium outline-none focus:border-slate-950 focus:bg-white" /></label>
-              <label className="block"><span className="text-sm font-semibold text-slate-700">Kendala / pertimbangan</span><textarea value={profile.constraints} onChange={(e) => updateText("constraints", e.target.value)} className="mt-2 min-h-24 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-medium leading-7 outline-none focus:border-slate-950 focus:bg-white" /></label>
             </div>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <button type="button" onClick={handleSaveOnly} className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Simpan Profil</button>
