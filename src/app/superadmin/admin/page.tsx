@@ -2,7 +2,8 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { DashboardShell, type DashboardNavItem } from "../../../components/layout/DashboardShell";
+import { DashboardShell } from "../../../components/layout/DashboardShell";
+import { superadminNav as navItems } from "../../../config/navigation";
 import { getStoredUser, redirectPathByRole } from "../../../lib/auth";
 import {
   AdminUser,
@@ -21,10 +22,6 @@ type FormState = {
   password: string;
 };
 
-const navItems = [
-  { key: "admin", label: "Kelola Admin", description: "Akun administrator", href: "/superadmin/admin", icon: "users" },
-
-] as const satisfies readonly DashboardNavItem[];
 
 const emptyForm: FormState = {
   nama: "",

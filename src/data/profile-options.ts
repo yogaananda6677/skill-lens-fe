@@ -346,3 +346,26 @@ export const talentOptions = [
 
 export const interestTotal = interestOptions.length;
 export const hobbyTotal = hobbyOptions.length;
+
+export const experienceOptions = [
+  "Mengikuti organisasi OSIS",
+  "Menjadi pengurus kelas",
+  "Mengikuti ekstrakurikuler",
+  "Menjadi panitia kegiatan sekolah",
+  "Mengikuti lomba akademik",
+  "Mengikuti lomba non-akademik",
+  "Membuat project pribadi",
+  "Membuat project kelompok",
+  "Mengikuti pelatihan atau workshop",
+  "Mengikuti magang/praktik kerja lapangan",
+  "Menjadi tutor sebaya",
+  "Menjadi relawan kegiatan sosial",
+  "Mengelola media sosial sekolah",
+  "Membuat konten edukasi",
+  "Mengelola usaha kecil/bazar sekolah",
+  "Mengikuti KIR/penelitian siswa",
+  "Mengikuti pramuka/paskibra/PMR",
+  "Membuat portofolio desain",
+  "Membuat aplikasi sederhana",
+  "Membuat karya tulis/artikel"
+] as const;

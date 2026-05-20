@@ -2,16 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { DashboardShell, type DashboardNavItem } from "../../../components/layout/DashboardShell";
+import { DashboardShell } from "../../../components/layout/DashboardShell";
+import { adminNav as navItems } from "../../../config/navigation";
 import { Icon } from "../../../components/ui/icons";
 import { getAdminDashboard, type AdminDashboardResponse } from "../../../features/admin/api";
 
-const navItems = [
-  { key: "dashboard", label: "Dashboard", description: "Monitoring sistem", href: "/admin/dashboard", icon: "dashboard" },
-  { key: "verifikasi", label: "Verifikasi", description: "Sekolah dan akun", href: "/admin/verifikasi", icon: "verify" },
-  { key: "sekolah", label: "Data Sekolah", description: "Daftar sekolah", href: "/admin/sekolah", icon: "school" },
-  { key: "laporan", label: "Laporan", description: "Aktivitas SPK", href: "/admin/dashboard", icon: "report" },
-] as const satisfies readonly DashboardNavItem[];
 
 type Metric = {
   label: string;

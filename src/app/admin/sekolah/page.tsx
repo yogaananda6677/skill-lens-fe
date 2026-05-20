@@ -1,14 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DashboardShell, type DashboardNavItem } from "../../../components/layout/DashboardShell";
+import { DashboardShell } from "../../../components/layout/DashboardShell";
+import { adminNav as navItems } from "../../../config/navigation";
 import { getAdminSchools, type AdminSchoolRow } from "../../../features/admin/api";
 
-const navItems = [
-  { key: "dashboard", label: "Dashboard", description: "Monitoring sistem", href: "/admin/dashboard", icon: "dashboard" },
-  { key: "verifikasi", label: "Verifikasi", description: "Sekolah", href: "/admin/verifikasi", icon: "verify" },
-  { key: "sekolah", label: "Data Sekolah", description: "Daftar sekolah", href: "/admin/sekolah", icon: "school" },
-] as const satisfies readonly DashboardNavItem[];
 
 function StatusBadge({ status }: { status: string }) {
   const approved = status === "approved";

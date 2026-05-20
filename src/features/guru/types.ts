@@ -7,6 +7,7 @@ export const ACADEMIC_CATEGORIES = [
   "agama",
   "kreativitas",
   "softskill",
+  "praktik",
 ] as const;
 
 export type AcademicCategory = (typeof ACADEMIC_CATEGORIES)[number];
@@ -20,6 +21,7 @@ export const ACADEMIC_CATEGORY_LABELS: Record<AcademicCategory, string> = {
   agama: "Agama",
   kreativitas: "Kreativitas",
   softskill: "Soft skill",
+  praktik: "Praktik / Keahlian",
 };
 
 export type CategoryScores = Record<AcademicCategory, number>;
@@ -112,7 +114,7 @@ export type ImportPreview = {
   sourceFile: string;
   templateName: string;
   message?: string;
-  importMode?: "dry_run" | "import_and_generate" | "mock";
+  importMode?: "dry_run" | "import_and_generate";
   rowsDetected: number;
   validRows: number;
   reviewRows: number;

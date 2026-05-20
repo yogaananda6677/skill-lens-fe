@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { Icon } from "../ui/icons";
-import { clearAuth } from "../../lib/auth";
+import { clearAuth, type AuthRole } from "../../lib/auth";
 
 type AppShellProps = {
   active?: "home" | "guru" | "siswa" | "admin" | "superadmin" | "auth";
-  role?: "superadmin" | "admin" | "guru" | "siswa";
+  role?: AuthRole;
   eyebrow?: string;
   title?: string;
   description?: string;
@@ -33,14 +33,15 @@ const adminNav = [
 
 const guruNav = [
   { href: "/guru", label: "Dashboard" },
-  { href: "/guru/sekolah", label: "Sekolah" },
-  { href: "/guru/import", label: "Import" },
-  { href: "/guru/bimbingan", label: "Bimbingan" },
+  { href: "/guru#school", label: "Sekolah" },
+  { href: "/guru#import", label: "Import" },
+  { href: "/guru#guidance", label: "Bimbingan" },
 ] as const;
 
 function getNavByRole(role?: AppShellProps["role"]) {
   if (role === "superadmin") return superadminNav;
   if (role === "admin") return adminNav;
+  if (role === "admin_sekolah") return guruNav;
   if (role === "guru") return guruNav;
   return publicNav;
 }
@@ -48,6 +49,7 @@ function getNavByRole(role?: AppShellProps["role"]) {
 function getDashboardHome(role?: AppShellProps["role"]) {
   if (role === "superadmin") return "/superadmin/admin";
   if (role === "admin") return "/admin/dashboard";
+  if (role === "admin_sekolah") return "/guru";
   if (role === "guru") return "/guru";
   return "/";
 }

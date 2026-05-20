@@ -1,4 +1,4 @@
-export type AuthRole = "superadmin" | "admin" | "guru" | "siswa";
+export type AuthRole = "superadmin" | "admin" | "admin_sekolah" | "guru" | "siswa";
 
 export type StoredUser = {
   id: number;
@@ -6,6 +6,7 @@ export type StoredUser = {
   email?: string;
   username: string;
   role: AuthRole;
+  id_sekolah?: number | null;
 };
 
 export function getStoredToken() {
@@ -20,8 +21,17 @@ export function getStoredUser(): StoredUser | null {
   try {
     return JSON.parse(raw) as StoredUser;
   } catch {
+    clearAuth();
     return null;
   }
+}
+
+export function persistAuth(token: string, user: StoredUser, rememberDevice = false) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem("skilllens_token", token);
+  window.localStorage.setItem("skilllens_user", JSON.stringify(user));
+  if (rememberDevice) window.localStorage.setItem("skilllens_remember", "true");
+  else window.localStorage.removeItem("skilllens_remember");
 }
 
 export function clearAuth() {
@@ -33,9 +43,10 @@ export function clearAuth() {
   window.localStorage.removeItem("access_token");
 }
 
-export function redirectPathByRole(role?: string) {
+export function redirectPathByRole(role?: string | null) {
   if (role === "superadmin") return "/superadmin/admin";
   if (role === "admin") return "/admin/dashboard";
+  if (role === "admin_sekolah") return "/admin-sekolah";
   if (role === "guru") return "/guru";
   if (role === "siswa") return "/siswa";
   return "/auth/login";

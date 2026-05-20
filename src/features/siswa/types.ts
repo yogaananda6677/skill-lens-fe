@@ -1,4 +1,15 @@
-export type AcademicScores = Partial<Record<"numerik" | "bahasa" | "sains" | "sosial" | "teknologi" | "agama" | "kreativitas" | "softskill", number>>;
+export type AcademicScores = Partial<Record<
+  | "numerik"
+  | "bahasa"
+  | "sains"
+  | "sosial"
+  | "teknologi"
+  | "agama"
+  | "kreativitas"
+  | "softskill"
+  | "praktik",
+  number
+>>;
 
 export type StudentProfileForm = {
   name: string;
@@ -10,24 +21,32 @@ export type StudentProfileForm = {
   interests: string[];
   hobbies: string[];
   talents: string[];
-  skills: string[];
+  experiences: string[];
   achievements: string;
-  goal: string;
+  goal: "kuliah" | "kerja" | "wirausaha" | string;
   learningPreference: string;
   constraints: string;
 };
 
-export type CriteriaBreakdown = {
-  academic: number;
-  interest: number;
-  talentSkill: number;
-  goalFit: number;
-};
+export type CriteriaBreakdown = Partial<Record<
+  | "akademik"
+  | "praktik"
+  | "minat"
+  | "bakat"
+  | "hobi"
+  | "pengalaman"
+  | "prestasi"
+  | "tag_match"
+  | "kategori_match",
+  number
+>>;
 
 export type Recommendation = {
   id: string;
+  alternativeId?: number;
+  roadmapId?: number | null;
   title: string;
-  category: "Kuliah" | "Karier" | "Pelatihan" | "Jalur Kerja" | string;
+  category: "kuliah" | "kerja" | "wirausaha" | string;
   score: number;
   fuzzyLabel: string;
   topsisRank: number;
@@ -38,20 +57,38 @@ export type Recommendation = {
   dominantFactors: string[];
 };
 
-export type RoadmapStep = {
-  id: string;
-  phase: string;
+export type RoadmapDetail = {
+  id: number;
+  progressId?: number;
   title: string;
-  description: string;
-  duration: string;
-  output: string;
-  checklist: string[];
+  description?: string | null;
+  referenceLink?: string | null;
+  status: "belum" | "proses" | "selesai" | string;
+  completedAt?: string | null;
+  notes?: Array<{ id: number; note: string; createdAt?: string | null; guruName?: string | null }>;
+};
+
+export type RoadmapStep = {
+  id: number;
+  title: string;
+  description?: string | null;
+  order: number;
+  details: RoadmapDetail[];
 };
 
 export type CareerRoadmap = {
-  careerId: string;
+  id: number;
+  studentRoadmapId?: number;
   headline: string;
   targetRole: string;
-  initialCompleted: number;
+  description?: string | null;
+  progress: number;
   steps: RoadmapStep[];
+};
+
+export type PublishedRoadmap = {
+  id: number;
+  title: string;
+  description?: string | null;
+  category?: string | null;
 };

@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { Icon } from "../components/ui/icons";
+import { PublicNavbar } from "../components/layout/PublicNavbar";
+
+const HERO_IMAGE = "/images/skilllens-hero.png";
 
 // ========== DATA ==========
 const features = [
@@ -31,7 +34,7 @@ const features = [
 ];
 
 const steps = [
-  "Guru mendaftar dan mengajukan sekolah",
+  "Admin sekolah mendaftar dan mengajukan sekolah",
   "Admin memverifikasi data sekolah",
   "Guru mengimpor nilai siswa (Excel)",
   "Siswa melengkapi profil minat & bakat",
@@ -56,63 +59,7 @@ export default function Home() {
   return (
   <main className="min-h-screen overflow-x-hidden bg-transparent text-slate-950">
     {/* ========== NAVBAR FIXED ========== */}
-    <nav className="fixed left-0 right-0 top-0 z-[999] border-b border-white/10 bg-[#0a0f2a]/80 backdrop-blur-xl">
-      <div className="mx-auto flex w-[min(1220px,calc(100%-32px))] items-center justify-between gap-4 py-4">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white text-slate-950 shadow-lg">
-            <Icon name="spark" className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-lg font-bold tracking-tight text-white">
-              SkillLens
-            </p>
-            <p className="text-xs font-medium text-cyan-100/80">
-              Career Decision Support
-            </p>
-          </div>
-        </Link>
-
-        <div className="hidden items-center gap-6 text-sm font-medium text-white/80 md:flex">
-          <a href="#tentang" className="transition hover:text-cyan-300">
-            Tentang
-          </a>
-          <a href="#fitur" className="transition hover:text-cyan-300">
-            Fitur
-          </a>
-          <a href="#kelebihan" className="transition hover:text-cyan-300">
-            Kelebihan
-          </a>
-          <a href="#peran" className="transition hover:text-cyan-300">
-            Peran
-          </a>
-          <a href="#keamanan" className="transition hover:text-cyan-300">
-            Keamanan
-          </a>
-          <a href="#alur" className="transition hover:text-cyan-300">
-            Alur
-          </a>
-          <a href="#metode" className="transition hover:text-cyan-300">
-            Metode
-          </a>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Link
-            href="/auth/login"
-            className="hidden rounded-full border border-white/20 bg-white/10 px-5 py-2 text-sm font-medium text-white backdrop-blur-sm transition hover:bg-white hover:text-slate-950 sm:inline-block"
-          >
-            Masuk
-          </Link>
-
-          <Link
-            href="/auth/register"
-            className="rounded-full bg-gradient-to-r from-cyan-300 to-sky-400 px-5 py-2 text-sm font-semibold text-slate-950 shadow-lg transition hover:-translate-y-0.5 hover:shadow-cyan-400/30"
-          >
-            Daftar Guru
-          </Link>
-        </div>
-      </div>
-    </nav>
+    <PublicNavbar />
 
     {/* ========== HERO SECTION ========== */}
     <section className="relative overflow-hidden pt-24 text-white">
@@ -172,151 +119,14 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Dashboard Preview */}
-        <div className="animate-fade-up rounded-2xl border border-white/20 bg-white/10 p-2 shadow-2xl backdrop-blur-md">
-          <div className="overflow-hidden rounded-xl bg-white text-slate-950 shadow-lg">
-            <div className="flex items-center justify-between bg-gradient-to-r from-[#0f2a5f] to-[#1e3a8a] px-4 py-3 text-white">
-              <div className="flex items-center gap-2">
-                <div className="grid h-8 w-8 place-items-center rounded-lg bg-white/20">
-                  <Icon name="dashboard" className="h-4 w-4" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold">Dashboard Guru</p>
-                  <p className="text-xs text-white/70">
-                    Monitoring & Rekomendasi
-                  </p>
-                </div>
-              </div>
-
-              <span className="rounded-full bg-emerald-400/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
-                Live
-              </span>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 p-4">
-              <div className="rounded-lg bg-slate-50 p-2 text-center">
-                <Icon name="users" className="mx-auto h-5 w-5 text-[#0f2a5f]" />
-                <p className="text-xl font-bold">248</p>
-                <p className="text-[10px] font-medium text-slate-400">
-                  Siswa Aktif
-                </p>
-              </div>
-
-              <div className="rounded-lg bg-slate-50 p-2 text-center">
-                <Icon
-                  name="profile"
-                  className="mx-auto h-5 w-5 text-[#0f2a5f]"
-                />
-                <p className="text-xl font-bold">92%</p>
-                <p className="text-[10px] font-medium text-slate-400">
-                  Profil Lengkap
-                </p>
-              </div>
-
-              <div className="rounded-lg bg-slate-50 p-2 text-center">
-                <Icon name="target" className="mx-auto h-5 w-5 text-[#0f2a5f]" />
-                <p className="text-xl font-bold">3.2</p>
-                <p className="text-[10px] font-medium text-slate-400">
-                  Rekomendasi/Siswa
-                </p>
-              </div>
-            </div>
-
-            <div className="px-4 pb-2">
-              <div className="rounded-lg bg-slate-50 p-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-xs font-bold uppercase text-[#0f2a5f]">
-                    Aktivitas Siswa & Guru
-                  </p>
-                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] text-emerald-600">
-                    Live
-                  </span>
-                </div>
-
-                <div className="space-y-2">
-                  {[
-                    {
-                      student: "Anisa R.",
-                      progress: "Profil 100%",
-                      status: "Roadmap aktif",
-                      guru: "Review nilai",
-                      icon: "user",
-                    },
-                    {
-                      student: "Bima S.",
-                      progress: "Profil 80%",
-                      status: "Minat diisi",
-                      guru: "Ingatkan isi",
-                      icon: "user",
-                    },
-                    {
-                      student: "Citra D.",
-                      progress: "Profil 100%",
-                      status: "Rekomendasi dilihat",
-                      guru: "Diskusi lanjut",
-                      icon: "users",
-                    },
-                  ].map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-2 border-b border-slate-200 pb-2 text-xs last:border-0"
-                    >
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#0f2a5f]/10">
-                        <Icon
-                          name={item.icon as any}
-                          className="h-3 w-3 text-[#0f2a5f]"
-                        />
-                      </div>
-
-                      <div className="flex-1">
-                        <p className="font-semibold text-slate-800">
-                          {item.student}
-                        </p>
-                        <p className="text-[10px] text-slate-500">
-                          {item.progress} • {item.status}
-                        </p>
-                      </div>
-
-                      <div className="text-right">
-                        <span className="rounded bg-white px-1.5 py-0.5 text-[9px] font-medium shadow-sm">
-                          📌 {item.guru}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-2 pt-1 text-center">
-                  <p className="text-[9px] text-slate-400">
-                    ↑ 3 siswa perlu bimbingan guru
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2 p-4 pt-2">
-              {recommendations.map((item) => (
-                <div
-                  key={item.rank}
-                  className="flex items-center justify-between rounded-lg bg-slate-50 p-2"
-                >
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase text-slate-400">
-                      Peringkat {item.rank}
-                    </p>
-                    <p className="text-sm font-bold">{item.title}</p>
-                    <p className="text-[10px] text-emerald-600">
-                      {item.match}
-                    </p>
-                  </div>
-
-                  <div className="grid h-8 w-8 place-items-center rounded-lg bg-[#0f2a5f] text-sm font-bold text-cyan-300">
-                    {item.score}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+        {/* Hero image langsung sebagai background */}
+      {/* Hero image */}
+        <div className="relative flex animate-fade-up items-center justify-center">
+        <img
+            src={HERO_IMAGE}
+            alt="Preview tampilan SkillLens"
+            className="w-full max-w-[900px] object-contain"
+        />
         </div>
       </div>
     </section>
@@ -394,7 +204,7 @@ export default function Home() {
           {features.map((feat) => (
             <div key={feat.title} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-md transition hover:-translate-y-1 hover:shadow-lg">
               <div className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-[#0f2a5f] to-[#1e3a8a] text-white">
-                <Icon name={feat.icon} className="h-5 w-5" />
+                <Icon name={feat.icon as any} className="h-5 w-5" />
               </div>
               <h3 className="mt-4 text-lg font-bold text-slate-950">{feat.title}</h3>
               <p className="mt-2 text-sm text-slate-500 leading-relaxed">{feat.text}</p>
@@ -574,11 +384,11 @@ export default function Home() {
           <div>
             <p className="text-sm font-bold uppercase tracking-wide text-cyan-200">Siap membawa sekolahmu lebih maju?</p>
             <h3 className="text-2xl font-bold md:text-3xl">Mulai gunakan SkillLens sekarang</h3>
-            <p className="mt-1 text-slate-200">Daftar sebagai guru dan bantu siswa menemukan arah karier terbaik mereka.</p>
+            <p className="mt-1 text-slate-200">Daftar sebagai admin sekolah dan bantu siswa menemukan arah karier terbaik mereka.</p>
           </div>
           <div className="flex gap-3">
             <Link href="/auth/register" className="rounded-full bg-cyan-300 px-6 py-3 font-bold text-slate-950 shadow-md transition hover:-translate-y-0.5 hover:bg-white">
-              Daftar Gratis
+              Daftar Admin Sekolah
             </Link>
             <Link href="/auth/login" className="rounded-full border border-white/30 bg-white/10 px-6 py-3 font-medium backdrop-blur-sm transition hover:bg-white hover:text-slate-950">
               Masuk

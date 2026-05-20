@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 
-type IconName =
+export type IconName =
   | "dashboard"
   | "school"
   | "verify"
@@ -16,6 +16,7 @@ type IconName =
   | "menu"
   | "logout"
   | "spark"
+  | "sparkles"
   | "check"
   | "user"
   | "target"
@@ -27,6 +28,8 @@ type IconName =
   | "mail"
   | "phone"
   | "lock"
+  | "eye"
+  | "eyeOff"
   | "chevronRight"
   | "home"
   | "briefcase"
@@ -34,14 +37,24 @@ type IconName =
   | "graduation"
   | "clipboard"
   | "x"
-  | "alert";
+  | "alert"
+  | "database"
+  | "fileSpreadsheet"
+  | "message"
+  | "note"
+  | "progress"
+  | "settings"
+  | "search"
+  | "calendar"
+  | "arrowLeft"
+  | "download";
 
 type Props = SVGProps<SVGSVGElement> & {
-  name: IconName;
+  name: IconName | string;
 };
 
-export function Icon({ name, className = "h-5 w-5", ...props }: Props) {
-  const common = {
+function svgBase(className: string, props: SVGProps<SVGSVGElement>) {
+  return {
     viewBox: "0 0 24 24",
     fill: "none",
     stroke: "currentColor",
@@ -51,10 +64,14 @@ export function Icon({ name, className = "h-5 w-5", ...props }: Props) {
     className,
     ...props,
   };
+}
+
+export function Icon({ name, className = "h-5 w-5", ...props }: Props) {
+  const common = svgBase(className, props);
 
   switch (name) {
     case "dashboard":
-      return <svg {...common}><path d="M3 12.5 12 4l9 8.5"/><path d="M5 10.5V20h14v-9.5"/><path d="M9 20v-6h6v6"/></svg>;
+      return <svg {...common}><path d="M4 13h6V4H4z"/><path d="M14 20h6V4h-6z"/><path d="M4 20h6v-3H4z"/></svg>;
     case "school":
       return <svg {...common}><path d="M3 9 12 4l9 5-9 5-9-5Z"/><path d="M5 10.5V18"/><path d="M19 10.5V18"/><path d="M8 12v6"/><path d="M12 14v4"/><path d="M16 12v6"/><path d="M4 20h16"/></svg>;
     case "verify":
@@ -65,16 +82,21 @@ export function Icon({ name, className = "h-5 w-5", ...props }: Props) {
       return <svg {...common}><rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="4" rx="1.5"/><rect x="14" y="11" width="7" height="9" rx="1.5"/><rect x="3" y="14" width="7" height="6" rx="1.5"/></svg>;
     case "upload":
       return <svg {...common}><path d="M12 16V5"/><path d="m8 9 4-4 4 4"/><path d="M4 17v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/></svg>;
+    case "download":
+      return <svg {...common}><path d="M12 5v11"/><path d="m8 12 4 4 4-4"/><path d="M4 19h16"/></svg>;
     case "users":
       return <svg {...common}><path d="M16 21v-1.5a4.5 4.5 0 0 0-4.5-4.5h-3A4.5 4.5 0 0 0 4 19.5V21"/><circle cx="10" cy="8" r="3"/><path d="M17 11a3 3 0 1 0 0-6"/><path d="M20 21v-1a4 4 0 0 0-2.5-3.7"/></svg>;
     case "guidance":
       return <svg {...common}><path d="M12 21s-6-3.5-6-10a6 6 0 0 1 12 0c0 6.5-6 10-6 10Z"/><circle cx="12" cy="11" r="2.5"/></svg>;
     case "profile":
+    case "user":
       return <svg {...common}><circle cx="12" cy="8" r="4"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>;
     case "academic":
+    case "graduation":
       return <svg {...common}><path d="M3 8.5 12 4l9 4.5-9 4.5-9-4.5Z"/><path d="M7 11v4.2c0 1.6 2.2 2.8 5 2.8s5-1.2 5-2.8V11"/><path d="M21 8.5v5.5"/></svg>;
     case "result":
-      return <svg {...common}><path d="M5 19V9"/><path d="M12 19V5"/><path d="M19 19v-7"/></svg>;
+    case "chart":
+      return <svg {...common}><path d="M4 19h16"/><path d="M7 16V9"/><path d="M12 16V5"/><path d="M17 16v-4"/></svg>;
     case "roadmap":
       return <svg {...common}><path d="M6 19a3 3 0 1 1 0-6h7a3 3 0 1 0 0-6h-2"/><circle cx="6" cy="16" r="1.5"/><circle cx="13" cy="10" r="1.5"/><circle cx="18" cy="7" r="1.5"/></svg>;
     case "menu":
@@ -82,17 +104,14 @@ export function Icon({ name, className = "h-5 w-5", ...props }: Props) {
     case "logout":
       return <svg {...common}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>;
     case "spark":
+    case "sparkles":
       return <svg {...common}><path d="m12 3 1.4 4.6L18 9l-4.6 1.4L12 15l-1.4-4.6L6 9l4.6-1.4L12 3Z"/><path d="m5 17 .7 2.3L8 20l-2.3.7L5 23l-.7-2.3L2 20l2.3-.7L5 17Z"/><path d="m19 14 .7 2.3L22 17l-2.3.7L19 20l-.7-2.3L16 17l2.3-.7L19 14Z"/></svg>;
     case "check":
       return <svg {...common}><circle cx="12" cy="12" r="9"/><path d="m8.5 12.3 2.2 2.2 4.8-5"/></svg>;
-    case "user":
-      return <svg {...common}><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg>;
     case "target":
       return <svg {...common}><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1.2"/></svg>;
     case "clock":
       return <svg {...common}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>;
-    case "chart":
-      return <svg {...common}><path d="M4 19h16"/><path d="M7 16V9"/><path d="M12 16V5"/><path d="M17 16v-4"/></svg>;
     case "book":
       return <svg {...common}><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H19v18H7.5A2.5 2.5 0 0 0 5 22"/><path d="M5 4.5V22"/></svg>;
     case "shield":
@@ -107,22 +126,53 @@ export function Icon({ name, className = "h-5 w-5", ...props }: Props) {
       return <svg {...common}><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 1 1 8 0v3"/></svg>;
     case "chevronRight":
       return <svg {...common}><path d="m9 6 6 6-6 6"/></svg>;
+    case "arrowLeft":
+      return <svg {...common}><path d="m15 18-6-6 6-6"/></svg>;
     case "home":
       return <svg {...common}><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10.5V20h14v-9.5"/></svg>;
     case "briefcase":
       return <svg {...common}><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M3 12h18"/></svg>;
     case "building":
       return <svg {...common}><path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/><path d="M8 7h2"/><path d="M8 11h2"/><path d="M8 15h2"/><path d="M14 9h6v12h-6"/><path d="M16 13h2"/><path d="M16 17h2"/><path d="M3 21h18"/></svg>;
-    case "graduation":
-      return <svg {...common}><path d="M3 8.5 12 4l9 4.5-9 4.5-9-4.5Z"/><path d="M7 11v4.2c0 1.6 2.2 2.8 5 2.8s5-1.2 5-2.8V11"/><path d="M21 8.5v5.5"/></svg>;
     case "clipboard":
       return <svg {...common}><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4.5h6"/><path d="M9 9h6"/><path d="M9 13h6"/></svg>;
-
+    case "database":
+      return <svg {...common}><ellipse cx="12" cy="5" rx="7" ry="3"/><path d="M5 5v6c0 1.7 3.1 3 7 3s7-1.3 7-3V5"/><path d="M5 11v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></svg>;
+    case "fileSpreadsheet":
+      return <svg {...common}><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M9 13h8"/><path d="M9 17h8"/><path d="M12 11v8"/></svg>;
+    case "message":
+    case "note":
+      return <svg {...common}><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>;
+    case "progress":
+      return <svg {...common}><path d="M4 13a8 8 0 1 0 2.3-5.7"/><path d="M4 5v5h5"/><path d="M12 8v5l3 2"/></svg>;
+    case "settings":
+      return <svg {...common}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>;
+    case "search":
+      return <svg {...common}><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>;
+    case "calendar":
+      return <svg {...common}><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="M4 10h16"/></svg>;
     case "x":
       return <svg {...common}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>;
     case "alert":
       return <svg {...common}><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 4.4 2.8 17.2A2 2 0 0 0 4.5 20h15a2 2 0 0 0 1.7-2.8L13.7 4.4a2 2 0 0 0-3.4 0Z"/></svg>;
-    default:
+    case "eye":
+        return (
+            <svg {...common}>
+            <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+            <circle cx="12" cy="12" r="3" />
+            </svg>
+        );
+
+        case "eyeOff":
+        return (
+            <svg {...common}>
+            <path d="m3 3 18 18" />
+            <path d="M10.6 10.6A3 3 0 0 0 12 15a3 3 0 0 0 2.4-1.2" />
+            <path d="M9.9 5.4A9.8 9.8 0 0 1 12 5c6 0 9.5 7 9.5 7a17 17 0 0 1-2.1 3.1" />
+            <path d="M6.4 6.8C3.9 8.4 2.5 12 2.5 12s3.5 7 9.5 7a9.7 9.7 0 0 0 4.2-.9" />
+            </svg>
+        );
+      default:
       return <svg {...common}><circle cx="12" cy="12" r="9"/></svg>;
   }
 }
