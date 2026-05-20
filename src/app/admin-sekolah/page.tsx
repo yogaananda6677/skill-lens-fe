@@ -488,9 +488,10 @@ export default function AdminSekolahPage() {
   function renderContent() {
     if (loadingStatus) {
       return (
-        <section className="rounded-[2rem] border border-sky-100 bg-white p-8 text-sm font-semibold text-slate-500 shadow-xl shadow-sky-950/5">
-          Memuat status sekolah...
-        </section>
+        <div className="flex justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
+          <span className="ml-2 text-slate-600">Memuat status sekolah...</span>
+        </div>
       );
     }
 
@@ -641,7 +642,7 @@ export default function AdminSekolahPage() {
       subtitle="Kelola data sekolah, guru, jurusan, import siswa, dan data siswa dalam satu panel."
       onNavigate={(key) => setActive(key as AdminSchoolPageKey)}
       rightSlot={
-        <div className="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-700">
+        <div className="rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-md">
           {schoolStatus?.nama_sekolah || "SkillLens School Panel"}
         </div>
       }

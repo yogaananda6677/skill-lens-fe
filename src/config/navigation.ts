@@ -58,10 +58,12 @@ export const adminNav = [
   { key: "sekolah", label: "Data Sekolah", description: "Master sekolah", href: "/admin/sekolah", icon: "school", roles: ["admin", "superadmin"] },
 ] as const satisfies readonly DashboardNavItem[];
 
-export const superadminNav = [
-  { key: "admin", label: "Kelola Admin", description: "Akun admin", href: "/superadmin/admin", icon: "shield", roles: ["superadmin"] },
-  ...adminNav,
-] as const satisfies readonly DashboardNavItem[];
+export const superadminNav: DashboardNavItem[] = [
+  { key: "dashboard", label: "Dashboard", href: "/superadmin", icon: "dashboard" },
+  { key: "kelola-admin", label: "Kelola Admin", href: "/superadmin/admin", icon: "users" },
+  { key: "verifikasi", label: "Verifikasi", href: "/superadmin/verifikasi", icon: "verify" },
+  { key: "sekolah", label: "Data Sekolah", href: "/superadmin/sekolah", icon: "school" },
+];
 
 export function dashboardHomeByRole(role?: AuthRole | string | null) {
   if (role === "superadmin") return "/superadmin/admin";

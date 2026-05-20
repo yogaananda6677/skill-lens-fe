@@ -1,5 +1,5 @@
 "use client";
-
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -374,128 +374,207 @@ export function DashboardShell({
   );
 
   return (
-    <>
-      <main className="min-h-screen bg-[radial-gradient(circle_at_85%_8%,rgba(14,165,233,0.13),transparent_28%),linear-gradient(180deg,#f8fafc_0%,#eef6ff_46%,#f8fafc_100%)] text-slate-950 lg:grid lg:grid-cols-[292px_1fr]">
-        <div className="hidden lg:block">
-  <div className="sticky top-0 h-screen overflow-y-auto border-r border-slate-200 bg-white/92 backdrop-blur-xl">
-    {sidebar}
-  </div>
-</div>
+  <>
+    <main className="min-h-screen bg-[#f6f9ff] text-slate-950 lg:grid lg:grid-cols-[292px_1fr]">
+      {/* Sidebar desktop */}
+      <div className="hidden lg:block">
+        <div className="sticky top-0 h-screen overflow-y-auto border-r border-slate-200 bg-white">
+          {sidebar}
+        </div>
+      </div>
 
-        <div className="lg:hidden">
-          <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur-xl">
-            <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setOpen(true)}
-                className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-50 text-sky-700 ring-1 ring-sky-100"
-                aria-label="Buka menu"
-              >
-                <Icon name="menu" />
-              </button>
+      {/* Mobile header & drawer */}
+      <div className="lg:hidden">
+        <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-xl">
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-50 text-sky-700 ring-1 ring-sky-100"
+              aria-label="Buka menu"
+            >
+              <Icon name="menu" />
+            </button>
 
-              <Link
-                href={redirectPathByRole(storedUser?.role)}
-                className="flex items-center gap-2 text-base font-bold"
-              >
-                <span className="grid h-9 w-9 place-items-center rounded-xl bg-sky-600 text-white">
-                  <Icon name="spark" className="h-4 w-4" />
-                </span>
-                SkillLens
-              </Link>
+            <Link
+              href={redirectPathByRole(storedUser?.role)}
+              className="flex items-center gap-2 text-base font-bold"
+            >
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-sky-600 text-white">
+                <Icon name="spark" className="h-4 w-4" />
+              </span>
+              SkillLens
+            </Link>
 
-              <button
-                type="button"
-                onClick={() => setLogoutOpen(true)}
-                className="grid h-11 w-11 place-items-center rounded-2xl bg-rose-50 text-rose-600 ring-1 ring-rose-100"
-                aria-label="Keluar"
-              >
-                <Icon name="logout" className="h-4 w-4" />
-              </button>
+            <button
+              type="button"
+              onClick={() => setLogoutOpen(true)}
+              className="grid h-11 w-11 place-items-center rounded-2xl bg-rose-50 text-rose-600 ring-1 ring-rose-100"
+              aria-label="Keluar"
+            >
+              <Icon name="logout" className="h-4 w-4" />
+            </button>
+          </div>
+        </header>
+
+        {open && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="absolute inset-0 bg-slate-950/45 backdrop-blur-sm"
+              aria-label="Tutup menu"
+            />
+
+            <div className="relative h-full w-[86%] max-w-sm animate-[sidebarIn_220ms_ease-out] shadow-2xl">
+              {sidebar}
             </div>
-          </header>
+          </div>
+        )}
+      </div>
 
-          {open && (
-            <div className="fixed inset-0 z-50 lg:hidden">
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="absolute inset-0 bg-slate-950/45 backdrop-blur-sm"
-                aria-label="Tutup menu"
+      {/* Konten utama */}
+      <section className="min-w-0">
+        <div className="w-full px-5 py-5 lg:px-6">
+          {/* Topbar */}
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full max-w-md">
+              <Icon
+                name="search"
+                className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
               />
 
-              <div className="relative h-full w-[86%] max-w-sm animate-[sidebarIn_220ms_ease-out] shadow-2xl">
-                {sidebar}
+              <input
+                type="text"
+                placeholder="Cari data, sekolah, pengguna, atau aktivitas..."
+                className="h-11 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-sm font-medium text-slate-700 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-4">
+              <button
+                type="button"
+                className="relative grid h-11 w-11 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50"
+                aria-label="Notifikasi"
+              >
+                <Icon name="bell" className="h-5 w-5" />
+                <span className="absolute right-2 top-2 grid h-4 w-4 place-items-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
+                  3
+                </span>
+              </button>
+
+              <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+                <div className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-sky-600 to-blue-700 text-sm font-bold text-white">
+                  {initials(displayName)}
+                </div>
+
+                <div className="hidden sm:block">
+                  <p className="text-sm font-bold text-slate-900">
+                    {displayName}
+                  </p>
+                  <p className="text-xs font-medium text-slate-500">
+                    {displayLabel}
+                  </p>
+                </div>
+
+                <Icon name="chevronDown" className="h-4 w-4 text-slate-400" />
               </div>
             </div>
-          )}
-        </div>
+          </div>
 
-        <section className="min-w-0">
-          <header className="relative overflow-hidden border-b border-sky-100 bg-white/78 px-5 py-7 backdrop-blur-xl lg:px-8">
-            <div className="absolute right-0 top-0 h-32 w-64 rounded-bl-full bg-sky-100/70 blur-2xl" />
+          {/* Header dashboard */}
+          <header className="relative mb-6 overflow-hidden rounded-[2rem] bg-[#0b1533] shadow-lg">
+            {/* base gradient halus satu arah */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#0b1533] via-[#0b1533] to-[#090f27]" />
 
-            <div className="relative mx-auto flex max-w-7xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">
+            {/* glow kanan yang halus, bukan blok */}
+            <div className="absolute right-0 top-0 h-full w-[55%] bg-[radial-gradient(circle_at_70%_50%,rgba(37,99,235,0.28),transparent_55%)]" />
+            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(85, 98, 151, 0.96)_0%,rgba(68, 91, 162, 0.94)_44%,rgba(57, 64, 86, 0.88)_100%)]" />
+
+            <div className="relative grid min-h-[190px] items-center gap-6 px-6 py-7 lg:grid-cols-[1fr_440px] lg:px-8">
+              {/* Text kiri */}
+              <div className="relative z-20">
+                <p className="text-xs font-extrabold uppercase tracking-[0.28em] text-cyan-300">
                   {roleLabel(storedUser?.role)}
                 </p>
 
-                <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 md:text-4xl">
-                  {title}
+                <h1 className="mt-3 text-3xl font-black tracking-tight text-white md:text-4xl">
+                  {title || "Dashboard Administrasi"}
                 </h1>
 
-                <p className="mt-3 max-w-3xl text-sm font-medium leading-7 text-slate-500">
-                  {subtitle}
+                <p className="mt-3 max-w-2xl text-sm font-medium leading-7 text-cyan-100/80 md:text-base">
+                  {subtitle ||
+                    "Pantau kinerja sistem, kelola data, dan pastikan semua berjalan optimal."}
                 </p>
+
+                {rightSlot && <div className="mt-5">{rightSlot}</div>}
               </div>
 
-              {rightSlot}
+              {/* Ilustrasi kanan */}
+              <div className="pointer-events-none absolute bottom-0 right-0 top-0 z-10 hidden w-[560px] overflow-hidden lg:block">
+                <img
+                  src="/images/bg-dashboard.png"
+                  alt="Dashboard illustration"
+                  className="absolute right-0 top-1/2 h-[220px] w-[520px] -translate-y-1/2 object-cover object-right opacity-90 drop-shadow-[0_24px_45px_rgba(34,211,238,0.18)]"
+                />
+
+                {/* samarkan sisi kiri gambar agar nyatu */}
+                <div className="absolute inset-y-0 left-0 w-[52%] bg-gradient-to-r from-[#0b1533] via-[#0b1533]/92 to-transparent" />
+
+                {/* samarkan atas bawah gambar */}
+                <div className="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-[#0b1533] to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-[#0b1533] to-transparent" />
+
+                {/* tone biru header biar gambar tidak beda sendiri */}
+                <div className="absolute inset-0 bg-[#0b1533]/18 mix-blend-multiply" />
+              </div>
             </div>
           </header>
 
+          {/* Isi dashboard dari page */}
           <div
             key={activeKey}
-            className="mx-auto max-w-7xl animate-[contentIn_240ms_ease-out] px-5 py-8 lg:px-8"
+            className="animate-[contentIn_240ms_ease-out]"
           >
             {children}
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
+    </main>
 
-      <LogoutModal
-        open={logoutOpen}
-        onCancel={() => setLogoutOpen(false)}
-        onConfirm={logout}
-      />
+    <LogoutModal
+      open={logoutOpen}
+      onCancel={() => setLogoutOpen(false)}
+      onConfirm={logout}
+    />
 
-      <style jsx global>{`
-        html {
-          scroll-behavior: smooth;
+    <style jsx global>{`
+      html {
+        scroll-behavior: smooth;
+      }
+
+      @keyframes contentIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
         }
-
-        @keyframes contentIn {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+        to {
+          opacity: 1;
+          transform: translateY(0);
         }
+      }
 
-        @keyframes sidebarIn {
-          from {
-            opacity: 0;
-            transform: translateX(-18px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
+      @keyframes sidebarIn {
+        from {
+          opacity: 0;
+          transform: translateX(-18px);
         }
-      `}</style>
-    </>
-  );
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+    `}</style>
+  </>
+);
 }

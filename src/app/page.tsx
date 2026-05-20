@@ -120,13 +120,14 @@ export default function Home() {
         </div>
 
         {/* Hero image langsung sebagai background */}
-      {/* Hero image */}
-        <div className="relative flex animate-fade-up items-center justify-center">
-        <img
+        {/* Hero image */}
+        <div className="relative flex animate-fade-up items-center justify-center w-full overflow-visible">
+          <img
             src={HERO_IMAGE}
             alt="Preview tampilan SkillLens"
-            className="w-full max-w-[900px] object-contain"
-        />
+            className="w-[135%] max-w-none h-auto object-contain"
+            style={{ transform: 'translateX(-8%)' }} // optional: pusatkan
+          />
         </div>
       </div>
     </section>
