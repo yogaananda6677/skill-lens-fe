@@ -1,9 +1,9 @@
+import type { FormEvent } from "react";
 import { Icon } from "../../../components/ui/icons";
 import { jabatanOptions } from "../constants";
 import type { FieldErrors, TeacherForm, TeacherRow } from "../types";
 import {
   Field,
-  PageCard,
   StatusMessage,
   getInitials,
 } from "./AdminSchoolShared";
@@ -42,7 +42,7 @@ export function AdminSchoolDataGuru({
   setTeacherRoleFilter: (value: string) => void;
   setTeacherModalOpen: (value: boolean) => void;
   onUpdateTeacher: (key: keyof TeacherForm, value: string) => void;
-  onSubmitTeacher: (event: React.FormEvent<HTMLFormElement>) => void;
+  onSubmitTeacher: (event: FormEvent<HTMLFormElement>) => void;
   onOpenCreate: () => void;
 }) {
   return (
@@ -166,6 +166,112 @@ export function AdminSchoolDataGuru({
           </div>
         </div>
       </div>
+
+
+      {teacherModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm">
+          <form
+            onSubmit={onSubmitTeacher}
+            className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-[1.75rem] bg-white p-6 shadow-2xl"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-700">Data Guru</p>
+                <h3 className="mt-2 text-xl font-bold text-slate-900">Tambah akun guru</h3>
+                <p className="mt-1 text-sm text-slate-500">Password awal otomatis sama dengan NIP/NUPTK.</p>
+              </div>
+              <button
+                type="button"
+                disabled={loadingTeacher}
+                onClick={() => setTeacherModalOpen(false)}
+                className="rounded-full bg-slate-100 px-3 py-1.5 text-sm font-bold text-slate-600 transition hover:bg-slate-200 disabled:opacity-50"
+              >
+                Tutup
+              </button>
+            </div>
+
+            <div className="mt-5">
+              <StatusMessage message={teacherMessage} error={teacherError} />
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <Field
+                label="Nama guru"
+                value={teacherForm.nama}
+                placeholder="Contoh: Budi Santoso"
+                error={teacherTouched ? teacherErrors.nama : undefined}
+                onChange={(value) => onUpdateTeacher("nama", value)}
+              />
+              <Field
+                label="Email"
+                value={teacherForm.email}
+                placeholder="guru@email.com"
+                type="email"
+                error={teacherTouched ? teacherErrors.email : undefined}
+                onChange={(value) => onUpdateTeacher("email", value)}
+              />
+              <Field
+                label="Username"
+                value={teacherForm.username}
+                placeholder="budi123"
+                error={teacherTouched ? teacherErrors.username : undefined}
+                onChange={(value) => onUpdateTeacher("username", value)}
+              />
+              <Field
+                label="NIP/NUPTK"
+                value={teacherForm.nip}
+                placeholder="1234567890"
+                error={teacherTouched ? teacherErrors.nip : undefined}
+                onChange={(value) => onUpdateTeacher("nip", value)}
+              />
+              <Field
+                label="No HP"
+                value={teacherForm.no_hp}
+                placeholder="081234567890"
+                error={teacherTouched ? teacherErrors.no_hp : undefined}
+                onChange={(value) => onUpdateTeacher("no_hp", value)}
+              />
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-slate-700">Jabatan</span>
+                <select
+                  value={teacherForm.jabatan}
+                  onChange={(event) => onUpdateTeacher("jabatan", event.target.value)}
+                  className={`w-full rounded-xl border bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-900 outline-none transition focus:ring-4 ${
+                    teacherTouched && teacherErrors.jabatan
+                      ? "border-rose-300 focus:border-rose-500 focus:ring-rose-100"
+                      : "border-slate-200 focus:border-blue-300 focus:bg-white focus:ring-blue-50"
+                  }`}
+                >
+                  {jabatanOptions.map((jabatan) => (
+                    <option key={jabatan} value={jabatan}>{jabatan}</option>
+                  ))}
+                </select>
+                {teacherTouched && teacherErrors.jabatan ? (
+                  <p className="mt-1 text-xs font-medium text-rose-600">{teacherErrors.jabatan}</p>
+                ) : null}
+              </label>
+            </div>
+
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              <button
+                type="button"
+                disabled={loadingTeacher}
+                onClick={() => setTeacherModalOpen(false)}
+                className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={loadingTeacher}
+                className="rounded-full bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 disabled:opacity-50"
+              >
+                {loadingTeacher ? "Menyimpan..." : "Simpan Guru"}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
       <div className="absolute bottom-0 left-0 h-0.5 w-full bg-gradient-to-r from-blue-400 to-cyan-400 opacity-70 rounded-b-xl" />
     </div>
   );

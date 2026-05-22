@@ -2,11 +2,32 @@ import type { AuthRole } from "../lib/auth";
 import type { DashboardNavItem } from "../components/layout/DashboardShell";
 
 export const studentNav = [
-  { key: "profil", label: "Profil", description: "Data minat", href: "/siswa#profil", icon: "profile", roles: ["siswa"] },
-  { key: "akademik", label: "Akademik", description: "Nilai sekolah", href: "/siswa#akademik", icon: "academic", roles: ["siswa"] },
-  { key: "hasil", label: "Rekomendasi", description: "Hasil SPK", href: "/siswa#hasil", icon: "result", roles: ["siswa"] },
-  { key: "roadmap", label: "Roadmap", description: "Progress", href: "/siswa/roadmap", icon: "roadmap", roles: ["siswa"] },
-] as const satisfies readonly DashboardNavItem[];
+  {
+    key: "dashboard",
+    label: "Beranda",
+    href: "/siswa",
+    icon: "dashboard",
+  },
+  {
+    key: "profil",
+    label: "Profil",
+    href: "/siswa/profil",
+    icon: "profile",
+  },
+  {
+    key: "rekomendasi",
+    label: "Rekomendasi",
+    href: "/siswa/rekomendasi",
+    icon: "sparkles",
+  },
+  {
+    key: "roadmap",
+    label: "Roadmap",
+    href: "/siswa/roadmap",
+    icon: "map",
+  },
+] as const;
+
 
 export const guruNav = [
   { key: "progress", label: "Progress Siswa", description: "Pantau roadmap", href: "#progress", icon: "progress", roles: ["guru"] },
@@ -61,8 +82,6 @@ export const adminNav = [
 export const superadminNav: DashboardNavItem[] = [
   { key: "dashboard", label: "Dashboard", href: "/superadmin", icon: "dashboard" },
   { key: "kelola-admin", label: "Kelola Admin", href: "/superadmin/admin", icon: "users" },
-  { key: "verifikasi", label: "Verifikasi", href: "/superadmin/verifikasi", icon: "verify" },
-  { key: "sekolah", label: "Data Sekolah", href: "/superadmin/sekolah", icon: "school" },
 ];
 
 export function dashboardHomeByRole(role?: AuthRole | string | null) {

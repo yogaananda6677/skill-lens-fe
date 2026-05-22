@@ -68,7 +68,7 @@ export function StudentRecommendationCard({
 
       <div className="mt-5 flex items-center justify-between gap-3">
         <span className="text-xs font-semibold text-slate-400">
-          {item.roadmapId ? "Roadmap tersedia" : "Roadmap belum tersedia"}
+          {(item.roadmapId ?? item.alternativeId ?? item.id) ? "Roadmap tersedia" : "Roadmap belum tersedia"}
         </span>
 
         <span

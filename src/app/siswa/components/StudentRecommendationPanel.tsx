@@ -31,7 +31,7 @@ export function StudentRecommendationPanel({
           <button
             type="button"
             onClick={onGenerateRoadmap}
-            disabled={generatingRoadmap || !selectedRecommendation?.roadmapId}
+            disabled={generatingRoadmap || !(selectedRecommendation?.roadmapId ?? selectedRecommendation?.alternativeId ?? selectedRecommendation?.id)}
             className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Icon name="rocket" className="mr-2 h-4 w-4" />

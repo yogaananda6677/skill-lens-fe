@@ -92,3 +92,15 @@ export type PublishedRoadmap = {
   description?: string | null;
   category?: string | null;
 };
+
+
+export type StudentAchievement = {
+  id?: number;
+  id_prestasi?: number;
+  nama_prestasi: string;
+  tahun?: string | number | null;
+  tingkat?: string | null;
+  penyelenggara?: string | null;
+  keterangan?: string | null;
+  bukti_url?: string | null;
+};

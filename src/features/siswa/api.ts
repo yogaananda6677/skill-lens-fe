@@ -1,5 +1,5 @@
 import { apiFetch } from "../../lib/axios";
-import type { AcademicScores, CareerRoadmap, PublishedRoadmap, Recommendation, RoadmapDetail, RoadmapStep, StudentProfileForm } from "./types";
+import type { AcademicScores, CareerRoadmap, PublishedRoadmap, Recommendation, RoadmapDetail, RoadmapStep, StudentProfileForm , StudentAchievement} from "./types";
 
 function asArray(value: unknown): string[] {
   if (Array.isArray(value)) return value.map((item) => String(item ?? "").trim()).filter(Boolean);
@@ -10,13 +10,26 @@ function asArray(value: unknown): string[] {
 function firstDefined<T>(...values: T[]) {
   return values.find((value) => value !== undefined && value !== null && value !== "") as T | undefined;
 }
+export type PrestasiSiswaResponse = {
+  id?: number;
+  id_prestasi?: number;
+  nama_prestasi: string;
+  tahun?: string | number | null;
+  tingkat?: string | null;
+  penyelenggara?: string | null;
+  keterangan?: string | null;
+  bukti_url?: string | null;
+};
 
 export type SiswaMeResponse = {
   id_siswa: number;
   nisn: string;
   nama: string;
   email?: string;
-  sekolah?: string | { id?: number; nama?: string; jenis_sekolah?: string; status?: string } | null;
+  sekolah?:
+    | string
+    | { id?: number; nama?: string; jenis_sekolah?: string; status?: string }
+    | null;
   kelas: string;
   jurusan: string;
   id_jurusan?: number | null;
@@ -24,7 +37,8 @@ export type SiswaMeResponse = {
   hobi?: string[];
   bakat?: string[];
   pengalaman?: string[];
-  prestasi?: string[] | string;
+  prestasi?: PrestasiSiswaResponse[] | string[] | string;
+  prestasi_spk?: string[];
   prestasi_text?: string;
   tujuan?: string;
   nilai_akademik?: AcademicScores;
@@ -40,8 +54,32 @@ export type SiswaProfilePayload = {
   top_n?: number;
 };
 
+
+
 export async function getSiswaMe() {
   return apiFetch<SiswaMeResponse>("/siswa/me");
+}
+
+export type CreateStudentAchievementPayload = {
+  nama_prestasi: string;
+  tahun?: string | number | null;
+  tingkat?: string | null;
+  penyelenggara?: string | null;
+  keterangan?: string | null;
+  bukti_url?: string | null;
+};
+
+export async function createStudentAchievement(payload: CreateStudentAchievementPayload) {
+  return apiFetch<{ message: string; data?: PrestasiSiswaResponse }>("/prestasi-siswa", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteStudentAchievement(id: number) {
+  return apiFetch<{ message: string }>(`/prestasi-siswa/${id}`, {
+    method: "DELETE",
+  });
 }
 
 export async function saveSiswaProfile(payload: SiswaProfilePayload) {
@@ -88,8 +126,13 @@ function normalizeRecommendations(response: any) {
     roadmapId:
       item.roadmapId ??
       item.id_roadmap ??
+      item.roadmap_id ??
       item.roadmap?.id_roadmap ??
       item.roadmap?.id ??
+      item.alternatif_id ??
+      item.id_alternatif ??
+      item.alternatifId ??
+      item.id ??
       null,
     topsisRank: Number(
       item.topsisRank ?? item.rank ?? item.peringkat ?? index + 1,
@@ -110,6 +153,16 @@ export async function processSiswaSpk(payload: any) {
 }
 
 export function toStudentProfile(data: any): StudentProfileForm {
+  const prestasiRows = normalizeStudentAchievements(data);
+
+  const prestasiText = prestasiRows
+    .map((item) =>
+      [item.nama_prestasi, item.tingkat, item.tahun]
+        .filter(Boolean)
+        .join(" - "),
+    )
+    .join(", ");
+
   return {
     name: data?.nama ?? "",
     nisn: data?.nisn ?? "",
@@ -123,10 +176,7 @@ export function toStudentProfile(data: any): StudentProfileForm {
     talents: Array.isArray(data?.bakat) ? data.bakat : [],
     experiences: Array.isArray(data?.pengalaman) ? data.pengalaman : [],
 
-    // PRESTASI DIAMBIL DARI DATABASE / TAG
-    achievements: Array.isArray(data?.prestasi)
-      ? data.prestasi.join(", ")
-      : data?.prestasi_text ?? "",
+    achievements: prestasiText || data?.prestasi_text || "",
 
     goal: data?.tujuan ?? data?.tujuan_karir ?? "kuliah",
     learningPreference: "",
@@ -134,16 +184,24 @@ export function toStudentProfile(data: any): StudentProfileForm {
   };
 }
 function normalizeRoadmapDetail(raw: any): RoadmapDetail {
+  const progress = raw?.progress ?? {};
+
   return {
     id: Number(firstDefined(raw?.id, raw?.id_detail, raw?.roadmap_step_detail_id, raw?.id_roadmap_step_detail, 0)),
-    progressId: Number(firstDefined(raw?.progress_id, raw?.id_progress, raw?.student_progress_id, raw?.id, 0)) || undefined,
+    progressId: Number(firstDefined(
+      progress?.id_student_roadmap_progress,
+      raw?.progress_id,
+      raw?.id_progress,
+      raw?.student_progress_id,
+      0,
+    )) || undefined,
     title: String(firstDefined(raw?.title, raw?.judul, raw?.name, "Detail roadmap")),
     description: firstDefined(raw?.description, raw?.deskripsi, raw?.content, null) as string | null,
     referenceLink: firstDefined(raw?.reference_link, raw?.referenceLink, raw?.link, raw?.url, null) as string | null,
-    status: String(firstDefined(raw?.status, raw?.progress_status, "belum")),
-    completedAt: firstDefined(raw?.completed_at, raw?.completedAt, null) as string | null,
+    status: String(firstDefined(progress?.status, raw?.status, raw?.progress_status, "belum")),
+    completedAt: firstDefined(progress?.completed_at, raw?.completed_at, raw?.completedAt, null) as string | null,
     notes: (raw?.notes ?? raw?.catatan ?? []).map?.((note: any) => ({
-      id: Number(firstDefined(note?.id, note?.id_note, 0)),
+      id: Number(firstDefined(note?.id, note?.id_roadmap_step_note, note?.id_note, 0)),
       note: String(firstDefined(note?.note, note?.catatan, note?.text, "")),
       createdAt: firstDefined(note?.created_at, note?.createdAt, null) as string | null,
       guruName: firstDefined(note?.guru_name, note?.guruName, note?.guru?.nama, null) as string | null,
@@ -154,7 +212,7 @@ function normalizeRoadmapDetail(raw: any): RoadmapDetail {
 function normalizeRoadmapStep(raw: any, index: number): RoadmapStep {
   const details = raw?.details ?? raw?.detail ?? raw?.step_details ?? raw?.roadmap_step_details ?? [];
   return {
-    id: Number(firstDefined(raw?.id, raw?.id_step, raw?.roadmap_step_id, 0)),
+    id: Number(firstDefined(raw?.id, raw?.id_step, raw?.roadmap_step_id, raw?.id_roadmap_step, 0)),
     title: String(firstDefined(raw?.title, raw?.judul, raw?.name, `Tahap ${index + 1}`)),
     description: firstDefined(raw?.description, raw?.deskripsi, null) as string | null,
     order: Number(firstDefined(raw?.step_order, raw?.order, index + 1)),
@@ -163,18 +221,21 @@ function normalizeRoadmapStep(raw: any, index: number): RoadmapStep {
 }
 
 function normalizeActiveRoadmap(raw: any): CareerRoadmap | null {
-  const data = raw?.data ?? raw?.roadmap ?? raw;
+  const data = raw?.data ?? raw;
   if (!data) return null;
-  const master = data?.master ?? data?.roadmap_master ?? data;
+
+  const master = data?.roadmap ?? data?.master ?? data?.roadmap_master ?? data;
   const steps = data?.steps ?? master?.steps ?? data?.roadmap_steps ?? [];
+
   if (!Array.isArray(steps)) return null;
+
   return {
     id: Number(firstDefined(master?.id, master?.id_roadmap, data?.roadmap_id, data?.id_roadmap, 0)),
-    studentRoadmapId: Number(firstDefined(data?.id, data?.id_student_roadmap, data?.student_roadmap_id, 0)) || undefined,
+    studentRoadmapId: Number(firstDefined(data?.id_student_roadmap, data?.id, data?.student_roadmap_id, 0)) || undefined,
     headline: String(firstDefined(master?.title, master?.headline, master?.nama, "Roadmap Pengembangan Diri")),
-    targetRole: String(firstDefined(master?.target_role, master?.targetRole, master?.category, "Target belajar")),
+    targetRole: String(firstDefined(master?.recommended_for, master?.target_role, master?.targetRole, master?.category, "Target belajar")),
     description: firstDefined(master?.description, master?.deskripsi, null) as string | null,
-    progress: Number(firstDefined(data?.progress, data?.progress_percentage, data?.percentage, 0)),
+    progress: Number(firstDefined(data?.progress_percent, data?.progress, data?.progress_percentage, data?.percentage, 0)),
     steps: steps.map(normalizeRoadmapStep),
   };
 }
@@ -193,7 +254,7 @@ export async function getPublishedRoadmaps(): Promise<PublishedRoadmap[]> {
 export async function selectStudentRoadmap(roadmapId: number) {
   return apiFetch<{ message: string; data?: any }>("/roadmaps/student/select", {
     method: "POST",
-    body: JSON.stringify({ roadmap_id: roadmapId, id_roadmap: roadmapId }),
+    body: JSON.stringify({ id_roadmap: roadmapId }),
   });
 }
 
@@ -207,4 +268,48 @@ export async function updateStudentRoadmapProgress(progressId: number, status: "
     method: "PATCH",
     body: JSON.stringify({ status }),
   });
+}
+
+
+export async function getLatestSiswaSpk() {
+  const response = await apiFetch<any>("/siswa/spk/latest", {
+    method: "GET",
+  });
+
+  return {
+    ...response,
+    recommendations: normalizeRecommendations(response),
+  };
+}
+
+
+export function normalizeStudentAchievements(data: any): StudentAchievement[] {
+  const rows = Array.isArray(data?.prestasi) ? data.prestasi : [];
+
+  return rows
+    .map((item: any, index: number) => {
+      if (typeof item === "string") {
+        return {
+          id: index + 1,
+          nama_prestasi: item,
+          tahun: null,
+          tingkat: null,
+          penyelenggara: null,
+          keterangan: null,
+          bukti_url: null,
+        };
+      }
+
+      return {
+        id: Number(item?.id ?? item?.id_prestasi ?? index + 1),
+        id_prestasi: Number(item?.id_prestasi ?? item?.id ?? index + 1),
+        nama_prestasi: String(item?.nama_prestasi ?? item?.nama ?? "").trim(),
+        tahun: item?.tahun ?? null,
+        tingkat: item?.tingkat ?? null,
+        penyelenggara: item?.penyelenggara ?? null,
+        keterangan: item?.keterangan ?? null,
+        bukti_url: item?.bukti_url ?? item?.bukti ?? null,
+      };
+    })
+    .filter((item: StudentAchievement) => item.nama_prestasi);
 }

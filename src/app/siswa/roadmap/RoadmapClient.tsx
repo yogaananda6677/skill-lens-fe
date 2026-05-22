@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { StudentTopNav } from "../../../components/layout/StudentTopNav";
 import { Icon } from "../../../components/ui/icons";
-import { getActiveStudentRoadmap, getPublishedRoadmaps, selectStudentRoadmap, updateStudentRoadmapProgress } from "../../../features/siswa/api";
-import type { CareerRoadmap, PublishedRoadmap, RoadmapDetail } from "../../../features/siswa/types";
+import { getActiveStudentRoadmap, updateStudentRoadmapProgress } from "../../../features/siswa/api";
+import type { CareerRoadmap, RoadmapDetail } from "../../../features/siswa/types";
 
 function ProgressBar({ value }: { value: number }) {
   return (
@@ -25,28 +25,19 @@ function DetailStatusBadge({ status }: { status: string }) {
   return <span className={`rounded-full px-3 py-1 text-xs font-semibold ${done ? "bg-emerald-50 text-emerald-700" : process ? "bg-blue-50 text-blue-700" : "bg-slate-100 text-slate-600"}`}>{done ? "Selesai" : process ? "Proses" : "Belum"}</span>;
 }
 
-function RoadmapPicker({ items, onSelect, loading }: { items: PublishedRoadmap[]; onSelect: (id: number) => Promise<void>; loading: boolean }) {
+function EmptyRoadmapState() {
   return (
     <Panel>
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#0f2a5f]">Pilih roadmap</p>
-      <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Belum ada roadmap aktif</h2>
-      <p className="mt-3 text-sm font-semibold leading-7 text-slate-600">Pilih salah satu roadmap yang sudah dipublikasi admin. Setelah dipilih, progress kamu akan disimpan secara pribadi dan tidak mengubah data master.</p>
-      <div className="mt-6 grid gap-3 md:grid-cols-2">
-        {items.map((item) => (
-          <button key={item.id} type="button" disabled={loading} onClick={() => onSelect(item.id)} className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4 text-left transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-white disabled:opacity-50">
-            <p className="font-semibold text-slate-950">{item.title}</p>
-            <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">{item.description || item.category || "Roadmap pengembangan diri"}</p>
-          </button>
-        ))}
-        {!items.length && <div className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-500 md:col-span-2">Belum ada roadmap yang dipublikasi dari backend.</div>}
-      </div>
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#0f2a5f]">Belum ada roadmap aktif</p>
+      <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Generate roadmap dari hasil SPK</h2>
+      <p className="mt-3 text-sm font-semibold leading-7 text-slate-600">Roadmap tidak dipilih bebas dari daftar umum. Pilih rekomendasi SPK terlebih dahulu, lalu tekan Generate Roadmap agar roadmap yang dibuat sesuai dengan alternatif terbaikmu.</p>
+      <Link href="/siswa/rekomendasi" className="mt-5 inline-flex rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-sky-700">Ke halaman rekomendasi</Link>
     </Panel>
   );
 }
 
 export default function RoadmapClient() {
   const [roadmap, setRoadmap] = useState<CareerRoadmap | null>(null);
-  const [published, setPublished] = useState<PublishedRoadmap[]>([]);
   const [activeDetailId, setActiveDetailId] = useState<number | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -57,9 +48,8 @@ export default function RoadmapClient() {
     setLoading(true);
     setError("");
     try {
-      const [active, roadmapList] = await Promise.all([getActiveStudentRoadmap().catch(() => null), getPublishedRoadmaps().catch(() => [])]);
+      const active = await getActiveStudentRoadmap().catch(() => null);
       setRoadmap(active);
-      setPublished(roadmapList);
       const firstDetail = active?.steps.flatMap((step) => step.details)[0];
       setActiveDetailId(firstDetail?.id ?? null);
     } catch (err) {
@@ -77,21 +67,6 @@ export default function RoadmapClient() {
   const completed = details.filter((detail) => detail.status === "selesai").length;
   const progress = details.length ? Math.round((completed / details.length) * 100) : roadmap?.progress ?? 0;
   const activeDetail = details.find((detail) => detail.id === activeDetailId) ?? details[0];
-
-  async function handleSelectRoadmap(id: number) {
-    setSaving(true);
-    setError("");
-    setMessage("");
-    try {
-      await selectStudentRoadmap(id);
-      setMessage("Roadmap berhasil dipilih.");
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Gagal memilih roadmap.");
-    } finally {
-      setSaving(false);
-    }
-  }
 
   async function handleUpdateStatus(detail: RoadmapDetail, status: "belum" | "proses" | "selesai") {
     const targetId = detail.progressId ?? detail.id;
@@ -124,7 +99,7 @@ export default function RoadmapClient() {
       {(message || error) && <div className={`mb-5 rounded-2xl p-4 text-sm font-medium ${error ? "bg-rose-50 text-rose-700 ring-1 ring-rose-100" : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"}`}>{error || message}</div>}
       {loading && <div className="rounded-2xl bg-white p-4 text-sm font-medium text-slate-500 shadow-sm">Memuat roadmap...</div>}
 
-      {!loading && !roadmap && <RoadmapPicker items={published} onSelect={handleSelectRoadmap} loading={saving} />}
+      {!loading && !roadmap && <EmptyRoadmapState />}
 
       {!loading && roadmap && (
         <>
@@ -156,18 +131,6 @@ export default function RoadmapClient() {
                 <p className="mt-3 text-sm font-semibold leading-7 text-slate-300">Target: {roadmap.targetRole}</p>
                 <div className="mt-6"><ProgressBar value={progress} /></div>
                 <p className="mt-2 text-xs font-semibold text-slate-300">{completed} dari {details.length} detail selesai</p>
-              </Panel>
-
-              <Panel>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#0f2a5f]">Roadmap lain</p>
-                <div className="mt-4 grid gap-3">
-                  {published.map((item) => (
-                    <button key={item.id} type="button" disabled={saving || item.id === roadmap.id} onClick={() => handleSelectRoadmap(item.id)} className={`rounded-[1.25rem] border p-4 text-left transition hover:-translate-y-0.5 disabled:opacity-60 ${item.id === roadmap.id ? "border-[#0f2a5f] bg-[#eef5ff]" : "border-slate-100 bg-slate-50 hover:bg-white"}`}>
-                      <p className="font-semibold text-slate-950">{item.title}</p>
-                      <p className="mt-1 text-sm font-semibold leading-6 text-slate-500">{item.description || item.category || "Roadmap tersedia"}</p>
-                    </button>
-                  ))}
-                </div>
               </Panel>
             </div>
 

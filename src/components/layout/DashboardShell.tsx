@@ -483,53 +483,50 @@ export function DashboardShell({
           </div>
 
           {/* Header dashboard */}
-          <header className="relative mb-6 overflow-hidden rounded-[2rem] bg-[#0b1533] shadow-lg">
-            {/* base gradient halus satu arah */}
-            <div className="absolute inset-0 bg-gradient-to-r from-[#0b1533] via-[#0b1533] to-[#090f27]" />
-
-            {/* glow kanan yang halus, bukan blok */}
-            <div className="absolute right-0 top-0 h-full w-[55%] bg-[radial-gradient(circle_at_70%_50%,rgba(37,99,235,0.28),transparent_55%)]" />
-            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(85, 98, 151, 0.96)_0%,rgba(68, 91, 162, 0.94)_44%,rgba(57, 64, 86, 0.88)_100%)]" />
+            <header className="relative mb-6 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-lg shadow-slate-950/5">
+            {/* soft accent background */}
+            <div className="absolute inset-0 bg-gradient-to-r from-white via-white to-sky-50/70" />
+            <div className="absolute right-0 top-0 h-full w-[55%] bg-[radial-gradient(circle_at_70%_50%,rgba(14,165,233,0.16),transparent_58%)]" />
 
             <div className="relative grid min-h-[190px] items-center gap-6 px-6 py-7 lg:grid-cols-[1fr_440px] lg:px-8">
-              {/* Text kiri */}
-              <div className="relative z-20">
-                <p className="text-xs font-extrabold uppercase tracking-[0.28em] text-cyan-300">
-                  {roleLabel(storedUser?.role)}
+                {/* Text kiri */}
+                <div className="relative z-20">
+                <p className="text-xs font-extrabold uppercase tracking-[0.28em] text-sky-600">
+                    {roleLabel(storedUser?.role)}
                 </p>
 
-                <h1 className="mt-3 text-3xl font-black tracking-tight text-white md:text-4xl">
-                  {title || "Dashboard Administrasi"}
+                <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950 md:text-4xl">
+                    {title || "Dashboard Administrasi"}
                 </h1>
 
-                <p className="mt-3 max-w-2xl text-sm font-medium leading-7 text-cyan-100/80 md:text-base">
-                  {subtitle ||
+                <p className="mt-3 max-w-2xl text-sm font-medium leading-7 text-slate-500 md:text-base">
+                    {subtitle ||
                     "Pantau kinerja sistem, kelola data, dan pastikan semua berjalan optimal."}
                 </p>
 
                 {rightSlot && <div className="mt-5">{rightSlot}</div>}
-              </div>
+                </div>
 
-              {/* Ilustrasi kanan */}
-              <div className="pointer-events-none absolute bottom-0 right-0 top-0 z-10 hidden w-[560px] overflow-hidden lg:block">
+                {/* Ilustrasi kanan */}
+                <div className="pointer-events-none absolute bottom-0 right-0 top-0 z-10 hidden w-[560px] overflow-hidden lg:block">
                 <img
-                  src="/images/bg-dashboard.png"
-                  alt="Dashboard illustration"
-                  className="absolute right-0 top-1/2 h-[220px] w-[520px] -translate-y-1/2 object-cover object-right opacity-90 drop-shadow-[0_24px_45px_rgba(34,211,238,0.18)]"
+                    src="/images/bg-dashboard.png"
+                    alt="Dashboard illustration"
+                    className="absolute right-0 top-1/2 h-[220px] w-[520px] -translate-y-1/2 object-cover object-right opacity-95 drop-shadow-[0_24px_45px_rgba(14,165,233,0.16)]"
                 />
 
-                {/* samarkan sisi kiri gambar agar nyatu */}
-                <div className="absolute inset-y-0 left-0 w-[52%] bg-gradient-to-r from-[#0b1533] via-[#0b1533]/92 to-transparent" />
+                {/* efek memudar dari kiri gambar agar menyatu dengan putih */}
+                <div className="absolute inset-y-0 left-0 w-[58%] bg-gradient-to-r from-white via-white/95 to-transparent" />
 
-                {/* samarkan atas bawah gambar */}
-                <div className="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-[#0b1533] to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-[#0b1533] to-transparent" />
+                {/* efek memudar atas bawah biar gambar tidak kotak */}
+                <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-white to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-white to-transparent" />
 
-                {/* tone biru header biar gambar tidak beda sendiri */}
-                <div className="absolute inset-0 bg-[#0b1533]/18 mix-blend-multiply" />
-              </div>
+                {/* tone halus biar gambar masuk ke tema biru */}
+                <div className="absolute inset-0 bg-sky-50/10" />
+                </div>
             </div>
-          </header>
+            </header>
 
           {/* Isi dashboard dari page */}
           <div
