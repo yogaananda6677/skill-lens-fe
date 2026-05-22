@@ -1,10 +1,15 @@
 import { clearAuth, getStoredToken } from "./auth";
+import { notifyAppAlert } from "./app-alert-events";
 
 export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000").replace(/\/$/, "");
 
 type ApiFetchOptions = RequestInit & {
   timeoutMs?: number;
   skipAuth?: boolean;
+  alert?: boolean;
+  loadingMessage?: string;
+  successMessage?: string | false;
+  errorMessage?: string | false;
 };
 
 function buildHeaders(options?: ApiFetchOptions): HeadersInit {
@@ -36,10 +41,39 @@ async function readErrorMessage(response: Response): Promise<string> {
   }
 }
 
+function parseJsonSafely(text: string) {
+  if (!text) return undefined;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+function shouldAutoNotify(method: string, options: ApiFetchOptions) {
+  if (options.alert === false) return false;
+  return method !== "GET" && method !== "HEAD";
+}
+
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
-  const { timeoutMs = 20000, skipAuth: _skipAuth, ...fetchOptions } = options;
+  const {
+    timeoutMs = 20000,
+    skipAuth: _skipAuth,
+    alert: _alert,
+    loadingMessage,
+    successMessage,
+    errorMessage,
+    ...fetchOptions
+  } = options;
+
+  const method = String(fetchOptions.method ?? "GET").toUpperCase();
+  const autoNotify = shouldAutoNotify(method, options);
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  if (loadingMessage && options.alert !== false) {
+    notifyAppAlert({ type: "processing", title: loadingMessage, autoCloseMs: false });
+  }
 
   try {
     const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -57,16 +91,42 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     }
 
     if (response.status === 204) {
+      if (successMessage && options.alert !== false) {
+        notifyAppAlert({ type: "success", title: successMessage, autoCloseMs: 2200 });
+      }
       return undefined as T;
     }
 
     const text = await response.text();
-    return (text ? JSON.parse(text) : undefined) as T;
-  } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error("Request terlalu lama. Periksa koneksi atau status backend.");
+    const data = parseJsonSafely(text) as T & { message?: string };
+
+    const resolvedSuccessMessage =
+      successMessage === false
+        ? ""
+        : successMessage || (autoNotify && typeof (data as any)?.message === "string" ? (data as any).message : "");
+
+    if (resolvedSuccessMessage && options.alert !== false) {
+      notifyAppAlert({ type: "success", title: resolvedSuccessMessage, autoCloseMs: 2200 });
     }
-    throw error;
+
+    return data as T;
+  } catch (error) {
+    const message = error instanceof DOMException && error.name === "AbortError"
+      ? "Request terlalu lama. Periksa koneksi atau status backend."
+      : error instanceof Error
+        ? error.message
+        : "Terjadi kesalahan saat menghubungi server.";
+
+    if (errorMessage !== false && (autoNotify || loadingMessage) && options.alert !== false) {
+      notifyAppAlert({
+        type: "error",
+        title: typeof errorMessage === "string" ? errorMessage : "Proses gagal",
+        description: message,
+        autoCloseMs: false,
+      });
+    }
+
+    throw new Error(message);
   } finally {
     window.clearTimeout(timeout);
   }

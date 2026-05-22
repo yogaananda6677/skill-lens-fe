@@ -1,11 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Poppins } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import { AppAlertProvider } from "../components/ui/AppAlertProvider";
 
-const poppins = Poppins({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-poppins",
+  variable: "--font-jakarta",
   weight: ["300", "400", "500", "600", "700", "800"],
 });
 
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#0f2a5f",
+  themeColor: "#07142f",
 };
 
 export default function RootLayout({
@@ -27,8 +28,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id" className="h-full scroll-smooth">
-      <body className={`${poppins.variable} min-h-full flex flex-col antialiased`}>
-        {children}
+      <body className={`${jakarta.variable} min-h-full flex flex-col antialiased`}>
+        <AppAlertProvider>{children}</AppAlertProvider>
       </body>
     </html>
   );

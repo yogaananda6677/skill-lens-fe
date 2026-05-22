@@ -23,6 +23,9 @@ function isItemActive(href: string, pathname: string, hash: string) {
     return pathname === expectedPath && hash === `#${targetHash}`;
   }
 
+  // Beranda siswa adalah root. Jangan aktif saat user sedang di /siswa/profil, /siswa/rekomendasi, atau /siswa/roadmap.
+  if (href === "/siswa") return pathname === "/siswa";
+
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -101,29 +104,29 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f8fbff_0%,#eef7ff_45%,#f8fafc_100%)] text-slate-950">
-      <header className="sticky top-0 z-50 border-b border-sky-100 bg-white/85 backdrop-blur-2xl">
+    <div className="min-h-screen text-slate-950 skilllens-blue-page">
+      <header className="sticky top-0 z-50 border-b border-sky-900/20 bg-[#07142f]/95 text-white shadow-sm shadow-blue-950/10 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3.5">
           <Link
             href="/siswa"
             onClick={() => setHash("")}
             className="flex items-center gap-3"
           >
-            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-lg shadow-sky-600/20">
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white text-[#07142f] shadow-sm shadow-cyan-400/10">
               <Icon name="sparkles" className="h-5 w-5" />
             </div>
 
             <div className="leading-tight">
-              <p className="text-base font-bold tracking-tight text-slate-950">
+              <p className="text-base font-extrabold tracking-tight text-white">
                 SkillLens
               </p>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-600">
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-cyan-200">
                 Ruang Siswa
               </p>
             </div>
           </Link>
 
-          <nav className="hidden items-center gap-1 rounded-full border border-sky-100 bg-sky-50/70 p-1 lg:flex">
+          <nav className="hidden items-center gap-1 rounded-full border border-white/10 bg-white/[0.08] p-1 backdrop-blur-md lg:flex">
             {studentNav.map((item) => {
               const href = normalizeHref(item.href);
               const active = isItemActive(href, pathname, hash);
@@ -133,10 +136,10 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
                   key={item.key}
                   href={href}
                   onClick={() => handleNavClick(href)}
-                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-bold skilllens-smooth ${
                     active
-                      ? "bg-white text-sky-700 shadow-sm ring-1 ring-sky-100"
-                      : "text-slate-600 hover:bg-white/80 hover:text-sky-700"
+                      ? "bg-white text-[#0a2f73] shadow-sm ring-1 ring-white/50"
+                      : "text-sky-100/80 hover:bg-white/[0.10] hover:text-white"
                   }`}
                 >
                   <Icon name={item.icon ?? "dashboard"} className="h-4 w-4" />
@@ -147,16 +150,16 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="hidden items-center gap-3 sm:flex">
-            <div className="flex items-center gap-3 rounded-full border border-sky-100 bg-white px-3 py-2 shadow-sm">
-              <div className="grid h-8 w-8 place-items-center rounded-full bg-sky-100 text-xs font-bold text-sky-700">
+            <div className="flex items-center gap-3 rounded-full border border-white/10 bg-white/10 px-3 py-2 shadow-sm backdrop-blur-md">
+              <div className="grid h-8 w-8 place-items-center rounded-full bg-cyan-100 text-xs font-extrabold text-[#07142f]">
                 {currentInitials}
               </div>
 
               <div className="pr-1 leading-tight">
-                <p className="max-w-32 truncate text-sm font-bold text-slate-800">
+                <p className="max-w-32 truncate text-sm font-extrabold text-white">
                   {name}
                 </p>
-                <p className="text-[11px] font-semibold text-slate-400">
+                <p className="text-[11px] font-bold text-cyan-100/70">
                   Siswa
                 </p>
               </div>
@@ -165,7 +168,7 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
             <button
               type="button"
               onClick={() => setLogoutOpen(true)}
-              className="rounded-full border border-rose-100 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-600 transition hover:bg-rose-600 hover:text-white"
+              className="rounded-full border border-white/10 bg-white/10 px-4 py-2.5 text-sm font-bold text-white skilllens-smooth hover:bg-rose-500 hover:text-white"
             >
               Keluar
             </button>
@@ -174,7 +177,7 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
           <button
             type="button"
             onClick={() => setMenuOpen((value) => !value)}
-            className="grid h-11 w-11 place-items-center rounded-2xl border border-sky-100 bg-white text-slate-700 shadow-sm transition hover:bg-sky-50 lg:hidden"
+            className="grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/10 text-white shadow-sm skilllens-smooth hover:bg-white/20 lg:hidden"
             aria-label="Menu siswa"
           >
             <Icon name={menuOpen ? "x" : "menu"} className="h-5 w-5" />
@@ -182,16 +185,16 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
         </div>
 
         {menuOpen && (
-          <div className="border-t border-sky-100 bg-white/95 px-5 py-4 shadow-lg shadow-sky-950/5 lg:hidden">
+          <div className="border-t border-white/10 bg-[#07142f]/95 px-5 py-4 shadow-lg shadow-blue-950/20 backdrop-blur-xl lg:hidden">
             <div className="mx-auto max-w-7xl">
-              <div className="mb-4 flex items-center gap-3 rounded-2xl bg-sky-50 p-3">
-                <div className="grid h-10 w-10 place-items-center rounded-full bg-sky-600 text-sm font-bold text-white">
+              <div className="mb-4 flex items-center gap-3 rounded-2xl bg-white/10 p-3">
+                <div className="grid h-10 w-10 place-items-center rounded-full bg-cyan-100 text-sm font-extrabold text-[#07142f]">
                   {currentInitials}
                 </div>
 
                 <div>
-                  <p className="text-sm font-bold text-slate-900">{name}</p>
-                  <p className="text-xs font-semibold text-slate-500">
+                  <p className="text-sm font-extrabold text-white">{name}</p>
+                  <p className="text-xs font-bold text-cyan-100/70">
                     Ruang siswa SkillLens
                   </p>
                 </div>
@@ -207,10 +210,10 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
                       key={item.key}
                       href={href}
                       onClick={() => handleNavClick(href)}
-                      className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition ${
+                      className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold skilllens-smooth ${
                         active
-                          ? "bg-sky-600 text-white shadow-lg shadow-sky-600/20"
-                          : "bg-slate-50 text-slate-700 hover:bg-sky-50 hover:text-sky-700"
+                          ? "bg-white text-[#0a2f73] shadow-lg shadow-cyan-400/10"
+                          : "bg-white/[0.08] text-sky-100/80 hover:bg-white/[0.14] hover:text-white"
                       }`}
                     >
                       <Icon
@@ -228,7 +231,7 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
                     setMenuOpen(false);
                     setLogoutOpen(true);
                   }}
-                  className="mt-2 flex items-center gap-3 rounded-2xl bg-rose-50 px-4 py-3 text-left text-sm font-bold text-rose-600"
+                  className="mt-2 flex items-center gap-3 rounded-2xl bg-rose-500/12 px-4 py-3 text-left text-sm font-bold text-rose-100 skilllens-smooth hover:bg-rose-500"
                 >
                   <Icon name="logout" className="h-4 w-4" />
                   Keluar
@@ -243,7 +246,7 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
 
       {logoutOpen && (
         <div className="fixed inset-0 z-[80] grid place-items-center bg-slate-950/40 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-950/20">
+          <div className="w-full max-w-md rounded-[2rem] border border-sky-100 bg-white p-6 shadow-2xl shadow-slate-950/20 skilllens-page-enter">
             <div className="grid h-12 w-12 place-items-center rounded-2xl bg-rose-50 text-rose-600">
               <Icon name="logout" className="h-5 w-5" />
             </div>

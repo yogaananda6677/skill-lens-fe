@@ -19,7 +19,7 @@ export function StudentHomeIntro({
   hasRecommendations: boolean;
 }) {
   return (
-    <section className="overflow-hidden rounded-[2rem] border border-sky-100 bg-white/90 shadow-xl shadow-sky-950/5">
+    <section className="overflow-hidden rounded-[2rem] skilllens-smooth-card">
       <div className="relative p-6 md:p-8">
         <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-sky-200/50 blur-3xl" />
 
@@ -33,24 +33,24 @@ export function StudentHomeIntro({
               Mulai dari profil, cek rekomendasi, lalu buat roadmap.
             </h1>
 
-            <p className="mt-4 max-w-3xl text-sm font-medium leading-7 text-slate-500">
+            <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-slate-500">
               Nilai akademik sudah dibaca dari sekolah. Kamu cukup melengkapi
               minat, hobi, bakat, pengalaman, dan prestasi agar hasil SPK lebih
               sesuai.
             </p>
           </div>
 
-          <div className="rounded-3xl border border-sky-100 bg-sky-50 p-5">
+          <div className="rounded-3xl border border-sky-100 bg-white/70 p-5 shadow-inner shadow-sky-100/60 backdrop-blur">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-sky-600">
               Profil Siswa
             </p>
             <p className="mt-2 text-lg font-bold text-slate-950">
               {profile.name || "Siswa"}
             </p>
-            <p className="mt-1 text-sm font-medium text-slate-500">
+            <p className="mt-1 text-sm font-semibold text-slate-500">
               {profile.className || "-"} • {profile.major || "-"}
             </p>
-            <p className="mt-1 text-sm font-medium text-slate-500">
+            <p className="mt-1 text-sm font-semibold text-slate-500">
               {profile.school || "Sekolah belum terbaca"}
             </p>
           </div>
@@ -60,13 +60,13 @@ export function StudentHomeIntro({
           <button
             type="button"
             onClick={onGoProfile}
-            className="rounded-3xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-1 hover:border-sky-200 hover:shadow-lg hover:shadow-sky-950/10"
+            className="rounded-3xl border border-sky-100 bg-white/[0.86] p-5 text-left shadow-sm backdrop-blur skilllens-smooth hover:-translate-y-1 hover:border-cyan-300 hover:shadow-lg hover:shadow-sky-950/10"
           >
-            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-50 text-sky-700">
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-sky-50 to-cyan-50 text-sky-700 ring-1 ring-sky-100">
               <Icon name="profile" className="h-5 w-5" />
             </div>
             <h3 className="mt-4 font-bold text-slate-950">1. Lengkapi profil</h3>
-            <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
+            <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
               Isi minat, hobi, bakat, pengalaman, dan prestasi.
             </p>
           </button>
@@ -75,13 +75,13 @@ export function StudentHomeIntro({
             type="button"
             onClick={onProcess}
             disabled={processing}
-            className="rounded-3xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-1 hover:border-sky-200 hover:shadow-lg hover:shadow-sky-950/10 disabled:opacity-60"
+            className="rounded-3xl border border-sky-100 bg-white/[0.86] p-5 text-left shadow-sm backdrop-blur skilllens-smooth hover:-translate-y-1 hover:border-cyan-300 hover:shadow-lg hover:shadow-sky-950/10 disabled:opacity-60"
           >
-            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-50 text-sky-700">
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-sky-50 to-cyan-50 text-sky-700 ring-1 ring-sky-100">
               <Icon name="rocket" className="h-5 w-5" />
             </div>
             <h3 className="mt-4 font-bold text-slate-950">2. Proses SPK</h3>
-            <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
+            <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
               Sistem akan menghitung rekomendasi terbaik.
             </p>
           </button>
@@ -89,13 +89,13 @@ export function StudentHomeIntro({
           <button
             type="button"
             onClick={onGoResult}
-            className="rounded-3xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-1 hover:border-sky-200 hover:shadow-lg hover:shadow-sky-950/10"
+            className="rounded-3xl border border-sky-100 bg-white/[0.86] p-5 text-left shadow-sm backdrop-blur skilllens-smooth hover:-translate-y-1 hover:border-cyan-300 hover:shadow-lg hover:shadow-sky-950/10"
           >
-            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-50 text-sky-700">
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-sky-50 to-cyan-50 text-sky-700 ring-1 ring-sky-100">
               <Icon name="sparkles" className="h-5 w-5" />
             </div>
             <h3 className="mt-4 font-bold text-slate-950">3. Pilih roadmap</h3>
-            <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
+            <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
               {hasRecommendations
                 ? "Hasil rekomendasi sudah tersedia."
                 : "Hasil akan muncul setelah proses SPK."}

@@ -21,6 +21,48 @@ export type PrestasiSiswaResponse = {
   bukti_url?: string | null;
 };
 
+
+export type MasterTagOption = {
+  id: number;
+  tipe: "minat" | "bakat" | "hobi" | "pengalaman" | "prestasi" | string;
+  label: string;
+  mapped_key?: string;
+  kategori_hint?: string | null;
+  sort_order?: number;
+};
+
+export type MasterTagsGroupedResponse = Partial<Record<
+  "minat" | "bakat" | "hobi" | "pengalaman" | "prestasi",
+  MasterTagOption[]
+>>;
+
+function uniqueLabels(rows: unknown): string[] {
+  if (!Array.isArray(rows)) return [];
+
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const row of rows) {
+    const label = String((row as any)?.label ?? row ?? "").trim();
+    if (!label || seen.has(label.toLowerCase())) continue;
+    seen.add(label.toLowerCase());
+    result.push(label);
+  }
+
+  return result;
+}
+
+export async function getMasterProfileOptions() {
+  const response = await apiFetch<MasterTagsGroupedResponse>("/master-tags");
+
+  return {
+    interestOptions: uniqueLabels(response?.minat),
+    hobbyOptions: uniqueLabels(response?.hobi),
+    talentOptions: uniqueLabels(response?.bakat),
+    experienceOptions: uniqueLabels(response?.pengalaman),
+  };
+}
+
 export type SiswaMeResponse = {
   id_siswa: number;
   nisn: string;
@@ -144,6 +186,7 @@ export async function processSiswaSpk(payload: any) {
   const response = await apiFetch<any>("/siswa/spk", {
     method: "POST",
     body: JSON.stringify(payload),
+    alert: false,
   });
 
   return {
@@ -255,6 +298,7 @@ export async function selectStudentRoadmap(roadmapId: number) {
   return apiFetch<{ message: string; data?: any }>("/roadmaps/student/select", {
     method: "POST",
     body: JSON.stringify({ id_roadmap: roadmapId }),
+    alert: false,
   });
 }
 
@@ -267,6 +311,7 @@ export async function updateStudentRoadmapProgress(progressId: number, status: "
   return apiFetch<{ message: string; data?: any }>(`/roadmaps/student/progress/${progressId}`, {
     method: "PATCH",
     body: JSON.stringify({ status }),
+    alert: false,
   });
 }
 
