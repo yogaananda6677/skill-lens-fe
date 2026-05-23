@@ -7,6 +7,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  type CSSProperties,
   type ReactNode,
 } from "react";
 import { Icon } from "./icons";
@@ -31,48 +32,56 @@ type AppAlertContextValue = {
 const AppAlertContext = createContext<AppAlertContextValue | null>(null);
 
 function defaultAutoClose(type: AppAlertType): number | false {
-  if (type === "success") return 2200;
-  if (type === "info") return 2600;
+  if (type === "success") return 1800;
+  if (type === "info") return 2400;
   return false;
 }
 
 function alertTone(type: AppAlertType) {
   if (type === "success") {
     return {
-      box: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+      shell: "border-emerald-100",
+      accent: "bg-emerald-500",
+      iconBox: "bg-emerald-50 text-emerald-600 ring-emerald-100",
       icon: "check",
       title: "text-slate-950",
       progress: "bg-emerald-500",
-      button: "bg-emerald-600 hover:bg-emerald-700",
+      action: "text-emerald-700 hover:bg-emerald-50",
     };
   }
 
   if (type === "error") {
     return {
-      box: "bg-rose-50 text-rose-700 ring-rose-100",
+      shell: "border-rose-100",
+      accent: "bg-rose-500",
+      iconBox: "bg-rose-50 text-rose-600 ring-rose-100",
       icon: "alert",
       title: "text-slate-950",
       progress: "bg-rose-500",
-      button: "bg-rose-600 hover:bg-rose-700",
+      action: "text-rose-700 hover:bg-rose-50",
     };
   }
 
   if (type === "processing") {
     return {
-      box: "bg-sky-50 text-sky-700 ring-sky-100",
+      shell: "border-sky-100",
+      accent: "bg-sky-500",
+      iconBox: "bg-sky-50 text-sky-600 ring-sky-100",
       icon: "progress",
       title: "text-slate-950",
       progress: "bg-sky-500",
-      button: "bg-sky-700 hover:bg-sky-800",
+      action: "text-sky-700 hover:bg-sky-50",
     };
   }
 
   return {
-    box: "bg-sky-50 text-sky-700 ring-sky-100",
+    shell: "border-sky-100",
+    accent: "bg-sky-500",
+    iconBox: "bg-sky-50 text-sky-600 ring-sky-100",
     icon: "sparkles",
     title: "text-slate-950",
     progress: "bg-sky-500",
-    button: "bg-sky-700 hover:bg-sky-800",
+    action: "text-sky-700 hover:bg-sky-50",
   };
 }
 
@@ -112,9 +121,9 @@ export function AppAlertProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AppAlertContextValue>(
     () => ({
       showAlert,
-      showSuccess: (title, description, autoCloseMs = 2200) => showAlert({ type: "success", title, description, autoCloseMs }),
+      showSuccess: (title, description, autoCloseMs = 1800) => showAlert({ type: "success", title, description, autoCloseMs }),
       showError: (title, description) => showAlert({ type: "error", title, description, autoCloseMs: false }),
-      showInfo: (title, description) => showAlert({ type: "info", title, description, autoCloseMs: 2600 }),
+      showInfo: (title, description) => showAlert({ type: "info", title, description, autoCloseMs: 2400 }),
       showProcessing: (title, description) => showAlert({ type: "processing", title, description, autoCloseMs: false }),
       dismissAlert,
     }),
@@ -122,43 +131,44 @@ export function AppAlertProvider({ children }: { children: ReactNode }) {
   );
 
   const tone = alert ? alertTone(alert.type) : null;
-  const showBackdrop = alert?.type === "error" || alert?.type === "processing";
+  const progressStyle =
+    alert?.autoCloseMs !== false && alert?.autoCloseMs
+      ? ({ "--skilllens-alert-duration": `${alert.autoCloseMs}ms` } as CSSProperties)
+      : undefined;
 
   return (
     <AppAlertContext.Provider value={value}>
       {children}
 
       {alert && tone && (
-        <div className="fixed inset-0 z-[140] grid place-items-center px-4 py-6 pointer-events-none">
-          {showBackdrop && <div className="absolute inset-0 bg-slate-950/[0.18] backdrop-blur-[2px]" />}
-
+        <div className="fixed left-1/2 top-4 z-[160] w-[calc(100%-2rem)] max-w-[440px] -translate-x-1/2 pointer-events-none sm:top-5">
           <section
             role={alert.type === "error" ? "alert" : "status"}
             aria-live={alert.type === "error" ? "assertive" : "polite"}
-            className="relative w-full max-w-md overflow-hidden rounded-[1.7rem] border border-white/70 bg-white p-5 shadow-2xl shadow-slate-950/18 pointer-events-auto skilllens-alert-pop"
+            className={`skilllens-alert-toast pointer-events-auto relative overflow-hidden rounded-2xl border bg-white/95 p-4 shadow-xl shadow-slate-950/10 backdrop-blur-md ${tone.shell}`}
+            style={progressStyle}
           >
-            <div className="pointer-events-none absolute -right-16 -top-20 h-40 w-40 rounded-full bg-sky-100 blur-3xl" />
-            <div className="pointer-events-none absolute -left-20 bottom-0 h-44 w-44 rounded-full bg-cyan-100/70 blur-3xl" />
+            <div className={`absolute left-0 top-0 h-full w-1 ${tone.accent}`} />
 
-            <div className="relative flex items-start gap-4">
-              <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl ring-1 ${tone.box}`}>
+            <div className="flex items-start gap-3 pl-1">
+              <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ring-1 ${tone.iconBox}`}>
                 {alert.type === "processing" ? (
-                  <span className="h-5 w-5 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                  <span className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
                 ) : (
-                  <Icon name={tone.icon} className="h-5 w-5" />
+                  <Icon name={tone.icon} className="h-4 w-4" />
                 )}
               </div>
 
               <div className="min-w-0 flex-1 pt-0.5">
-                <h2 className={`text-base font-extrabold leading-6 ${tone.title}`}>{alert.title}</h2>
-                {alert.description && <p className="mt-1.5 text-sm font-medium leading-6 text-slate-500">{alert.description}</p>}
+                <h2 className={`text-sm font-extrabold leading-5 ${tone.title}`}>{alert.title}</h2>
+                {alert.description && <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{alert.description}</p>}
               </div>
 
               {alert.type !== "processing" && (
                 <button
                   type="button"
                   onClick={dismissAlert}
-                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-950"
+                  className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-slate-500 transition hover:text-slate-950 ${tone.action}`}
                   aria-label="Tutup notifikasi"
                 >
                   <Icon name="x" className="h-4 w-4" />
@@ -167,23 +177,44 @@ export function AppAlertProvider({ children }: { children: ReactNode }) {
             </div>
 
             {alert.autoCloseMs !== false && (
-              <div className="relative mt-5 h-1 overflow-hidden rounded-full bg-slate-100">
+              <div className="mt-3 h-0.5 overflow-hidden rounded-full bg-slate-100">
                 <div className={`h-full rounded-full ${tone.progress} skilllens-alert-progress`} />
               </div>
-            )}
-
-            {alert.type === "error" && (
-              <button
-                type="button"
-                onClick={dismissAlert}
-                className={`relative mt-5 w-full rounded-2xl px-5 py-3 text-sm font-extrabold text-white transition ${tone.button}`}
-              >
-                Tutup
-              </button>
             )}
           </section>
         </div>
       )}
+
+      <style jsx global>{`
+        @keyframes skilllensAlertToastIn {
+          from {
+            opacity: 0;
+            transform: translateY(-10px) scale(0.98);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        @keyframes skilllensAlertProgress {
+          from {
+            width: 100%;
+          }
+          to {
+            width: 0%;
+          }
+        }
+
+        .skilllens-alert-toast {
+          animation: skilllensAlertToastIn 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+        }
+
+        .skilllens-alert-progress {
+          width: 100%;
+          animation: skilllensAlertProgress var(--skilllens-alert-duration, 1800ms) linear forwards;
+        }
+      `}</style>
     </AppAlertContext.Provider>
   );
 }
