@@ -1,8 +1,7 @@
 "use client";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   clearAuth,
   getStoredUser,
@@ -28,7 +27,7 @@ type DashboardShellProps = {
   subtitle: string;
   userName?: string;
   userLabel?: string;
-  schoolName?: string;
+  schoolName?: string; // tetap diterima tapi tidak ditampilkan
   requiredRole?: AuthRole | AuthRole[];
   children: ReactNode;
   onNavigate?: (key: string) => void;
@@ -61,10 +60,7 @@ function navIsActive(
   pathname: string,
 ) {
   if (item.key === activeKey) return true;
-  if (item.href && !item.href.includes("#") && item.href === pathname) {
-    return true;
-  }
-
+  if (item.href && !item.href.includes("#") && item.href === pathname) return true;
   return false;
 }
 
@@ -78,7 +74,6 @@ function LogoutModal({
   onConfirm: () => void;
 }) {
   if (!open) return null;
-
   return (
     <div className="fixed inset-0 z-[90] grid place-items-center px-4 py-6">
       <button
@@ -87,7 +82,6 @@ function LogoutModal({
         onClick={onCancel}
         aria-label="Tutup modal logout"
       />
-
       <div className="relative w-full max-w-md overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl shadow-slate-950/20">
         <button
           type="button"
@@ -97,22 +91,17 @@ function LogoutModal({
         >
           <Icon name="x" className="h-4 w-4" />
         </button>
-
         <div className="bg-gradient-to-br from-sky-50 to-white px-6 pb-5 pt-6">
           <div className="grid h-12 w-12 place-items-center rounded-2xl bg-sky-600 text-white shadow-lg shadow-sky-600/20">
             <Icon name="logout" className="h-5 w-5" />
           </div>
-
           <h2 className="mt-5 text-2xl font-bold tracking-tight text-slate-950">
             Keluar dari SkillLens?
           </h2>
-
           <p className="mt-2 text-sm font-medium leading-7 text-slate-500">
-            Sesi akan diakhiri dan kamu perlu login kembali untuk mengakses
-            dashboard.
+            Sesi akan diakhiri dan kamu perlu login kembali untuk mengakses dashboard.
           </p>
         </div>
-
         <div className="grid gap-3 border-t border-slate-100 p-6 sm:grid-cols-2">
           <button
             type="button"
@@ -121,7 +110,6 @@ function LogoutModal({
           >
             Batal
           </button>
-
           <button
             type="button"
             onClick={onConfirm}
@@ -145,7 +133,6 @@ function NavItem({
   onClick: () => void;
 }) {
   const icon = item.icon ?? "dashboard";
-
   const className = [
     "group relative flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-all duration-300",
     active
@@ -160,7 +147,6 @@ function NavItem({
           active ? "bg-sky-600 opacity-100" : "bg-transparent opacity-0"
         }`}
       />
-
       <span
         className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl transition-all duration-300 ${
           active
@@ -170,12 +156,8 @@ function NavItem({
       >
         <Icon name={icon as any} className="h-[18px] w-[18px]" />
       </span>
-
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-semibold">
-          {item.label}
-        </span>
-
+        <span className="block truncate text-sm font-semibold">{item.label}</span>
         {item.description && (
           <span
             className={`mt-0.5 block truncate text-xs font-medium ${
@@ -186,7 +168,6 @@ function NavItem({
           </span>
         )}
       </span>
-
       {item.badge ? (
         <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-bold text-sky-700">
           {item.badge}
@@ -209,7 +190,6 @@ function NavItem({
       </Link>
     );
   }
-
   return (
     <button type="button" onClick={onClick} className={className}>
       {content}
@@ -224,7 +204,7 @@ export function DashboardShell({
   subtitle,
   userName,
   userLabel,
-  schoolName,
+  schoolName: _schoolName, // diabaikan, tidak ditampilkan
   requiredRole,
   children,
   onNavigate,
@@ -233,8 +213,9 @@ export function DashboardShell({
   const [open, setOpen] = useState(false);
   const [ready, setReady] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
-  const [storedUser, setStoredUser] =
-    useState<ReturnType<typeof getStoredUser>>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [storedUser, setStoredUser] = useState<ReturnType<typeof getStoredUser>>(null);
+  const helpRef = useRef<HTMLDivElement>(null);
 
   const pathname = usePathname();
   const router = useRouter();
@@ -242,24 +223,31 @@ export function DashboardShell({
   useEffect(() => {
     const user = getStoredUser();
     setStoredUser(user);
-
     const allowed = Array.isArray(requiredRole)
       ? requiredRole
       : requiredRole
         ? [requiredRole]
         : [];
-
     if (allowed.length && (!user || !allowed.includes(user.role))) {
       router.replace(redirectPathByRole(user?.role));
       return;
     }
-
     setReady(true);
   }, [requiredRole, router]);
 
   useEffect(() => {
     setOpen(false);
   }, [pathname, activeKey]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (helpRef.current && !helpRef.current.contains(event.target as Node)) {
+        setHelpOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const visibleNav = useMemo(
     () =>
@@ -282,16 +270,30 @@ export function DashboardShell({
 
   function navigate(item: DashboardNavItem) {
     onNavigate?.(item.key);
-
     if (item.href?.includes("#")) {
       const hash = item.href.split("#")[1];
-
       window.setTimeout(() => {
         document
           .getElementById(hash)
           ?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 30);
     }
+  }
+
+  function handleHelp() {
+    alert("Bantuan: Silakan lihat panduan penggunaan di menu 'Help and Feedback'.");
+  }
+  function handleAskCommunity() {
+    window.open("https://github.com/", "_blank");
+  }
+  function handleSendFeedback() {
+    window.location.href = "mailto:feedback@skilllens.com?subject=Feedback SkillLens";
+  }
+  function handleWhatsNew() {
+    alert("Fitur baru: Dashboard interaktif, import nilai langsung dari Excel, rekomendasi karier berbobot.");
+  }
+  function handleHelpAndFeedback() {
+    alert("📘 Panduan Penggunaan\n\n1. Ajukan Data Sekolah\n2. Tunggu Verifikasi\n3. Kelola Jurusan\n4. Tambah Guru\n5. Import Siswa\n6. Lihat Data Siswa & Nilai\n7. Mata Pelajaran");
   }
 
   if (!ready) {
@@ -312,7 +314,6 @@ export function DashboardShell({
           <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-600 text-white shadow-lg shadow-sky-600/20">
             <Icon name="spark" className="h-5 w-5" />
           </div>
-
           <div className="min-w-0">
             <p className="truncate text-base font-bold tracking-tight text-slate-950">
               SkillLens
@@ -330,7 +331,6 @@ export function DashboardShell({
             <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-100 text-sm font-bold text-sky-700 ring-1 ring-sky-200">
               {initials(displayName)}
             </div>
-
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-slate-950">
                 {displayName}
@@ -339,14 +339,7 @@ export function DashboardShell({
                 {displayLabel}
               </p>
             </div>
-          </div>
-
-          {schoolName && (
-            <p className="mt-3 rounded-2xl bg-white px-3 py-2 text-xs font-medium leading-5 text-slate-500 ring-1 ring-slate-100">
-              {schoolName}
-            </p>
-          )}
-        </div>
+          </div>        </div>
       </div>
 
       <nav className="mt-5 flex-1 space-y-1 overflow-y-auto px-4 pb-4">
@@ -374,84 +367,116 @@ export function DashboardShell({
   );
 
   return (
-  <>
-    <main className="min-h-screen bg-[#f6f9ff] text-slate-950 lg:grid lg:grid-cols-[292px_1fr]">
-      {/* Sidebar desktop */}
-      <div className="hidden lg:block">
-        <div className="sticky top-0 h-screen overflow-y-auto border-r border-slate-200 bg-white">
-          {sidebar}
+    <>
+      <main className="min-h-screen bg-[#f6f9ff] text-slate-950 lg:grid lg:grid-cols-[292px_1fr]">
+        <div className="hidden lg:block">
+          <div className="sticky top-0 h-screen overflow-y-auto border-r border-slate-200 bg-white">
+            {sidebar}
+          </div>
         </div>
-      </div>
 
-      {/* Mobile header & drawer */}
-      <div className="lg:hidden">
-        <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-xl">
-          <div className="flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => setOpen(true)}
-              className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-50 text-sky-700 ring-1 ring-sky-100"
-              aria-label="Buka menu"
-            >
-              <Icon name="menu" />
-            </button>
-
-            <Link
-              href={redirectPathByRole(storedUser?.role)}
-              className="flex items-center gap-2 text-base font-bold"
-            >
-              <span className="grid h-9 w-9 place-items-center rounded-xl bg-sky-600 text-white">
-                <Icon name="spark" className="h-4 w-4" />
-              </span>
-              SkillLens
-            </Link>
-
-            <button
-              type="button"
-              onClick={() => setLogoutOpen(true)}
-              className="grid h-11 w-11 place-items-center rounded-2xl bg-rose-50 text-rose-600 ring-1 ring-rose-100"
-              aria-label="Keluar"
-            >
-              <Icon name="logout" className="h-4 w-4" />
-            </button>
-          </div>
-        </header>
-
-        {open && (
-          <div className="fixed inset-0 z-50 lg:hidden">
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="absolute inset-0 bg-slate-950/45 backdrop-blur-sm"
-              aria-label="Tutup menu"
-            />
-
-            <div className="relative h-full w-[86%] max-w-sm animate-[sidebarIn_220ms_ease-out] shadow-2xl">
-              {sidebar}
+        {/* Mobile header & drawer */}
+        <div className="lg:hidden">
+          <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-xl">
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setOpen(true)}
+                className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-50 text-sky-700 ring-1 ring-sky-100"
+                aria-label="Buka menu"
+              >
+                <Icon name="menu" />
+              </button>
+              <Link
+                href={redirectPathByRole(storedUser?.role)}
+                className="flex items-center gap-2 text-base font-bold"
+              >
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-sky-600 text-white">
+                  <Icon name="spark" className="h-4 w-4" />
+                </span>
+                SkillLens
+              </Link>
+              <button
+                type="button"
+                onClick={() => setLogoutOpen(true)}
+                className="grid h-11 w-11 place-items-center rounded-2xl bg-rose-50 text-rose-600 ring-1 ring-rose-100"
+                aria-label="Keluar"
+              >
+                <Icon name="logout" className="h-4 w-4" />
+              </button>
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* Konten utama */}
-      <section className="min-w-0">
-        <div className="w-full px-5 py-5 lg:px-6">
-          {/* Topbar */}
-          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative w-full max-w-md">
-              <Icon
-                name="search"
-                className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+          </header>
+          {open && (
+            <div className="fixed inset-0 z-50 lg:hidden">
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="absolute inset-0 bg-slate-950/45 backdrop-blur-sm"
+                aria-label="Tutup menu"
               />
-
-              <input
-                type="text"
-                placeholder="Cari data, sekolah, pengguna, atau aktivitas..."
-                className="h-11 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-sm font-medium text-slate-700 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
-              />
+              <div className="relative h-full w-[86%] max-w-sm animate-[sidebarIn_220ms_ease-out] shadow-2xl">
+                {sidebar}
+              </div>
             </div>
+          )}
+        </div>
 
-            <div className="flex items-center justify-end gap-4">
+        <section className="min-w-0">
+          <div className="w-full px-5 py-5 lg:px-6">
+            <div className="mb-6 flex items-center justify-end gap-4">
+              <div className="relative" ref={helpRef}>
+                <button
+                  type="button"
+                  onClick={() => setHelpOpen(!helpOpen)}
+                  className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50"
+                >
+                  <Icon name="help" className="h-4 w-4" />
+                  <span>Help</span>
+                </button>
+                {helpOpen && (
+                  <div className="absolute right-0 mt-2 w-64 rounded-xl border border-slate-200 bg-white shadow-lg z-50">
+                    <div className="py-1">
+                      <button
+                        onClick={handleHelp}
+                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                      >
+                        <Icon name="help" className="h-4 w-4 text-slate-400" />
+                        <span>Help</span>
+                      </button>
+                      <button
+                        onClick={handleAskCommunity}
+                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                      >
+                        <Icon name="users" className="h-4 w-4 text-slate-400" />
+                        <span>Ask the Help Community</span>
+                      </button>
+                      <button
+                        onClick={handleSendFeedback}
+                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                      >
+                        <Icon name="mail" className="h-4 w-4 text-slate-400" />
+                        <span>Send feedback to Google</span>
+                      </button>
+                      <button
+                        onClick={handleWhatsNew}
+                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                      >
+                        <Icon name="sparkles" className="h-4 w-4 text-slate-400" />
+                        <span>What's new in Classroom</span>
+                      </button>
+                      <button
+                        onClick={handleHelpAndFeedback}
+                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                      >
+                        <Icon name="message" className="h-4 w-4 text-slate-400" />
+                        <span>Help and Feedback</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Tombol Notifikasi */}
               <button
                 type="button"
                 className="relative grid h-11 w-11 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50"
@@ -463,115 +488,81 @@ export function DashboardShell({
                 </span>
               </button>
 
+              {/* User menu */}
               <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
                 <div className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-sky-600 to-blue-700 text-sm font-bold text-white">
                   {initials(displayName)}
                 </div>
-
                 <div className="hidden sm:block">
-                  <p className="text-sm font-bold text-slate-900">
-                    {displayName}
-                  </p>
-                  <p className="text-xs font-medium text-slate-500">
-                    {displayLabel}
-                  </p>
+                  <p className="text-sm font-bold text-slate-900">{displayName}</p>
+                  <p className="text-xs font-medium text-slate-500">{displayLabel}</p>
                 </div>
-
                 <Icon name="chevronDown" className="h-4 w-4 text-slate-400" />
               </div>
             </div>
-          </div>
 
-          {/* Header dashboard */}
+            {/* Header dashboard (tanpa teks SMA dan biru tambahan) */}
             <header className="relative mb-6 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-lg shadow-slate-950/5">
-            {/* soft accent background */}
-            <div className="absolute inset-0 bg-gradient-to-r from-white via-white to-sky-50/70" />
-            <div className="absolute right-0 top-0 h-full w-[55%] bg-[radial-gradient(circle_at_70%_50%,rgba(14,165,233,0.16),transparent_58%)]" />
-
-            <div className="relative grid min-h-[190px] items-center gap-6 px-6 py-7 lg:grid-cols-[1fr_440px] lg:px-8">
-                {/* Text kiri */}
+              <div className="absolute inset-0 bg-gradient-to-r from-white via-white to-sky-50/70" />
+              <div className="absolute right-0 top-0 h-full w-[55%] bg-[radial-gradient(circle_at_70%_50%,rgba(14,165,233,0.16),transparent_58%)]" />
+              <div className="relative grid min-h-[190px] items-center gap-6 px-6 py-7 lg:grid-cols-[1fr_440px] lg:px-8">
                 <div className="relative z-20">
-                <p className="text-xs font-extrabold uppercase tracking-[0.28em] text-sky-600">
+                  <p className="text-xs font-extrabold uppercase tracking-[0.28em] text-sky-600">
                     {roleLabel(storedUser?.role)}
-                </p>
-
-                <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950 md:text-4xl">
+                  </p>
+                  <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950 md:text-4xl">
                     {title || "Dashboard Administrasi"}
-                </h1>
-
-                <p className="mt-3 max-w-2xl text-sm font-medium leading-7 text-slate-500 md:text-base">
-                    {subtitle ||
-                    "Pantau kinerja sistem, kelola data, dan pastikan semua berjalan optimal."}
-                </p>
-
-                {rightSlot && <div className="mt-5">{rightSlot}</div>}
+                  </h1>
+                  {rightSlot && <div className="mt-5">{rightSlot}</div>}
                 </div>
-
-                {/* Ilustrasi kanan */}
                 <div className="pointer-events-none absolute bottom-0 right-0 top-0 z-10 hidden w-[560px] overflow-hidden lg:block">
-                <img
+                  <img
                     src="/images/bg-dashboard.png"
                     alt="Dashboard illustration"
                     className="absolute right-0 top-1/2 h-[220px] w-[520px] -translate-y-1/2 object-cover object-right opacity-95 drop-shadow-[0_24px_45px_rgba(14,165,233,0.16)]"
-                />
-
-                {/* efek memudar dari kiri gambar agar menyatu dengan putih */}
-                <div className="absolute inset-y-0 left-0 w-[58%] bg-gradient-to-r from-white via-white/95 to-transparent" />
-
-                {/* efek memudar atas bawah biar gambar tidak kotak */}
-                <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-white to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-white to-transparent" />
-
-                {/* tone halus biar gambar masuk ke tema biru */}
-                <div className="absolute inset-0 bg-sky-50/10" />
+                  />
+                  <div className="absolute inset-y-0 left-0 w-[58%] bg-gradient-to-r from-white via-white/95 to-transparent" />
+                  <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-white to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-white to-transparent" />
+                  <div className="absolute inset-0 bg-sky-50/10" />
                 </div>
-            </div>
+              </div>
             </header>
 
-          {/* Isi dashboard dari page */}
-          <div
-            key={activeKey}
-            className="animate-[contentIn_240ms_ease-out]"
-          >
-            {children}
+            <div key={activeKey} className="animate-[contentIn_240ms_ease-out]">
+              {children}
+            </div>
           </div>
-        </div>
-      </section>
-    </main>
+        </section>
+      </main>
 
-    <LogoutModal
-      open={logoutOpen}
-      onCancel={() => setLogoutOpen(false)}
-      onConfirm={logout}
-    />
+      <LogoutModal open={logoutOpen} onCancel={() => setLogoutOpen(false)} onConfirm={logout} />
 
-    <style jsx global>{`
-      html {
-        scroll-behavior: smooth;
-      }
-
-      @keyframes contentIn {
-        from {
-          opacity: 0;
-          transform: translateY(10px);
+      <style jsx global>{`
+        html {
+          scroll-behavior: smooth;
         }
-        to {
-          opacity: 1;
-          transform: translateY(0);
+        @keyframes contentIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
-      }
-
-      @keyframes sidebarIn {
-        from {
-          opacity: 0;
-          transform: translateX(-18px);
+        @keyframes sidebarIn {
+          from {
+            opacity: 0;
+            transform: translateX(-18px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
         }
-        to {
-          opacity: 1;
-          transform: translateX(0);
-        }
-      }
-    `}</style>
-  </>
-);
+      `}</style>
+    </>
+  );
 }

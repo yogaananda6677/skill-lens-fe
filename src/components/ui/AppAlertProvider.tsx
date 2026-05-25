@@ -12,7 +12,11 @@ import {
 } from "react";
 import { Icon } from "./icons";
 
-import { APP_ALERT_EVENT, type AppAlertPayload, type AppAlertType } from "../../lib/app-alert-events";
+import {
+  APP_ALERT_EVENT,
+  type AppAlertPayload,
+  type AppAlertType,
+} from "../../lib/app-alert-events";
 
 type AppAlertState = Required<Pick<AppAlertPayload, "type" | "title">> & {
   id: number;
@@ -22,7 +26,11 @@ type AppAlertState = Required<Pick<AppAlertPayload, "type" | "title">> & {
 
 type AppAlertContextValue = {
   showAlert: (payload: AppAlertPayload) => void;
-  showSuccess: (title: string, description?: string, autoCloseMs?: number | false) => void;
+  showSuccess: (
+    title: string,
+    description?: string,
+    autoCloseMs?: number | false
+  ) => void;
   showError: (title: string, description?: string) => void;
   showInfo: (title: string, description?: string) => void;
   showProcessing: (title: string, description?: string) => void;
@@ -34,6 +42,7 @@ const AppAlertContext = createContext<AppAlertContextValue | null>(null);
 function defaultAutoClose(type: AppAlertType): number | false {
   if (type === "success") return 1800;
   if (type === "info") return 2400;
+  if (type === "processing") return false;
   return false;
 }
 
@@ -62,18 +71,6 @@ function alertTone(type: AppAlertType) {
     };
   }
 
-  if (type === "processing") {
-    return {
-      shell: "border-sky-100",
-      accent: "bg-sky-500",
-      iconBox: "bg-sky-50 text-sky-600 ring-sky-100",
-      icon: "progress",
-      title: "text-slate-950",
-      progress: "bg-sky-500",
-      action: "text-sky-700 hover:bg-sky-50",
-    };
-  }
-
   return {
     shell: "border-sky-100",
     accent: "bg-sky-500",
@@ -90,6 +87,7 @@ export function AppAlertProvider({ children }: { children: ReactNode }) {
 
   const showAlert = useCallback((payload: AppAlertPayload) => {
     const type = payload.type ?? "info";
+
     setAlert({
       id: Date.now(),
       type,
@@ -99,49 +97,115 @@ export function AppAlertProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const dismissAlert = useCallback(() => setAlert(null), []);
+  const dismissAlert = useCallback(() => {
+    setAlert(null);
+  }, []);
 
   useEffect(() => {
     function handleAlert(event: Event) {
       const customEvent = event as CustomEvent<AppAlertPayload>;
+
       if (!customEvent.detail?.title) return;
+
       showAlert(customEvent.detail);
     }
 
     window.addEventListener(APP_ALERT_EVENT, handleAlert);
-    return () => window.removeEventListener(APP_ALERT_EVENT, handleAlert);
+
+    return () => {
+      window.removeEventListener(APP_ALERT_EVENT, handleAlert);
+    };
   }, [showAlert]);
 
   useEffect(() => {
     if (!alert || alert.autoCloseMs === false) return;
-    const timer = window.setTimeout(() => setAlert(null), alert.autoCloseMs);
-    return () => window.clearTimeout(timer);
+
+    const timer = window.setTimeout(() => {
+      setAlert(null);
+    }, alert.autoCloseMs);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [alert]);
 
   const value = useMemo<AppAlertContextValue>(
     () => ({
       showAlert,
-      showSuccess: (title, description, autoCloseMs = 1800) => showAlert({ type: "success", title, description, autoCloseMs }),
-      showError: (title, description) => showAlert({ type: "error", title, description, autoCloseMs: false }),
-      showInfo: (title, description) => showAlert({ type: "info", title, description, autoCloseMs: 2400 }),
-      showProcessing: (title, description) => showAlert({ type: "processing", title, description, autoCloseMs: false }),
+      showSuccess: (title, description, autoCloseMs = 1800) =>
+        showAlert({
+          type: "success",
+          title,
+          description,
+          autoCloseMs,
+        }),
+      showError: (title, description) =>
+        showAlert({
+          type: "error",
+          title,
+          description,
+          autoCloseMs: false,
+        }),
+      showInfo: (title, description) =>
+        showAlert({
+          type: "info",
+          title,
+          description,
+          autoCloseMs: 2400,
+        }),
+      showProcessing: (title, description) =>
+        showAlert({
+          type: "processing",
+          title,
+          description,
+          autoCloseMs: false,
+        }),
       dismissAlert,
     }),
-    [dismissAlert, showAlert],
+    [dismissAlert, showAlert]
   );
 
-  const tone = alert ? alertTone(alert.type) : null;
+  const isProcessing = alert?.type === "processing";
+  const tone = alert && !isProcessing ? alertTone(alert.type) : null;
+
   const progressStyle =
     alert?.autoCloseMs !== false && alert?.autoCloseMs
-      ? ({ "--skilllens-alert-duration": `${alert.autoCloseMs}ms` } as CSSProperties)
+      ? ({
+          "--skilllens-alert-duration": `${alert.autoCloseMs}ms`,
+        } as CSSProperties)
       : undefined;
 
   return (
     <AppAlertContext.Provider value={value}>
       {children}
 
-      {alert && tone && (
-        <div className="fixed left-1/2 top-4 z-[160] w-[calc(100%-2rem)] max-w-[440px] -translate-x-1/2 pointer-events-none sm:top-5">
+      {isProcessing && alert && (
+        <div className="fixed inset-0 z-[200] grid place-items-center bg-slate-950/35 px-4 backdrop-blur-sm">
+          <section
+            role="status"
+            aria-live="polite"
+            className="w-full max-w-xs rounded-3xl border border-white/70 bg-white/95 p-7 text-center shadow-2xl shadow-slate-950/20"
+          >
+            {/* Spinner putih melingkar */}
+            <div className="mx-auto grid h-20 w-20 place-items-center rounded-full">
+              <div className="h-12 w-12 animate-spin rounded-full border-[3px] border-white border-t-transparent shadow-md ring-2 ring-white/30" />
+            </div>
+
+            <h2 className="mt-5 text-lg font-extrabold text-slate-950">
+              {alert.title}
+            </h2>
+
+            {alert.description && (
+              <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
+                {alert.description}
+              </p>
+            )}
+          </section>
+        </div>
+      )}
+
+      {alert && tone && !isProcessing && (
+        <div className="pointer-events-none fixed left-1/2 top-4 z-[160] w-[calc(100%-2rem)] max-w-[440px] -translate-x-1/2 sm:top-5">
           <section
             role={alert.type === "error" ? "alert" : "status"}
             aria-live={alert.type === "error" ? "assertive" : "polite"}
@@ -151,34 +215,39 @@ export function AppAlertProvider({ children }: { children: ReactNode }) {
             <div className={`absolute left-0 top-0 h-full w-1 ${tone.accent}`} />
 
             <div className="flex items-start gap-3 pl-1">
-              <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ring-1 ${tone.iconBox}`}>
-                {alert.type === "processing" ? (
-                  <span className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
-                ) : (
-                  <Icon name={tone.icon} className="h-4 w-4" />
-                )}
+              <div
+                className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ring-1 ${tone.iconBox}`}
+              >
+                <Icon name={tone.icon} className="h-4 w-4" />
               </div>
 
               <div className="min-w-0 flex-1 pt-0.5">
-                <h2 className={`text-sm font-extrabold leading-5 ${tone.title}`}>{alert.title}</h2>
-                {alert.description && <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{alert.description}</p>}
+                <h2 className={`text-sm font-extrabold leading-5 ${tone.title}`}>
+                  {alert.title}
+                </h2>
+
+                {alert.description && (
+                  <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
+                    {alert.description}
+                  </p>
+                )}
               </div>
 
-              {alert.type !== "processing" && (
-                <button
-                  type="button"
-                  onClick={dismissAlert}
-                  className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-slate-500 transition hover:text-slate-950 ${tone.action}`}
-                  aria-label="Tutup notifikasi"
-                >
-                  <Icon name="x" className="h-4 w-4" />
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={dismissAlert}
+                className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-slate-500 transition hover:text-slate-950 ${tone.action}`}
+                aria-label="Tutup notifikasi"
+              >
+                <Icon name="x" className="h-4 w-4" />
+              </button>
             </div>
 
             {alert.autoCloseMs !== false && (
               <div className="mt-3 h-0.5 overflow-hidden rounded-full bg-slate-100">
-                <div className={`h-full rounded-full ${tone.progress} skilllens-alert-progress`} />
+                <div
+                  className={`h-full rounded-full ${tone.progress} skilllens-alert-progress`}
+                />
               </div>
             )}
           </section>
@@ -207,12 +276,14 @@ export function AppAlertProvider({ children }: { children: ReactNode }) {
         }
 
         .skilllens-alert-toast {
-          animation: skilllensAlertToastIn 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+          animation: skilllensAlertToastIn 180ms cubic-bezier(0.2, 0.8, 0.2, 1)
+            both;
         }
 
         .skilllens-alert-progress {
           width: 100%;
-          animation: skilllensAlertProgress var(--skilllens-alert-duration, 1800ms) linear forwards;
+          animation: skilllensAlertProgress
+            var(--skilllens-alert-duration, 1800ms) linear forwards;
         }
       `}</style>
     </AppAlertContext.Provider>
@@ -221,8 +292,10 @@ export function AppAlertProvider({ children }: { children: ReactNode }) {
 
 export function useAppAlert() {
   const context = useContext(AppAlertContext);
+
   if (!context) {
     throw new Error("useAppAlert must be used inside AppAlertProvider");
   }
+
   return context;
 }

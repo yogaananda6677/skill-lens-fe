@@ -1,17 +1,25 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type React from "react";
+
 import { DashboardShell } from "../../components/layout/DashboardShell";
 import { FeedbackModal } from "../../components/ui/FeedbackModal";
 import { adminSekolahNav } from "../../config/navigation";
 import { apiFetch } from "../../lib/axios";
 import { uploadWithProgress, type UploadProgressState } from "../../lib/upload";
-import { AdminSchoolDataNilai } from "./components/AdminSchoolDataNilai";
 
-import {
-  initialSchoolForm,
-  initialTeacherForm,
-} from "./constants";
+import { AdminSchoolDashboard } from "./components/AdminSchoolDashboard";
+import { AdminSchoolDataGuru } from "./components/AdminSchoolDataGuru";
+import { AdminSchoolDataNilai } from "./components/AdminSchoolDataNilai";
+import { AdminSchoolDataSekolah } from "./components/AdminSchoolDataSekolah";
+import { AdminSchoolDataSiswa } from "./components/AdminSchoolDataSiswa";
+import { AdminSchoolImportSiswa } from "./components/AdminSchoolImportSiswa";
+import { AdminSchoolJurusan } from "./components/AdminSchoolJurusan";
+import { AdminSchoolMataPelajaran } from "./components/AdminSchoolMataPelajaran";
+import { LockedFeatureCard } from "./components/AdminSchoolShared";
+
+import { initialSchoolForm, initialTeacherForm } from "./constants";
 
 import {
   cleanPhone,
@@ -31,16 +39,9 @@ import type {
   TeacherRow,
 } from "./types";
 
-import type React from "react";
-
-import { LockedFeatureCard } from "./components/AdminSchoolShared";
-import { AdminSchoolDashboard } from "./components/AdminSchoolDashboard";
-import { AdminSchoolDataSekolah } from "./components/AdminSchoolDataSekolah";
-import { AdminSchoolDataGuru } from "./components/AdminSchoolDataGuru";
-import { AdminSchoolJurusan } from "./components/AdminSchoolJurusan";
-import { AdminSchoolImportSiswa } from "./components/AdminSchoolImportSiswa";
-import { AdminSchoolDataSiswa } from "./components/AdminSchoolDataSiswa";
-import { AdminSchoolMataPelajaran } from "./components/AdminSchoolMataPelajaran";
+type AdminSchoolStatusWithJenis = AdminSchoolStatus & {
+  jenis_sekolah?: string | null;
+};
 
 export default function AdminSekolahPage() {
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -48,7 +49,7 @@ export default function AdminSekolahPage() {
   const [active, setActive] = useState<AdminSchoolPageKey>("dashboard");
 
   const [schoolStatus, setSchoolStatus] = useState<AdminSchoolStatus | null>(
-    null,
+    null
   );
   const [loadingStatus, setLoadingStatus] = useState(true);
 
@@ -78,6 +79,7 @@ export default function AdminSekolahPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [importJurusanId, setImportJurusanId] = useState("");
+  const [importSemester, setImportSemester] = useState("");
 
   const [schoolMessage, setSchoolMessage] = useState("");
   const [schoolError, setSchoolError] = useState("");
@@ -96,12 +98,19 @@ export default function AdminSekolahPage() {
   const [modal, setModal] = useState<ModalState | null>(null);
 
   const schoolErrors = useMemo(() => validateSchool(schoolForm), [schoolForm]);
+
   const teacherErrors = useMemo(
     () => validateTeacher(teacherForm),
-    [teacherForm],
+    [teacherForm]
   );
 
   const isSchoolApproved = schoolStatus?.school_status === "approved";
+
+  const jenisSekolah = String(
+    (schoolStatus as AdminSchoolStatusWithJenis | null)?.jenis_sekolah || "SMA"
+  ).toUpperCase();
+
+  const isSma = jenisSekolah === "SMA";
 
   const filteredTeachers = useMemo(() => {
     const keyword = teacherSearch.trim().toLowerCase();
@@ -116,8 +125,7 @@ export default function AdminSekolahPage() {
         teacher.no_hp.toLowerCase().includes(keyword);
 
       const matchRole =
-        teacherRoleFilter === "semua" ||
-        teacher.jabatan === teacherRoleFilter;
+        teacherRoleFilter === "semua" || teacher.jabatan === teacherRoleFilter;
 
       return matchKeyword && matchRole;
     });
@@ -151,7 +159,7 @@ export default function AdminSekolahPage() {
     try {
       const result = await apiFetch<{ data?: TeacherRow[] }>(
         "/admin-sekolah/guru",
-        { method: "GET" },
+        { method: "GET" }
       );
 
       setTeacherRows(result.data || []);
@@ -166,7 +174,7 @@ export default function AdminSekolahPage() {
     try {
       const result = await apiFetch<{ data?: JurusanRow[] }>(
         "/admin-sekolah/jurusan",
-        { method: "GET" },
+        { method: "GET" }
       );
 
       setJurusanRows(result.data || []);
@@ -209,6 +217,7 @@ export default function AdminSekolahPage() {
     if (isSchoolApproved) {
       loadTeachers();
       loadJurusan();
+      setSiswaPage(1);
       loadSiswa(1);
     }
   }, [isSchoolApproved]);
@@ -222,12 +231,22 @@ export default function AdminSekolahPage() {
 
   function isLockedFeature(key: string) {
     return (
-      ["guru", "jurusan", "import-siswa", "siswa", "mata-pelajaran", "nilai"].includes(key) &&
-      !isSchoolApproved
+      [
+        "guru",
+        "jurusan",
+        "import-siswa",
+        "siswa",
+        "mata-pelajaran",
+        "nilai",
+      ].includes(key) && !isSchoolApproved
     );
   }
 
-  function showModal(title: string, description: string, type: "success" | "error" = "success") {
+  function showModal(
+    title: string,
+    description: string,
+    type: "success" | "error" = "success"
+  ) {
     setModal({ title, description, type });
   }
 
@@ -276,7 +295,7 @@ export default function AdminSekolahPage() {
             alamat: schoolForm.alamat.trim(),
             no_telp: cleanPhone(schoolForm.no_telp.trim()),
           }),
-        },
+        }
       );
 
       const message =
@@ -287,13 +306,15 @@ export default function AdminSekolahPage() {
       setModal({ title: "Pengajuan terkirim", description: message });
       setSchoolForm(initialSchoolForm);
       setSchoolTouched(false);
+
       await loadSchoolStatus();
+
       setActive("dashboard");
     } catch (err) {
       setSchoolError(
         err instanceof Error
           ? err.message
-          : "Pengajuan sekolah gagal diproses.",
+          : "Pengajuan sekolah gagal diproses."
       );
     } finally {
       setLoadingSchool(false);
@@ -309,7 +330,7 @@ export default function AdminSekolahPage() {
 
     if (!isSchoolApproved) {
       setTeacherError(
-        "Sekolah belum disetujui. Fitur tambah guru masih terkunci.",
+        "Sekolah belum disetujui. Fitur tambah guru masih terkunci."
       );
       return;
     }
@@ -357,7 +378,7 @@ export default function AdminSekolahPage() {
       setActive("guru");
     } catch (err) {
       setTeacherError(
-        err instanceof Error ? err.message : "Tambah guru gagal diproses.",
+        err instanceof Error ? err.message : "Tambah guru gagal diproses."
       );
     } finally {
       setLoadingTeacher(false);
@@ -386,7 +407,7 @@ export default function AdminSekolahPage() {
         {
           method: "POST",
           body: JSON.stringify({ nama_jurusan: nama }),
-        },
+        }
       );
 
       if (result.data) {
@@ -429,14 +450,40 @@ export default function AdminSekolahPage() {
       return;
     }
 
-    if (!importJurusanId) {
-      setImportError("Pilih jurusan terlebih dahulu.");
+    const isSemesterUmumSma =
+      isSma && (importSemester === "1" || importSemester === "2");
+
+    const isSemesterJurusanSma =
+      isSma && ["3", "4", "5", "6"].includes(importSemester);
+
+    if (isSma && !importSemester) {
+      setImportError("Semester wajib dipilih untuk import nilai SMA.");
+      return;
+    }
+
+    if (!isSma && !importJurusanId) {
+      setImportError("Jurusan wajib dipilih untuk import nilai SMK.");
+      return;
+    }
+
+    if (isSemesterJurusanSma && !importJurusanId) {
+      setImportError("Jurusan wajib dipilih untuk import SMA semester 3 sampai 6.");
       return;
     }
 
     const formData = new FormData();
+
     formData.append("file", selectedFile);
-    formData.append("id_jurusan", importJurusanId);
+    formData.append("jenis_sekolah", isSma ? "SMA" : "SMK");
+
+    if (isSma) {
+      formData.append("semester", importSemester);
+    }
+
+    // Semester 1 dan 2 SMA tidak kirim jurusan
+    if (!isSemesterUmumSma) {
+      formData.append("id_jurusan", importJurusanId);
+    }
 
     setLoadingImport(true);
 
@@ -455,8 +502,15 @@ export default function AdminSekolahPage() {
 
       setImportMessage(message);
       setSelectedFile(null);
-      if (fileRef.current) fileRef.current.value = "";
+      setImportJurusanId("");
+      setImportSemester("");
+      setUploadProgress(null);
 
+      if (fileRef.current) {
+        fileRef.current.value = "";
+      }
+
+      setSiswaPage(1);
       await loadSiswa(1);
 
       setModal({
@@ -467,14 +521,18 @@ export default function AdminSekolahPage() {
       setActive("siswa");
     } catch (err) {
       setImportError(
-        err instanceof Error ? err.message : "Import siswa gagal diproses.",
+        err instanceof Error ? err.message : "Import siswa gagal diproses."
       );
     } finally {
       setLoadingImport(false);
     }
   }
 
-  function renderLocked(key: AdminSchoolPageKey, title: string, description: string) {
+  function renderLocked(
+    key: AdminSchoolPageKey,
+    title: string,
+    description: string
+  ) {
     return (
       <LockedFeatureCard
         title={title}
@@ -489,8 +547,10 @@ export default function AdminSekolahPage() {
     if (loadingStatus) {
       return (
         <div className="flex justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
-          <span className="ml-2 text-slate-600">Memuat status sekolah...</span>
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+          <span className="ml-2 text-slate-600">
+            Memuat status sekolah...
+          </span>
         </div>
       );
     }
@@ -517,7 +577,7 @@ export default function AdminSekolahPage() {
         return renderLocked(
           "guru",
           "Data guru masih terkunci",
-          "Admin sekolah hanya bisa menambahkan guru setelah sekolah disetujui oleh superadmin.",
+          "Admin sekolah hanya bisa menambahkan guru setelah sekolah disetujui oleh superadmin."
         );
       }
 
@@ -549,7 +609,7 @@ export default function AdminSekolahPage() {
         return renderLocked(
           "jurusan",
           "Data jurusan masih terkunci",
-          "Jurusan hanya bisa dikelola setelah sekolah disetujui oleh superadmin.",
+          "Jurusan hanya bisa dikelola setelah sekolah disetujui oleh superadmin."
         );
       }
 
@@ -569,7 +629,7 @@ export default function AdminSekolahPage() {
         return renderLocked(
           "import-siswa",
           "Import siswa masih terkunci",
-          "Import data siswa hanya bisa dilakukan setelah sekolah disetujui oleh superadmin.",
+          "Import data siswa hanya bisa dilakukan setelah sekolah disetujui oleh superadmin."
         );
       }
 
@@ -580,16 +640,19 @@ export default function AdminSekolahPage() {
           selectedFile={selectedFile}
           dragActive={dragActive}
           importJurusanId={importJurusanId}
+          importSemester={importSemester}
           importMessage={importMessage}
           importError={importError}
           loadingImport={loadingImport}
           uploadProgress={uploadProgress}
+          jenisSekolah={jenisSekolah}
           setSelectedFile={setSelectedFile}
           setDragActive={setDragActive}
           setImportJurusanId={setImportJurusanId}
+          setImportSemester={setImportSemester}
           setImportError={setImportError}
           onSubmitImport={submitImportSiswa}
-          onBack={() => setActive("dashboard")}
+          onBack={() => setActive("siswa")}
         />
       );
     }
@@ -599,7 +662,7 @@ export default function AdminSekolahPage() {
         return renderLocked(
           "siswa",
           "Data siswa masih terkunci",
-          "Data siswa hanya bisa dilihat setelah sekolah disetujui oleh superadmin.",
+          "Data siswa hanya bisa dilihat setelah sekolah disetujui oleh superadmin."
         );
       }
 
@@ -628,6 +691,7 @@ export default function AdminSekolahPage() {
           "Mata pelajaran hanya bisa dikelola setelah sekolah disetujui oleh superadmin."
         );
       }
+
       return (
         <AdminSchoolMataPelajaran
           isSchoolApproved={isSchoolApproved}
@@ -645,6 +709,7 @@ export default function AdminSekolahPage() {
           "Data nilai hanya bisa diakses setelah sekolah disetujui oleh superadmin."
         );
       }
+
       return (
         <AdminSchoolDataNilai
           siswaRows={siswaRows}
@@ -682,6 +747,7 @@ export default function AdminSekolahPage() {
       }
     >
       {renderContent()}
+
       <FeedbackModal
         open={!!modal}
         type={modal?.type ?? "success"}
