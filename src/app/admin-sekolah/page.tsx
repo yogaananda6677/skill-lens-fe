@@ -6,6 +6,7 @@ import { FeedbackModal } from "../../components/ui/FeedbackModal";
 import { adminSekolahNav } from "../../config/navigation";
 import { apiFetch } from "../../lib/axios";
 import { uploadWithProgress, type UploadProgressState } from "../../lib/upload";
+import { AdminSchoolDataNilai } from "./components/AdminSchoolDataNilai";
 
 import {
   initialSchoolForm,
@@ -30,6 +31,8 @@ import type {
   TeacherRow,
 } from "./types";
 
+import type React from "react";
+
 import { LockedFeatureCard } from "./components/AdminSchoolShared";
 import { AdminSchoolDashboard } from "./components/AdminSchoolDashboard";
 import { AdminSchoolDataSekolah } from "./components/AdminSchoolDataSekolah";
@@ -37,6 +40,7 @@ import { AdminSchoolDataGuru } from "./components/AdminSchoolDataGuru";
 import { AdminSchoolJurusan } from "./components/AdminSchoolJurusan";
 import { AdminSchoolImportSiswa } from "./components/AdminSchoolImportSiswa";
 import { AdminSchoolDataSiswa } from "./components/AdminSchoolDataSiswa";
+import { AdminSchoolMataPelajaran } from "./components/AdminSchoolMataPelajaran";
 
 export default function AdminSekolahPage() {
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -71,11 +75,9 @@ export default function AdminSekolahPage() {
   const [siswaSearch, setSiswaSearch] = useState("");
   const [siswaJurusanFilter, setSiswaJurusanFilter] = useState("semua");
 
-
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [importJurusanId, setImportJurusanId] = useState("");
-
 
   const [schoolMessage, setSchoolMessage] = useState("");
   const [schoolError, setSchoolError] = useState("");
@@ -181,7 +183,6 @@ export default function AdminSekolahPage() {
       limit: String(siswaLimit),
       keyword: siswaSearch.trim(),
       id_jurusan: siswaJurusanFilter === "semua" ? "" : siswaJurusanFilter,
-    
     });
 
     try {
@@ -219,13 +220,15 @@ export default function AdminSekolahPage() {
     }
   }, [siswaSearch, siswaJurusanFilter]);
 
-
-
   function isLockedFeature(key: string) {
     return (
-      ["guru", "jurusan", "import-siswa", "siswa"].includes(key) &&
+      ["guru", "jurusan", "import-siswa", "siswa", "mata-pelajaran", "nilai"].includes(key) &&
       !isSchoolApproved
     );
+  }
+
+  function showModal(title: string, description: string, type: "success" | "error" = "success") {
+    setModal({ title, description, type });
   }
 
   function updateSchool(key: keyof SchoolForm, value: string) {
@@ -431,12 +434,9 @@ export default function AdminSekolahPage() {
       return;
     }
 
-
-
     const formData = new FormData();
     formData.append("file", selectedFile);
     formData.append("id_jurusan", importJurusanId);
-
 
     setLoadingImport(true);
 
@@ -620,6 +620,40 @@ export default function AdminSekolahPage() {
       );
     }
 
+    if (active === "mata-pelajaran") {
+      if (isLockedFeature("mata-pelajaran")) {
+        return renderLocked(
+          "mata-pelajaran",
+          "Data mata pelajaran masih terkunci",
+          "Mata pelajaran hanya bisa dikelola setelah sekolah disetujui oleh superadmin."
+        );
+      }
+      return (
+        <AdminSchoolMataPelajaran
+          isSchoolApproved={isSchoolApproved}
+          onShowModal={showModal}
+          jurusanRows={jurusanRows}
+        />
+      );
+    }
+
+    if (active === "nilai") {
+      if (isLockedFeature("nilai")) {
+        return renderLocked(
+          "nilai",
+          "Data nilai masih terkunci",
+          "Data nilai hanya bisa diakses setelah sekolah disetujui oleh superadmin."
+        );
+      }
+      return (
+        <AdminSchoolDataNilai
+          siswaRows={siswaRows}
+          jurusanRows={jurusanRows}
+          loadSiswa={loadSiswa}
+        />
+      );
+    }
+
     return (
       <AdminSchoolDashboard
         schoolStatus={schoolStatus}
@@ -648,7 +682,6 @@ export default function AdminSekolahPage() {
       }
     >
       {renderContent()}
-
       <FeedbackModal
         open={!!modal}
         type={modal?.type ?? "success"}

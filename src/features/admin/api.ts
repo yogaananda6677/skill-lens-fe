@@ -19,6 +19,10 @@ export function getAdminDashboard() {
   return apiFetch<AdminDashboardResponse>("/admin/dashboard");
 }
 
+export function deleteSchool(id: number) {
+  return apiFetch(`/admin/sekolah/${id}`, { method: "DELETE" });
+}
+
 export function getSchoolVerifications() {
   return apiFetch<VerificationRow[]>("/admin/verifikasi");
 }

@@ -2,13 +2,7 @@ import type { JurusanRow, SiswaRow } from "../types";
 import { Icon } from "../../../components/ui/icons";
 
 function getPasswordAwal(siswa: SiswaRow) {
-  return (
-    siswa.password_awal ||
-    siswa.password_default ||
-    siswa.password ||
-    siswa.nisn ||
-    "-"
-  );
+  return siswa.password_awal || siswa.nisn || "-";
 }
 
 function escapeHtml(value: unknown) {

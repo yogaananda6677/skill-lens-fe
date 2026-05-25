@@ -1,5 +1,6 @@
 import type { SchoolForm, TeacherForm } from "./types";
 
+
 export const initialSchoolForm: SchoolForm = {
   nama_sekolah: "",
   npsn: "",
@@ -24,4 +25,4 @@ export const jabatanOptions = [
   "Guru Mata Pelajaran",
 ];
 
-export const templateExcelUrl = "/templates/template-import-siswa.xlsx";
+export const templateExcelUrl = "/templates/template-import-nilai.xlsx";

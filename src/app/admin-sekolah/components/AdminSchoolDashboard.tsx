@@ -67,30 +67,11 @@ export function AdminSchoolDashboard({
 
   return (
     <div className="space-y-6">
-      {/* Header utama dengan gradasi biru gelap */}
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-[#0a0f2a] via-[#0d1b3e] to-[#0a2a4a] p-6 text-white shadow-lg">
-        <div className="relative z-10">
-          <p className="text-sm font-semibold uppercase tracking-wide text-cyan-300">
-            Panel Admin Sekolah
-          </p>
-          <h2 className="mt-2 text-2xl font-bold tracking-tight md:text-3xl">
-            Kelola data sekolah dengan alur yang rapi.
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm text-cyan-100/80">
-            Data guru, jurusan, import siswa, dan data siswa aktif setelah
-            sekolah disetujui superadmin.
-          </p>
-        </div>
-        <div className="absolute -right-20 -top-20 h-60 w-60 rounded-full bg-cyan-500/20 blur-3xl" />
-      </div>
-
-      {/* Status bar */}
       <div className="rounded-xl border border-blue-100 bg-blue-50/50 px-5 py-3 text-sm text-slate-700">
         <span className="font-semibold text-blue-700">Status sekolah: </span>
         {loadingStatus ? "Memuat status..." : schoolStatus?.message}
       </div>
 
-      {/* Grid kartu aksi */}
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-5">
         {cards.map((item) => {
           const locked = isLockedFeature(item.key);

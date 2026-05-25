@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import { adminNav as navItems } from "@/config/navigation";
-import { getAdminSchools, type AdminSchoolRow } from "@/features/admin/api";
+import { getAdminSchools, deleteSchool, type AdminSchoolRow } from "@/features/admin/api";
 import { Icon } from "@/components/ui/icons";
 
 type SchoolRow = {
@@ -60,9 +60,16 @@ export default function AdminSchoolPage() {
     // Implementasi edit (modal atau redirect)
   };
 
-  const handleDelete = (school: SchoolRow) => {
-    if (confirm(`Hapus sekolah ${school.name}?`)) {
+  const handleDelete = async (school: SchoolRow) => {
+    if (!confirm(`Hapus sekolah ${school.name}?`)) return;
+    try {
+      await deleteSchool(Number(school.id));
+      // Hapus dari state setelah sukses
       setSchools((prev) => prev.filter((s) => s.id !== school.id));
+      alert("Sekolah berhasil dihapus");
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : "Gagal menghapus sekolah");
     }
   };
 

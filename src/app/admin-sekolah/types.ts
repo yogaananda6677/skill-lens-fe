@@ -3,8 +3,10 @@ export type AdminSchoolPageKey =
   | "sekolah"
   | "guru"
   | "jurusan"
+  | "mata-pelajaran"
   | "import-siswa"
-  | "siswa";
+  | "siswa"
+  | "nilai";
 
 export type AdminSchoolStatus = {
   has_school: boolean;
@@ -50,14 +52,14 @@ export type JurusanRow = {
 
 export type SiswaRow = {
   id: number;
+  id_siswa?: number;
   nisn: string;
   nama: string;
-  username: string;
-  password?: string;
+  username?: string;
   password_awal?: string;
-  password_default?: string;
-  kelas: string;
-  jurusan?: string;
+  kelas?: string | null;
+  jurusan?: string | null;
+  id_jurusan?: number | string | null;
   status?: string;
 };
 

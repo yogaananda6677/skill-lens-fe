@@ -1,7 +1,8 @@
-import type { RefObject } from "react";
+"use client";
+
+import { useState } from "react";
 import { Icon } from "../../../components/ui/icons";
 import type { UploadProgressState } from "../../../lib/upload";
-import { templateExcelUrl } from "../constants";
 import type { JurusanRow } from "../types";
 import { StatusMessage, UploadProgress } from "./AdminSchoolShared";
 
@@ -22,7 +23,7 @@ export function AdminSchoolImportSiswa({
   onSubmitImport,
   onBack,
 }: {
-  fileRef: RefObject<HTMLInputElement | null>;
+  fileRef: React.RefObject<HTMLInputElement | null>;
   jurusanRows: JurusanRow[];
   selectedFile: File | null;
   dragActive: boolean;
@@ -39,6 +40,8 @@ export function AdminSchoolImportSiswa({
   onBack: () => void;
 }) {
   const canImport = Boolean(selectedFile) && Boolean(importJurusanId);
+  const [downloadJurusanId, setDownloadJurusanId] = useState<string>("");
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
 
   function pickFile(file?: File | null) {
     if (!file) return;
@@ -58,6 +61,61 @@ export function AdminSchoolImportSiswa({
     setSelectedFile(file);
   }
 
+  async function handleDownloadTemplate() {
+    if (!downloadJurusanId) {
+      setImportError("Pilih jurusan terlebih dahulu untuk mendownload template.");
+      return;
+    }
+
+    setDownloadingTemplate(true);
+
+    try {
+      const token =
+        localStorage.getItem("skilllens_token") ||
+        localStorage.getItem("access_token") ||
+        localStorage.getItem("token");
+
+      const baseUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+
+      const url = `${baseUrl}/admin-sekolah/nilai/template?jurusanId=${downloadJurusanId}`;
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: token
+          ? {
+              Authorization: `Bearer ${token}`,
+            }
+          : {},
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Gagal mengunduh template");
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = `template_nilai_${downloadJurusanId}.xlsx`;
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (err) {
+      console.error(err);
+      setImportError(
+        err instanceof Error ? err.message : "Gagal mengunduh template."
+      );
+    } finally {
+      setDownloadingTemplate(false);
+    }
+  }
+
   return (
     <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-white via-blue-50/40 to-blue-100/20 p-[1px] shadow-md">
       <div className="rounded-xl bg-white p-6">
@@ -71,26 +129,41 @@ export function AdminSchoolImportSiswa({
         <p className="mt-1 text-sm text-slate-500">Pilih jurusan terlebih dahulu, lalu upload satu file Excel.</p>
 
         <form onSubmit={onSubmitImport}>
-          <div className="mt-5 mb-5 flex flex-col gap-3 rounded-xl border border-blue-200 bg-blue-50/50 p-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-sm font-semibold text-blue-800">Template Excel Siswa</p>
-              <p className="mt-1 text-sm text-slate-500">
-                Letakkan file template di public/templates/template-import-siswa.xlsx.
-              </p>
+          <div className="mt-5 mb-5 rounded-xl border border-blue-200 bg-blue-50/50 p-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-blue-800">Template Excel Siswa</p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Template akan disesuaikan dengan jurusan yang dipilih.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <select
+                  value={downloadJurusanId}
+                  onChange={(e) => setDownloadJurusanId(e.target.value)}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                >
+                  <option value="">Pilih jurusan template</option>
+                  {jurusanRows.map((j) => (
+                    <option key={j.id} value={j.id}>{j.nama}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={handleDownloadTemplate}
+                  disabled={!downloadJurusanId || downloadingTemplate}
+                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-4 py-2 text-sm font-medium text-white shadow-sm hover:shadow-md disabled:opacity-50"
+                >
+                  <Icon name="download" className="h-4 w-4" />
+                  {downloadingTemplate ? "Mengunduh..." : "Download Template"}
+                </button>
+              </div>
             </div>
-            <a
-              href={templateExcelUrl}
-              download
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:shadow-md"
-            >
-              <Icon name="download" className="h-4 w-4" />
-              Download Template
-            </a>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block">
-              <span className="mb-1 block text-sm font-medium text-slate-700">Jurusan</span>
+              <span className="mb-1 block text-sm font-medium text-slate-700">Jurusan (untuk import)</span>
               <select
                 value={importJurusanId}
                 onChange={(event) => setImportJurusanId(event.target.value)}

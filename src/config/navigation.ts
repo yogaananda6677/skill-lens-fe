@@ -28,7 +28,6 @@ export const studentNav = [
   },
 ] as const;
 
-
 export const guruNav = [
   { key: "progress", label: "Progress Siswa", description: "Pantau roadmap", href: "#progress", icon: "progress", roles: ["guru"] },
   { key: "bimbingan", label: "Catatan Bimbingan", description: "Tindak lanjut", href: "#bimbingan", icon: "guidance", roles: ["guru"] },
@@ -60,6 +59,12 @@ export const adminSekolahNav = [
     icon: "graduation",
   },
   {
+    key: "mata-pelajaran",      // ✅ tambahkan
+    label: "Mata Pelajaran",
+    description: "Kelola mata pelajaran",
+    icon: "book",
+  },
+  {
     key: "import-siswa",
     label: "Import Siswa",
     description: "Upload Excel siswa",
@@ -70,6 +75,12 @@ export const adminSekolahNav = [
     label: "Data Siswa",
     description: "Kelola siswa",
     icon: "profile",
+  },
+  {
+    key: "nilai",               // ✅ tambahkan
+    label: "Data Nilai",
+    description: "Kelola nilai semester",
+    icon: "chart",
   },
 ] as const;
 
