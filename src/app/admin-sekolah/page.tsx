@@ -740,11 +740,7 @@ export default function AdminSekolahPage() {
       title="Dashboard Admin Sekolah"
       subtitle="Kelola data sekolah, guru, jurusan, import siswa, dan data siswa dalam satu panel."
       onNavigate={(key) => setActive(key as AdminSchoolPageKey)}
-      rightSlot={
-        <div className="rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-md">
-          {schoolStatus?.nama_sekolah || "SkillLens School Panel"}
-        </div>
-      }
+      rightSlot={null}
     >
       {renderContent()}
 

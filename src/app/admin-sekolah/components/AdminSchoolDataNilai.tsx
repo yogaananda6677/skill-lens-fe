@@ -140,6 +140,21 @@ export function AdminSchoolDataNilai({ siswaRows, jurusanRows }: Props) {
     return filteredSiswa.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredSiswa, currentPage]);
 
+  const nilaiBySemester = useMemo(() => {
+    const grouped = new Map<number, NilaiItem[]>();
+    nilaiList.forEach((item) => {
+      const semester = item.semester || 0;
+      if (!grouped.has(semester)) grouped.set(semester, []);
+      grouped.get(semester)?.push(item);
+    });
+    return Array.from(grouped.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([semester, rows]) => ({
+        semester,
+        rows: rows.sort((a, b) => a.nama_mapel.localeCompare(b.nama_mapel)),
+      }));
+  }, [nilaiList]);
+
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedJurusan]);
@@ -186,21 +201,25 @@ export function AdminSchoolDataNilai({ siswaRows, jurusanRows }: Props) {
 
   return (
     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-blue-50/40 to-blue-100/20 p-[1px] shadow-md">
-      <div className="rounded-2xl bg-white p-6">
-        <div className="mb-2 flex items-center gap-2">
-          <div className="rounded-full bg-blue-100 p-1.5 text-blue-600">
-            <Icon name="chart" className="h-4 w-4" />
+      {/* Ubah bg-white menjadi gradasi biru lembut dari atas ke bawah */}
+      <div className="rounded-2xl bg-gradient-to-b from-blue-50/90 to-white p-6">
+        {/* Header card biru tua gradasi */}
+        <div className="-mx-6 -mt-6 mb-6 rounded-t-2xl bg-gradient-to-r from-[#0a1a3a] to-[#0f2a5f] px-6 py-5">
+          <div className="flex items-center gap-2">
+            <div className="rounded-full bg-white/20 p-1.5 text-white">
+              <Icon name="chart" className="h-4 w-4" />
+            </div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-blue-100">
+              Data Nilai
+            </p>
           </div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
-            Data Nilai
+          <h2 className="mt-2 text-xl font-bold text-white">Kelola nilai siswa</h2>
+          <p className="mt-1 text-sm text-blue-100">
+            Lihat nilai akademik siswa berdasarkan semester dan kategori.
           </p>
         </div>
 
-        <h2 className="text-xl font-bold text-slate-800">Kelola nilai siswa</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Lihat nilai akademik siswa berdasarkan semester dan kategori.
-        </p>
-
+        {/* Filter dan statistik */}
         <div className="mt-5 mb-5 flex flex-wrap items-center justify-between gap-3">
           <select
             value={selectedJurusan}
@@ -220,13 +239,13 @@ export function AdminSchoolDataNilai({ siswaRows, jurusanRows }: Props) {
         </div>
 
         {loadingSiswa ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 py-14">
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 py-14 bg-white/50">
             <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600" />
             <p className="mt-3 text-sm font-medium text-slate-500">Memuat data siswa...</p>
           </div>
         ) : (
           <>
-            <div className="overflow-hidden rounded-2xl border border-slate-200">
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/50">
               <div className="overflow-x-auto">
                 <table className="min-w-full text-left text-sm">
                   <thead className="border-b border-blue-200 bg-gradient-to-r from-blue-100 via-blue-50 to-blue-100 text-xs font-semibold uppercase tracking-wider text-blue-800">
@@ -238,7 +257,7 @@ export function AdminSchoolDataNilai({ siswaRows, jurusanRows }: Props) {
                       <th className="px-5 py-3 text-center">Aksi</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-100 bg-white/50">
                     {paginatedSiswa.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="px-5 py-12 text-center text-slate-500">
@@ -298,12 +317,11 @@ export function AdminSchoolDataNilai({ siswaRows, jurusanRows }: Props) {
         )}
       </div>
 
-      {/* Modal nilai - diperbaiki dengan gaya biru gradasi */}
+      {/* Modal nilai (tidak berubah) */}
       {showModal && selectedSiswa && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm">
           <div className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl">
-            {/* Header biru tua gradasi */}
-            <div className="flex items-start justify-between bg-gradient-to-r from-[#0a1a3a] to-[#0f2a5f] px-6 py-5">
+            <div className="flex items-start justify-between bg-gradient-to-r from-[#0a1a3a] to-[#0f2a5f] px-6 py-5 rounded-t-2xl">
               <div>
                 <h3 className="text-lg font-bold text-white">
                   Nilai {selectedSiswa.nama}
@@ -323,8 +341,8 @@ export function AdminSchoolDataNilai({ siswaRows, jurusanRows }: Props) {
             <div className="max-h-[70vh] overflow-y-auto p-6">
               {loadingNilai ? (
                 <div className="flex flex-col items-center justify-center py-12">
-                  <div className="h-14 w-14 animate-spin rounded-full border-[3px] border-blue-200 border-t-transparent border-r-blue-500 border-b-blue-600 border-l-blue-400"></div>
-                  <p className="mt-4 text-sm font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+                  <div className="h-16 w-16 animate-spin rounded-full border-4 border-blue-200 border-t-transparent border-r-blue-500 border-b-blue-600 border-l-blue-400" />
+                  <p className="mt-4 text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600">
                     Memuat nilai...
                   </p>
                 </div>
@@ -346,20 +364,18 @@ export function AdminSchoolDataNilai({ siswaRows, jurusanRows }: Props) {
                         <h5 className="text-base font-bold text-blue-800">Semester {semesterItem.semester}</h5>
                         <p className="text-sm text-slate-500">Rata-rata nilai per kategori</p>
                       </div>
-                      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         {ACADEMIC_CATEGORIES.map((category) => {
                           const item = semesterItem.kategori[category];
                           return (
                             <div
                               key={category}
-                              className="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-4 shadow-sm transition hover:shadow-md"
+                              className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-4 shadow-sm transition hover:shadow-md"
                             >
                               <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
                                 {CATEGORY_LABEL[category]}
                               </p>
-                              <p className="mt-2 text-2xl font-extrabold text-slate-900">
-                                {item?.rata_rata ?? "-"}
-                              </p>
+                              <p className="mt-2 text-2xl font-extrabold text-slate-900">{item?.rata_rata ?? "-"}</p>
                               <p className="mt-1 text-xs text-slate-500">{item?.jumlah_mapel || 0} mapel</p>
                               {item?.mapel?.length > 0 && (
                                 <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">
