@@ -43,10 +43,10 @@ const steps = [
 ];
 
 const metrics = [
-  { label: "Analisis Profil", value: "Mendalam", icon: "profile", sub: "berdasarkan 7 aspek" },
-  { label: "Rekomendasi Karier", value: "3", icon: "target", sub: "prioritas utama" },
-  { label: "Roadmap", value: "Personal", icon: "roadmap", sub: "sesuai progres" },
-  { label: "Monitoring Progres", value: "Real-time", icon: "dashboard", sub: "untuk guru" },
+  { label: "Secara Mendalam", value: "Analisis Profil", icon: "profile", sub: "berdasarkan 7 aspek" },
+  { label: "Karir", value: "3 Rekomendasi", icon: "target", sub: "berdasarkan hasil analisa" },
+  { label: "Menuju karir impian", value: "Roadmap", icon: "roadmap", sub: "sesuai progres" },
+  { label: "Per progress", value: "Catatan Bimbingan", icon: "dashboard", sub: "dari guru" },
 ];
 
 const recommendations = [
@@ -74,7 +74,7 @@ export default function Home() {
         <div className="animate-fade-up">
           <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-cyan-200/30 bg-white/10 px-3 py-1 text-sm font-semibold text-cyan-100 backdrop-blur-sm">
             <span className="h-2 w-2 rounded-full bg-cyan-300"></span>
-            Untuk SMA dan SMK
+            Untuk SMA/SMK
           </div>
 
           <h1 className="text-4xl font-bold leading-tight tracking-tight text-white md:text-6xl lg:text-7xl">
@@ -84,7 +84,8 @@ export default function Home() {
 
           <p className="mt-5 max-w-xl text-base text-slate-200 md:text-lg">
             SkillLens adalah sistem pendukung keputusan karier yang memadukan
-            nilai akademik dan profil pribadi siswa. Hasilnya: rekomendasi
+            nilai akademik dan profil pribadi siswa. <br />
+            Hasilnya: rekomendasi
             jurusan/karier yang tepat dan roadmap belajar terukur, dengan
             monitoring penuh dari guru.
           </p>
@@ -108,7 +109,7 @@ export default function Home() {
 
           <div className="mt-8 flex flex-wrap gap-4 text-xs text-cyan-100/80">
             <span className="flex items-center gap-1">
-              <Icon name="check" className="h-3 w-3" /> Tanpa instalasi
+              <Icon name="check" className="h-3 w-3" /> Mudah diakses
             </span>
             <span className="flex items-center gap-1">
               <Icon name="check" className="h-3 w-3" /> Gratis untuk sekolah
@@ -181,7 +182,7 @@ export default function Home() {
             <h3 className="font-bold text-slate-800">Siapa yang Menggunakan?</h3>
           </div>
           <ul className="space-y-2">
-            <li className="flex gap-2"><Icon name="check" className="h-4 w-4 text-emerald-500 mt-0.5" /> <span><strong>Guru BK / Wali Kelas</strong> – Memantau profil siswa, memberikan rekomendasi, dan konsultasi karier.</span></li>
+            <li className="flex gap-2"><Icon name="check" className="h-4 w-4 text-emerald-500 mt-0.5" /> <span><strong>Guru</strong> – Memantau profil siswa, memberikan rekomendasi, dan konsultasi karier.</span></li>
             <li className="flex gap-2"><Icon name="check" className="h-4 w-4 text-emerald-500 mt-0.5" /> <span><strong>Siswa</strong> – Mengisi profil minat bakat, melihat rekomendasi, dan menjalankan roadmap belajar.</span></li>
             <li className="flex gap-2"><Icon name="check" className="h-4 w-4 text-emerald-500 mt-0.5" /> <span><strong>Admin Sekolah</strong> – Mengelola data sekolah dan verifikasi akun guru.</span></li>
           </ul>
@@ -346,13 +347,13 @@ export default function Home() {
     <section id="metode" className="scroll-mt-24 bg-slate-900 py-20 text-white">
       <div className="mx-auto w-[min(1220px,calc(100%-32px))] grid gap-12 md:grid-cols-2 items-center">
         <div>
-          <p className="text-sm font-bold uppercase tracking-wide text-cyan-300">Metode Cerdas</p>
+          <p className="text-sm font-bold uppercase tracking-wide text-cyan-300">Metode Terbaru!</p>
           <h2 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">Gabungkan Data Akademik & Profil Pribadi</h2>
-          <p className="mt-4 text-slate-300">SkillLens menggunakan pendekatan holistik: nilai rapor dipadukan dengan minat, bakat, prestasi, dan tujuan siswa untuk menghasilkan rekomendasi yang personal dan akurat.</p>
+          <p className="mt-4 text-slate-300">SkillLens menggunakan metode Fuzzy-assisted & TOPSIS serta pendekatan holistik: nilai akademik dipadukan dengan minat, bakat, prestasi, dan tujuan siswa untuk menghasilkan rekomendasi yang personal dan akurat.</p>
           <div className="mt-8 space-y-3">
             <div className="flex gap-3 rounded-xl bg-white/10 p-4">
               <span className="font-bold text-cyan-300">01</span>
-              <div><h4 className="font-bold">Input</h4><p className="text-sm text-slate-300">Nilai akademik (rapor) + minat, bakat, hobi, prestasi, tujuan karier</p></div>
+              <div><h4 className="font-bold">Input</h4><p className="text-sm text-slate-300">Nilai akademik + minat, bakat, hobi, prestasi, tujuan setelah lulus</p></div>
             </div>
             <div className="flex gap-3 rounded-xl bg-white/10 p-4">
               <span className="font-bold text-cyan-300">02</span>
