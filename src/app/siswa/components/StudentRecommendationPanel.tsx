@@ -7,7 +7,8 @@ import { StudentRecommendationCard } from "./StudentRecommendationCard";
 
 function recommendationRoadmapId(item: Recommendation | null) {
   if (!item) return null;
-  const raw = item.roadmapId ?? item.alternativeId ?? item.id;
+  // Roadmap harus eksplisit. Jangan memakai alternativeId/id sebagai fallback.
+  const raw = item.roadmapId;
   const parsed = Number(raw);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
@@ -52,7 +53,7 @@ export function StudentRecommendationPanel({
             <button
               type="button"
               onClick={onGenerateRoadmap}
-              disabled={generatingRoadmap || !(selectedRecommendation?.roadmapId ?? selectedRecommendation?.alternativeId ?? selectedRecommendation?.id)}
+              disabled={generatingRoadmap || !recommendationRoadmapId(selectedRecommendation)}
               className="inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50 skilllens-button-primary"
             >
               <Icon name={selectedAlreadyActive ? "roadmap" : "rocket"} className="mr-2 h-4 w-4" />

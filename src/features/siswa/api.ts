@@ -165,16 +165,14 @@ function normalizeRecommendations(response: any) {
         : typeof item.faktor_dominan === "string"
           ? item.faktor_dominan.split(",").map((value: string) => value.trim())
           : [],
+    // Roadmap harus eksplisit dari backend/SPK.
+    // Jangan fallback ke alternatif_id/id karena relasi alternatif dan roadmap tidak selalu sama.
     roadmapId:
       item.roadmapId ??
       item.id_roadmap ??
       item.roadmap_id ??
       item.roadmap?.id_roadmap ??
       item.roadmap?.id ??
-      item.alternatif_id ??
-      item.id_alternatif ??
-      item.alternatifId ??
-      item.id ??
       null,
     topsisRank: Number(
       item.topsisRank ?? item.rank ?? item.peringkat ?? index + 1,
