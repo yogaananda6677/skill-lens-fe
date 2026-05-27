@@ -27,23 +27,10 @@ type AdminSchoolImportSiswaProps = {
   onBack: () => void;
 };
 
-const SEMESTER_OPTIONS = ["1", "2", "3", "4", "5", "6"];
-
-function isSemesterUmum(semester: string) {
-  return semester === "1" || semester === "2";
-}
-
-function isSemesterJurusan(semester: string) {
-  return ["3", "4", "5", "6"].includes(semester);
-}
-
 export function AdminSchoolImportSiswa({
   fileRef,
-  jurusanRows,
   selectedFile,
   dragActive,
-  importJurusanId,
-  importSemester,
   importMessage,
   importError,
   loadingImport,
@@ -60,30 +47,15 @@ export function AdminSchoolImportSiswa({
   const normalizedJenisSekolah = String(jenisSekolah || "SMA").toUpperCase();
   const isSma = normalizedJenisSekolah === "SMA";
 
-  const [downloadJurusanId, setDownloadJurusanId] = useState("");
-  const [downloadSemester, setDownloadSemester] = useState("");
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
 
-  const downloadNeedsJurusan =
-    !isSma || (isSma && isSemesterJurusan(downloadSemester));
-
-  const importNeedsJurusan =
-    !isSma || (isSma && isSemesterJurusan(importSemester));
-
-  const canDownloadTemplate = isSma
-    ? Boolean(downloadSemester) &&
-      (!downloadNeedsJurusan || Boolean(downloadJurusanId))
-    : Boolean(downloadJurusanId);
-
-  const canImport =
-    Boolean(selectedFile) &&
-    (isSma ? Boolean(importSemester) : true) &&
-    (!importNeedsJurusan || Boolean(importJurusanId));
+  const canImport = Boolean(selectedFile);
 
   function pickFile(file?: File | null) {
     if (!file) return;
 
     const fileName = file.name.toLowerCase();
+
     const isExcel =
       fileName.endsWith(".xlsx") ||
       fileName.endsWith(".xls") ||
@@ -93,7 +65,11 @@ export function AdminSchoolImportSiswa({
     if (!isExcel) {
       setImportError("File harus berformat .xlsx atau .xls.");
       setSelectedFile(null);
-      if (fileRef.current) fileRef.current.value = "";
+
+      if (fileRef.current) {
+        fileRef.current.value = "";
+      }
+
       return;
     }
 
@@ -103,19 +79,13 @@ export function AdminSchoolImportSiswa({
 
   function clearSelectedFile() {
     setSelectedFile(null);
-    if (fileRef.current) fileRef.current.value = "";
+
+    if (fileRef.current) {
+      fileRef.current.value = "";
+    }
   }
 
   async function handleDownloadTemplate() {
-    if (isSma && !downloadSemester) {
-      setImportError("Pilih semester terlebih dahulu untuk download template SMA.");
-      return;
-    }
-    if (downloadNeedsJurusan && !downloadJurusanId) {
-      setImportError("Pilih jurusan terlebih dahulu untuk download template.");
-      return;
-    }
-
     setDownloadingTemplate(true);
     setImportError("");
 
@@ -125,39 +95,60 @@ export function AdminSchoolImportSiswa({
         localStorage.getItem("access_token") ||
         localStorage.getItem("token");
 
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+      const baseUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+
       const url = new URL(`${baseUrl}/admin-sekolah/nilai/template`);
 
-      if (isSma) url.searchParams.set("semester", downloadSemester);
-      if (downloadNeedsJurusan) url.searchParams.set("jurusanId", downloadJurusanId);
+      url.searchParams.set("multiSemester", "true");
+      url.searchParams.set("jenisSekolah", normalizedJenisSekolah);
+
+      if (isSma) {
+        url.searchParams.set("mode", "sma_multi_jurusan");
+        url.searchParams.set("semesterStart", "1");
+        url.searchParams.set("semesterEnd", "6");
+      } else {
+        url.searchParams.set("mode", "smk_multi_sheet");
+      }
 
       const response = await fetch(url.toString(), {
         method: "GET",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: token
+          ? {
+              Authorization: `Bearer ${token}`,
+            }
+          : {},
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText || "Gagal mengunduh template.");
+
+        throw new Error(
+          errorText ||
+            "Gagal mengunduh template. Pastikan mata pelajaran sudah ditambahkan."
+        );
       }
 
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
+
       const link = document.createElement("a");
       link.href = downloadUrl;
       link.download = isSma
-        ? isSemesterUmum(downloadSemester)
-          ? `template_nilai_sma_semester_${downloadSemester}_umum.xlsx`
-          : `template_nilai_sma_semester_${downloadSemester}_jurusan_${downloadJurusanId}.xlsx`
-        : `template_nilai_smk_jurusan_${downloadJurusanId}.xlsx`;
+        ? "template_nilai_sma_multi_semester.xlsx"
+        : "template_nilai_smk_multi_sheet.xlsx";
 
       document.body.appendChild(link);
       link.click();
       link.remove();
+
       window.URL.revokeObjectURL(downloadUrl);
     } catch (err) {
       console.error(err);
-      setImportError(err instanceof Error ? err.message : "Gagal mengunduh template.");
+
+      setImportError(
+        err instanceof Error ? err.message : "Gagal mengunduh template nilai."
+      );
     } finally {
       setDownloadingTemplate(false);
     }
@@ -165,179 +156,154 @@ export function AdminSchoolImportSiswa({
 
   return (
     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-blue-50/40 to-blue-100/20 p-[1px] shadow-md">
-      {/* Background gradasi biru lembut */}
       <div className="rounded-2xl bg-gradient-to-b from-blue-50/90 to-white p-6">
-        {/* Header biru tua gradasi */}
         <div className="-mx-6 -mt-6 mb-6 rounded-t-2xl bg-gradient-to-r from-[#0a1a3a] to-[#0f2a5f] px-6 py-5">
           <div className="flex items-center gap-2">
             <div className="rounded-full bg-white/20 p-1.5 text-white">
               <Icon name="upload" className="h-4 w-4" />
             </div>
+
             <p className="text-xs font-semibold uppercase tracking-wide text-blue-100">
-              Import Siswa
+              Import Nilai Siswa
             </p>
           </div>
-          <h2 className="mt-2 text-xl font-bold text-white">Upload file Excel siswa</h2>
-          <p className="mt-1 text-sm text-blue-100">
+
+          <h2 className="mt-2 text-xl font-bold text-white">
+            Download dan Upload Template Nilai
+          </h2>
+
+          <p className="mt-1 text-sm leading-6 text-blue-100">
             {isSma
-              ? "Semester 1 dan 2 menggunakan mapel umum tanpa jurusan. Semester 3 sampai 6 wajib memilih jurusan."
-              : "Untuk SMK, template dan import nilai mengikuti jurusan tanpa semester."}
+              ? "Gunakan satu file Excel berisi sheet semester dan jurusan. Tidak perlu memilih semester atau jurusan saat import."
+              : "Gunakan satu file Excel template nilai untuk import data siswa dan nilai."}
           </p>
         </div>
 
         <form onSubmit={onSubmitImport}>
-          {/* Download Template */}
-          <div className="mt-2 rounded-2xl border border-blue-200 bg-blue-50/60 p-4">
-            <div className="flex flex-col gap-4">
+          <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-5">
+            <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
               <div>
-                <p className="text-sm font-semibold text-blue-800">Download Template Excel</p>
-                <p className="mt-1 text-sm text-slate-500">
-                  {isSma
-                    ? "Pilih semester dulu. Jurusan hanya muncul untuk semester 3 sampai 6."
-                    : "Template SMK dibuat berdasarkan jurusan yang dipilih."}
-                </p>
-              </div>
-
-              <div
-                className={`grid gap-3 ${
-                  isSma
-                    ? downloadNeedsJurusan
-                      ? "md:grid-cols-[1fr_1fr_auto]"
-                      : "md:grid-cols-[1fr_auto]"
-                    : "md:grid-cols-[1fr_auto]"
-                }`}
-              >
-                {isSma && (
-                  <select
-                    value={downloadSemester}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setDownloadSemester(value);
-                      setImportError("");
-                      if (isSemesterUmum(value)) setDownloadJurusanId("");
-                    }}
-                    className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
-                  >
-                    <option value="">Pilih semester template</option>
-                    {SEMESTER_OPTIONS.map((sem) => (
-                      <option key={sem} value={sem}>Semester {sem}</option>
-                    ))}
-                  </select>
-                )}
-
-                {downloadNeedsJurusan && (
-                  <select
-                    value={downloadJurusanId}
-                    onChange={(e) => {
-                      setDownloadJurusanId(e.target.value);
-                      setImportError("");
-                    }}
-                    className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
-                  >
-                    <option value="">Pilih jurusan template</option>
-                    {jurusanRows.map((j) => (
-                      <option key={j.id} value={j.id}>{j.nama}</option>
-                    ))}
-                  </select>
-                )}
-
-                <button
-                  type="button"
-                  onClick={handleDownloadTemplate}
-                  disabled={!canDownloadTemplate || downloadingTemplate}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:shadow-md disabled:opacity-50"
-                >
+                <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-blue-700">
                   <Icon name="download" className="h-4 w-4" />
-                  {downloadingTemplate ? "Mengunduh..." : "Download Template"}
-                </button>
+                  Template Nilai
+                </div>
+
+                <h3 className="text-lg font-bold text-slate-900">
+                  Download Template Nilai Multi-Sheet
+                </h3>
+
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  {isSma
+                    ? "Template SMA akan otomatis berisi sheet SMT 1, SMT 2, SMT 3 IPA, SMT 3 IPS, SMT 4 IPA, SMT 4 IPS, SMT 5 IPA, dan SMT 5 IPS sesuai mata pelajaran yang sudah ditambahkan."
+                    : "Template SMK akan dibuat otomatis sesuai struktur mata pelajaran yang tersedia."}
+                </p>
+
+                {isSma && (
+                  <div className="mt-4 rounded-xl border border-white bg-white/80 p-4 text-sm leading-6 text-slate-600 shadow-sm">
+                    <p className="font-semibold text-blue-800">
+                      Struktur sheet template SMA:
+                    </p>
+
+                    <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs leading-6 text-blue-700">
+                      <p><b>Semester 1–2</b> digunakan untuk siswa kelas 10.</p>
+                      <p><b>Semester 3–4</b> digunakan untuk siswa kelas 11.</p>
+                      <p><b>Semester 5–6</b> digunakan untuk siswa kelas 12.</p>
+                    </div>
+
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                      {[
+                        "SMT 1",
+                        "SMT 2",
+                        "SMT 3 IPA",
+                        "SMT 3 IPS",
+                        "SMT 4 IPA",
+                        "SMT 4 IPS",
+                        "SMT 5 IPA",
+                        "SMT 5 IPS",
+                        "SMT 6 IPA",
+                        "SMT 6 IPS",
+                      ].map((sheet) => (
+                        <span
+                          key={sheet}
+                          className="rounded-lg bg-blue-50 px-3 py-2 text-center text-xs font-semibold text-blue-700 ring-1 ring-blue-100"
+                        >
+                          {sheet}
+                        </span>
+                      ))}
+                    </div>
+
+                    <p className="mt-3 text-xs leading-5 text-slate-500">
+                      Sheet hanya dibuat jika mata pelajaran pada semester atau
+                      jurusan tersebut sudah tersedia di menu Mata Pelajaran.
+                    </p>
+                  </div>
+                )}
               </div>
 
-              {isSma && downloadSemester && (
-                <div className={`rounded-xl border px-3 py-2 text-sm ${
-                  isSemesterUmum(downloadSemester)
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                    : "border-blue-200 bg-blue-50 text-blue-700"
-                }`}>
-                  {isSemesterUmum(downloadSemester)
-                    ? "Semester 1 dan 2 memakai mapel umum, jadi jurusan tidak diperlukan."
-                    : "Semester 3 sampai 6 memakai mapel jurusan, jadi jurusan wajib dipilih."}
-                </div>
-              )}
-              {!isSma && (
-                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500">
-                  SMK tidak menggunakan pilihan semester pada template maupun import.
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={handleDownloadTemplate}
+                disabled={downloadingTemplate}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Icon name="download" className="h-4 w-4" />
+                {downloadingTemplate
+                  ? "Mengunduh Template..."
+                  : "Download Template Nilai"}
+              </button>
             </div>
           </div>
 
-          {/* Bagian Import */}
-          <div className={`mt-5 grid gap-4 ${isSma && importNeedsJurusan ? "md:grid-cols-2" : "md:grid-cols-1"}`}>
-            {isSma && (
-              <label className="block">
-                <span className="mb-1 block text-sm font-medium text-slate-700">Semester untuk import</span>
-                <select
-                  value={importSemester}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setImportSemester(value);
-                    setImportError("");
-                    if (isSemesterUmum(value)) setImportJurusanId("");
-                  }}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-50"
-                >
-                  <option value="">Pilih semester</option>
-                  {SEMESTER_OPTIONS.map((sem) => (
-                    <option key={sem} value={sem}>Semester {sem}</option>
-                  ))}
-                </select>
-              </label>
-            )}
+          <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-5">
+            <div>
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-600">
+                <Icon name="upload" className="h-4 w-4" />
+                Upload Excel
+              </div>
 
-            {importNeedsJurusan && (
-              <label className="block">
-                <span className="mb-1 block text-sm font-medium text-slate-700">Jurusan untuk import</span>
-                <select
-                  value={importJurusanId}
-                  onChange={(e) => {
-                    setImportJurusanId(e.target.value);
-                    setImportError("");
-                  }}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-50"
-                >
-                  <option value="">Pilih jurusan</option>
-                  {jurusanRows.map((j) => (
-                    <option key={j.id} value={j.id}>{j.nama}</option>
-                  ))}
-                </select>
-              </label>
-            )}
+              <h3 className="text-lg font-bold text-slate-900">
+                Import File Nilai Multi-Sheet
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Upload file Excel hasil template. Sistem akan membaca semua
+                sheet yang tersedia. Sheet kosong atau sheet yang tidak ada akan
+                dilewati otomatis.
+              </p>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-700">
+              Untuk SMA, kamu tidak perlu memilih semester atau jurusan. Sistem
+              akan membaca dari nama sheet seperti <b>SMT 3 IPA</b> atau{" "}
+              <b>SMT 4 IPS</b>.
+            </div>
           </div>
 
-          {isSma && importSemester && (
-            <div className={`mt-3 rounded-xl border px-3 py-2 text-sm ${
-              isSemesterUmum(importSemester)
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border-blue-200 bg-blue-50 text-blue-700"
-            }`}>
-              {isSemesterUmum(importSemester)
-                ? "Import semester 1 dan 2 tidak membutuhkan jurusan karena mapelnya umum."
-                : "Import semester 3 sampai 6 membutuhkan jurusan karena mapelnya menjuru."}
-            </div>
-          )}
+          <input
+            type="hidden"
+            name="jenis_sekolah"
+            value={normalizedJenisSekolah}
+          />
 
-          <input type="hidden" name="jenis_sekolah" value={normalizedJenisSekolah} />
-          {isSma && <input type="hidden" name="semester" value={importSemester} />}
-          {importNeedsJurusan && <input type="hidden" name="id_jurusan" value={importJurusanId} />}
+          <input type="hidden" name="multi_semester" value="true" />
+          <input
+            type="hidden"
+            name="mode"
+            value={isSma ? "sma_multi_jurusan" : "smk_multi_sheet"}
+          />
+          <input type="hidden" name="semester_start" value="1" />
+          <input type="hidden" name="semester_end" value="6" />
 
-          {/* Drag & Drop */}
           <div
-            onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+            onDragOver={(event) => {
+              event.preventDefault();
+              setDragActive(true);
+            }}
             onDragLeave={() => setDragActive(false)}
-            onDrop={(e) => {
-              e.preventDefault();
+            onDrop={(event) => {
+              event.preventDefault();
               setDragActive(false);
-              pickFile(e.dataTransfer.files?.[0]);
+              pickFile(event.dataTransfer.files?.[0]);
             }}
             onClick={() => fileRef.current?.click()}
             className={`mt-5 cursor-pointer rounded-2xl border-2 border-dashed p-6 text-center transition ${
@@ -346,19 +312,47 @@ export function AdminSchoolImportSiswa({
                 : "border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50/30"
             }`}
           >
-            <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={(e) => pickFile(e.target.files?.[0])} />
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              onChange={(event) => pickFile(event.target.files?.[0])}
+            />
+
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600">
               <Icon name="upload" className="h-5 w-5" />
             </div>
-            <h3 className="mt-3 text-base font-bold text-slate-800">Drag & drop file Excel di sini</h3>
-            <p className="mt-1 text-sm text-slate-500">Atau klik kotak ini untuk memilih file. Maksimal satu file.</p>
+
+            <h3 className="mt-3 text-base font-bold text-slate-800">
+              Drag & drop file Excel di sini
+            </h3>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Upload satu file template nilai multi-sheet. Format file .xlsx
+              atau .xls.
+            </p>
+
             {selectedFile && (
               <div className="mx-auto mt-4 flex max-w-md items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 text-left shadow-sm">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-slate-800">{selectedFile.name}</p>
-                  <p className="text-xs text-slate-400">{(selectedFile.size / 1024).toFixed(1)} KB</p>
+                  <p className="truncate text-sm font-semibold text-slate-800">
+                    {selectedFile.name}
+                  </p>
+
+                  <p className="text-xs text-slate-400">
+                    {(selectedFile.size / 1024).toFixed(1)} KB
+                  </p>
                 </div>
-                <button type="button" onClick={(e) => { e.stopPropagation(); clearSelectedFile(); }} className="rounded-lg bg-red-50 px-3 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-100">
+
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    clearSelectedFile();
+                  }}
+                  className="rounded-lg bg-red-50 px-3 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-100"
+                >
                   Hapus
                 </button>
               </div>
@@ -366,21 +360,32 @@ export function AdminSchoolImportSiswa({
           </div>
 
           <UploadProgress progress={uploadProgress} />
+
           <div className="mt-5">
             <StatusMessage message={importMessage} error={importError} />
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <button type="submit" disabled={loadingImport || !canImport} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:shadow-md disabled:opacity-50">
+            <button
+              type="submit"
+              disabled={loadingImport || !canImport}
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+            >
               <Icon name="upload" className="h-4 w-4" />
-              {loadingImport ? "Mengimport..." : "Import Siswa"}
+              {loadingImport ? "Mengimport..." : "Import Nilai"}
             </button>
-            <button type="button" onClick={onBack} className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+
+            <button
+              type="button"
+              onClick={onBack}
+              className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
               Kembali
             </button>
           </div>
         </form>
       </div>
+
       <div className="absolute bottom-0 left-0 h-0.5 w-full rounded-b-xl bg-gradient-to-r from-blue-400 to-cyan-400 opacity-70" />
     </div>
   );

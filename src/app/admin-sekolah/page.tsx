@@ -441,33 +441,12 @@ export default function AdminSekolahPage() {
     setUploadProgress(null);
 
     if (!isSchoolApproved) {
-      setImportError("Sekolah belum disetujui. Import siswa masih terkunci.");
+      setImportError("Sekolah belum disetujui. Import nilai masih terkunci.");
       return;
     }
 
     if (!selectedFile) {
-      setImportError("Pilih file Excel siswa terlebih dahulu.");
-      return;
-    }
-
-    const isSemesterUmumSma =
-      isSma && (importSemester === "1" || importSemester === "2");
-
-    const isSemesterJurusanSma =
-      isSma && ["3", "4", "5", "6"].includes(importSemester);
-
-    if (isSma && !importSemester) {
-      setImportError("Semester wajib dipilih untuk import nilai SMA.");
-      return;
-    }
-
-    if (!isSma && !importJurusanId) {
-      setImportError("Jurusan wajib dipilih untuk import nilai SMK.");
-      return;
-    }
-
-    if (isSemesterJurusanSma && !importJurusanId) {
-      setImportError("Jurusan wajib dipilih untuk import SMA semester 3 sampai 6.");
+      setImportError("Pilih file Excel nilai terlebih dahulu.");
       return;
     }
 
@@ -476,14 +455,11 @@ export default function AdminSekolahPage() {
     formData.append("file", selectedFile);
     formData.append("jenis_sekolah", isSma ? "SMA" : "SMK");
 
-    if (isSma) {
-      formData.append("semester", importSemester);
-    }
-
-    // Semester 1 dan 2 SMA tidak kirim jurusan
-    if (!isSemesterUmumSma) {
-      formData.append("id_jurusan", importJurusanId);
-    }
+    // Mode baru: 1 file Excel multi-sheet
+    formData.append("multi_semester", "true");
+    formData.append("mode", isSma ? "sma_multi_jurusan" : "smk_multi_sheet");
+    formData.append("semester_start", "1");
+    formData.append("semester_end", "5");
 
     setLoadingImport(true);
 
@@ -492,13 +468,14 @@ export default function AdminSekolahPage() {
         message?: string;
         imported?: number;
         updated?: number;
+        skipped?: number;
       }>({
         path: "/admin-sekolah/siswa/import",
         formData,
         onProgress: setUploadProgress,
       });
 
-      const message = result.message || "Import data siswa berhasil diproses.";
+      const message = result.message || "Import nilai siswa berhasil diproses.";
 
       setImportMessage(message);
       setSelectedFile(null);
@@ -514,14 +491,14 @@ export default function AdminSekolahPage() {
       await loadSiswa(1);
 
       setModal({
-        title: "Import siswa selesai",
+        title: "Import nilai selesai",
         description: message,
       });
 
       setActive("siswa");
     } catch (err) {
       setImportError(
-        err instanceof Error ? err.message : "Import siswa gagal diproses."
+        err instanceof Error ? err.message : "Import nilai siswa gagal diproses."
       );
     } finally {
       setLoadingImport(false);
