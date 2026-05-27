@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
+
 import { StudentTopNav } from "../../../components/layout/StudentTopNav";
+import { UserProfilePanel } from "../../../components/profile/UserProfilePanel";
 import { FeedbackModal } from "../../../components/ui/FeedbackModal";
 import { Icon } from "../../../components/ui/icons";
 import {
@@ -10,12 +13,12 @@ import {
   getMasterProfileOptions,
   saveSiswaProfile,
 } from "../../../features/siswa/api";
-import type { StudentProfileForm } from "../../../features/siswa/types";
 import { StudentProfilePanel } from "../components/StudentProfilePanel";
 import { type ArrayField } from "../components/StudentShared";
 import { useStudentData } from "../hooks/useStudentData";
 import { buildStudentPayload } from "../utils/buildStudentPayload";
-import { useEffect, useState } from "react";
+
+type ProfileTab = "potensi" | "akun";
 
 export default function SiswaProfilPage() {
   const {
@@ -28,6 +31,8 @@ export default function SiswaProfilPage() {
     updateProfile,
     reloadStudent,
   } = useStudentData();
+
+  const [activeTab, setActiveTab] = useState<ProfileTab>("potensi");
 
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
@@ -45,13 +50,22 @@ export default function SiswaProfilPage() {
 
     async function loadOptions() {
       setLoadingOptions(true);
+
       try {
         const options = await getMasterProfileOptions();
-        if (active) setProfileOptions(options);
+
+        if (active) {
+          setProfileOptions(options);
+        }
       } catch (err) {
-        console.warn("Gagal memuat master tag dari database, fallback ke opsi lokal.", err);
+        console.warn(
+          "Gagal memuat master tag dari database, fallback ke opsi lokal.",
+          err,
+        );
       } finally {
-        if (active) setLoadingOptions(false);
+        if (active) {
+          setLoadingOptions(false);
+        }
       }
     }
 
@@ -75,23 +89,38 @@ export default function SiswaProfilPage() {
     });
   }
 
-
-  async function handleCreateAchievement(payload: Parameters<typeof createStudentAchievement>[0]) {
+  async function handleCreateAchievement(
+    payload: Parameters<typeof createStudentAchievement>[0],
+  ) {
     setError("");
     setMessage("");
-    await createStudentAchievement(payload);
-    await reloadStudent();
-    setMessage("Prestasi berhasil ditambahkan.");
-    setModalOpen(true);
+
+    try {
+      await createStudentAchievement(payload);
+      await reloadStudent();
+
+      setMessage("Prestasi berhasil ditambahkan.");
+      setModalOpen(true);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Gagal menambahkan prestasi.",
+      );
+    }
   }
 
   async function handleDeleteAchievement(id: number) {
     setError("");
     setMessage("");
-    await deleteStudentAchievement(id);
-    await reloadStudent();
-    setMessage("Prestasi berhasil dihapus.");
-    setModalOpen(true);
+
+    try {
+      await deleteStudentAchievement(id);
+      await reloadStudent();
+
+      setMessage("Prestasi berhasil dihapus.");
+      setModalOpen(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal menghapus prestasi.");
+    }
   }
 
   async function handleSaveOnly() {
@@ -101,12 +130,11 @@ export default function SiswaProfilPage() {
 
     try {
       await saveSiswaProfile(buildStudentPayload(profile, prestasiRows));
+
       setMessage("Profil berhasil disimpan.");
       setModalOpen(true);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Gagal menyimpan profil.",
-      );
+      setError(err instanceof Error ? err.message : "Gagal menyimpan profil.");
     } finally {
       setSaving(false);
     }
@@ -129,19 +157,39 @@ export default function SiswaProfilPage() {
                 <p className="text-xs font-bold uppercase tracking-[0.24em] text-cyan-300">
                   Profil Siswa
                 </p>
+
                 <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-white md:text-4xl">
-                  Lengkapi data potensi dirimu
+                  Kelola profil dan keamanan akun
                 </h1>
+
                 <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-sky-100/80">
-                  Di halaman ini siswa fokus mengisi minat, hobi, bakat, pengalaman, prestasi, dan tujuan karir. Ringkasan nilai dipindahkan ke beranda agar form profil tidak terasa penuh.
+                  Lengkapi data potensi untuk rekomendasi karir, lalu kelola
+                  data akun dan password dengan OTP pada tab Akun & Password.
                 </p>
 
-                <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-bold text-sky-50 ring-1 ring-white/[0.15]">
-                  <span className={`grid h-6 w-6 place-items-center rounded-full ${profileReady ? "bg-emerald-500 text-white" : "bg-amber-100 text-amber-700"}`}>
-                    {profileReady ? "✓" : "!"}
-                  </span>
-                  {profileReady ? "Data utama sudah lengkap dan siap diproses" : "Lengkapi minimal minat dan tujuan karir"}
-                </div>
+                {activeTab === "potensi" ? (
+                  <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-bold text-sky-50 ring-1 ring-white/[0.15]">
+                    <span
+                      className={`grid h-6 w-6 place-items-center rounded-full ${
+                        profileReady
+                          ? "bg-emerald-500 text-white"
+                          : "bg-amber-100 text-amber-700"
+                      }`}
+                    >
+                      {profileReady ? "✓" : "!"}
+                    </span>
+                    {profileReady
+                      ? "Data utama sudah lengkap dan siap diproses"
+                      : "Lengkapi minimal minat dan tujuan karir"}
+                  </div>
+                ) : (
+                  <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-bold text-sky-50 ring-1 ring-white/[0.15]">
+                    <span className="grid h-6 w-6 place-items-center rounded-full bg-cyan-500 text-white">
+                      OTP
+                    </span>
+                    Ubah password menggunakan kode OTP email
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row md:flex-col lg:flex-row">
@@ -152,6 +200,7 @@ export default function SiswaProfilPage() {
                   <Icon name="home" className="h-4 w-4" />
                   Lihat beranda
                 </Link>
+
                 <Link
                   href="/siswa/rekomendasi"
                   className="inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold text-white skilllens-button-primary"
@@ -163,38 +212,87 @@ export default function SiswaProfilPage() {
             </div>
           </div>
 
-          {loadingProfile && (
-            <div className="mb-6 rounded-2xl border border-slate-100 bg-white p-4 text-sm font-semibold text-slate-500 shadow-sm">
-              Memuat data siswa...
+          <div className="mb-6 rounded-[2rem] border border-white/10 bg-[#101820] p-2 shadow-xl shadow-blue-950/10">
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("potensi");
+                  setMessage("");
+                  setError("");
+                }}
+                className={`inline-flex items-center justify-center gap-2 rounded-[1.5rem] px-5 py-4 text-sm font-extrabold transition ${
+                  activeTab === "potensi"
+                    ? "bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/20"
+                    : "bg-white/5 text-sky-100 hover:bg-white/10"
+                }`}
+              >
+                <Icon name="sparkles" className="h-4 w-4" />
+                Profil Potensi
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("akun");
+                  setMessage("");
+                  setError("");
+                }}
+                className={`inline-flex items-center justify-center gap-2 rounded-[1.5rem] px-5 py-4 text-sm font-extrabold transition ${
+                  activeTab === "akun"
+                    ? "bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/20"
+                    : "bg-white/5 text-sky-100 hover:bg-white/10"
+                }`}
+              >
+                <Icon name="profile" className="h-4 w-4" />
+                Akun & Password
+              </button>
+            </div>
+          </div>
+
+          {activeTab === "potensi" ? (
+            <>
+              {loadingProfile && (
+                <div className="mb-6 rounded-2xl border border-slate-100 bg-white p-4 text-sm font-semibold text-slate-500 shadow-sm">
+                  Memuat data siswa...
+                </div>
+              )}
+
+              {(message || error) && (
+                <div
+                  className={`mb-6 rounded-2xl p-4 text-sm font-semibold ${
+                    error
+                      ? "bg-rose-50 text-rose-700 ring-1 ring-rose-100"
+                      : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
+                  }`}
+                >
+                  {error || message}
+                </div>
+              )}
+
+              <StudentProfilePanel
+                profile={profile}
+                prestasiRows={prestasiRows}
+                processing={saving}
+                onChangeProfile={updateProfile}
+                onToggleArray={toggleArrayValue}
+                onSave={handleSaveOnly}
+                onProcess={handleSaveOnly}
+                onCreateAchievement={handleCreateAchievement}
+                onDeleteAchievement={handleDeleteAchievement}
+                profileOptions={profileOptions ?? undefined}
+                loadingOptions={loadingOptions}
+                processLabel="Simpan Profil"
+              />
+            </>
+          ) : (
+            <div className="rounded-[2rem] bg-white p-4 shadow-2xl shadow-blue-950/10 md:p-6">
+              <UserProfilePanel
+                title="Profil Akun Siswa"
+                subtitle="Kelola data akun siswa dan ubah password menggunakan kode OTP."
+              />
             </div>
           )}
-
-          {(message || error) && (
-            <div
-              className={`mb-6 rounded-2xl p-4 text-sm font-semibold ${
-                error
-                  ? "bg-rose-50 text-rose-700 ring-1 ring-rose-100"
-                  : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
-              }`}
-            >
-              {error || message}
-            </div>
-          )}
-
-          <StudentProfilePanel
-            profile={profile}
-            prestasiRows={prestasiRows}
-            processing={saving}
-            onChangeProfile={updateProfile}
-            onToggleArray={toggleArrayValue}
-            onSave={handleSaveOnly}
-            onProcess={handleSaveOnly}
-            onCreateAchievement={handleCreateAchievement}
-            onDeleteAchievement={handleDeleteAchievement}
-            profileOptions={profileOptions ?? undefined}
-            loadingOptions={loadingOptions}
-            processLabel="Simpan Profil"
-          />
         </section>
       </main>
 

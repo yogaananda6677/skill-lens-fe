@@ -5,32 +5,70 @@ export const studentNav = [
   {
     key: "dashboard",
     label: "Beranda",
+    description: "Ringkasan siswa",
     href: "/siswa",
     icon: "dashboard",
+    roles: ["siswa"],
   },
   {
     key: "profil",
     label: "Profil",
+    description: "Data diri & password",
     href: "/siswa/profil",
     icon: "profile",
+    roles: ["siswa"],
   },
   {
     key: "rekomendasi",
     label: "Rekomendasi",
+    description: "Hasil SPK",
     href: "/siswa/rekomendasi",
     icon: "sparkles",
+    roles: ["siswa"],
   },
   {
     key: "roadmap",
     label: "Roadmap",
+    description: "Rencana belajar",
     href: "/siswa/roadmap",
     icon: "map",
+    roles: ["siswa"],
   },
-] as const;
+] as const satisfies readonly DashboardNavItem[];
 
 export const guruNav = [
-  { key: "progress", label: "Progress Siswa", description: "Pantau roadmap", href: "#progress", icon: "progress", roles: ["guru"] },
-  { key: "bimbingan", label: "Catatan Bimbingan", description: "Tindak lanjut", href: "#bimbingan", icon: "guidance", roles: ["guru"] },
+  {
+    key: "dashboard",
+    label: "Dashboard",
+    description: "Ringkasan aktivitas",
+    href: "/guru",
+    icon: "dashboard",
+    roles: ["guru"],
+  },
+  {
+    key: "profil",
+    label: "Profil",
+    description: "Data diri & password",
+    href: "/guru/profil",
+    icon: "profile",
+    roles: ["guru"],
+  },
+  {
+    key: "progress",
+    label: "Progress Siswa",
+    description: "Pantau roadmap",
+    href: "/guru#progress",
+    icon: "progress",
+    roles: ["guru"],
+  },
+  {
+    key: "bimbingan",
+    label: "Catatan Bimbingan",
+    description: "Tindak lanjut",
+    href: "/guru#bimbingan",
+    icon: "guidance",
+    roles: ["guru"],
+  },
 ] as const satisfies readonly DashboardNavItem[];
 
 export const adminSekolahNav = [
@@ -59,7 +97,7 @@ export const adminSekolahNav = [
     icon: "graduation",
   },
   {
-    key: "mata-pelajaran",      // ✅ tambahkan
+    key: "mata-pelajaran",
     label: "Mata Pelajaran",
     description: "Kelola mata pelajaran",
     icon: "book",
@@ -77,22 +115,61 @@ export const adminSekolahNav = [
     icon: "profile",
   },
   {
-    key: "nilai",               // ✅ tambahkan
+    key: "nilai",
     label: "Data Nilai",
     description: "Kelola nilai semester",
     icon: "chart",
   },
-] as const;
+] as const satisfies readonly DashboardNavItem[];
 
 export const adminNav = [
-  { key: "dashboard", label: "Dashboard", description: "Monitoring", href: "/admin/dashboard", icon: "dashboard", roles: ["admin", "superadmin"] },
-  { key: "verifikasi", label: "Verifikasi", description: "Sekolah & akun", href: "/admin/verifikasi", icon: "verify", roles: ["admin", "superadmin"] },
-  { key: "sekolah", label: "Data Sekolah", description: "Master sekolah", href: "/admin/sekolah", icon: "school", roles: ["admin", "superadmin"] },
+  {
+    key: "dashboard",
+    label: "Dashboard",
+    description: "Monitoring",
+    href: "/admin/dashboard",
+    icon: "dashboard",
+    roles: ["admin", "superadmin"],
+  },
+  {
+    key: "profil",
+    label: "Profil",
+    description: "Data diri & password",
+    href: "/admin/profil",
+    icon: "profile",
+    roles: ["admin", "superadmin"],
+  },
+  {
+    key: "verifikasi",
+    label: "Verifikasi",
+    description: "Sekolah & akun",
+    href: "/admin/verifikasi",
+    icon: "verify",
+    roles: ["admin", "superadmin"],
+  },
+  {
+    key: "sekolah",
+    label: "Data Sekolah",
+    description: "Master sekolah",
+    href: "/admin/sekolah",
+    icon: "school",
+    roles: ["admin", "superadmin"],
+  },
 ] as const satisfies readonly DashboardNavItem[];
 
 export const superadminNav: DashboardNavItem[] = [
-  { key: "dashboard", label: "Dashboard", href: "/superadmin", icon: "dashboard" },
-  { key: "kelola-admin", label: "Kelola Admin", href: "/superadmin/admin", icon: "users" },
+  {
+    key: "dashboard",
+    label: "Dashboard",
+    href: "/superadmin",
+    icon: "dashboard",
+  },
+  {
+    key: "kelola-admin",
+    label: "Kelola Admin",
+    href: "/superadmin/admin",
+    icon: "users",
+  },
 ];
 
 export function dashboardHomeByRole(role?: AuthRole | string | null) {

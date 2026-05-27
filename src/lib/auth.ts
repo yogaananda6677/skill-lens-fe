@@ -7,6 +7,7 @@ export type StoredUser = {
   username: string;
   role: AuthRole;
   id_sekolah?: number | null;
+  must_change_password?: boolean;
 };
 
 export function getStoredToken() {

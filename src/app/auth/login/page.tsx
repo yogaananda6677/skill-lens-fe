@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+
 import { PublicNavbar } from "../../../components/layout/PublicNavbar";
 import { Icon } from "../../../components/ui/icons";
 import { apiFetch } from "../../../lib/axios";
@@ -12,10 +13,14 @@ import {
   type StoredUser,
 } from "../../../lib/auth";
 
+type LoginUser = StoredUser & {
+  must_change_password?: boolean;
+};
+
 type LoginResponse = {
   message: string;
   token: string;
-  user: StoredUser;
+  user: LoginUser;
 };
 
 const processItems = [
@@ -119,6 +124,12 @@ export default function LoginPage() {
       });
 
       persistAuth(result.token, result.user, remember);
+
+      if (result.user?.must_change_password) {
+        router.replace("/auth/force-change-password");
+        return;
+      }
+
       router.replace(redirectPathByRole(result.user.role));
     } catch (err) {
       setError(getLoginErrorMessage(err));
@@ -182,7 +193,8 @@ export default function LoginPage() {
               <div className="mt-8 rounded-2xl border border-cyan-200/15 bg-cyan-300/10 p-4">
                 <p className="text-sm font-medium leading-6 text-cyan-50">
                   Setelah login, sistem akan membuka dashboard sesuai akun yang
-                  digunakan.
+                  digunakan. Jika akun masih memakai password default, kamu akan
+                  diminta mengganti password terlebih dahulu.
                 </p>
               </div>
             </div>
@@ -213,17 +225,17 @@ export default function LoginPage() {
                     value={username}
                     onBlur={() => setTouchedUsername(true)}
                     onChange={(event) => {
-                        setUsername(event.target.value);
-                        if (error) setError("");
+                      setUsername(event.target.value);
+                      if (error) setError("");
                     }}
                     placeholder="Masukkan username atau email"
                     autoComplete="username"
                     className={`w-full rounded-2xl border bg-white/10 px-4 py-4 text-sm font-medium !text-white caret-cyan-200 outline-none transition placeholder:text-slate-400 focus:bg-white/15 focus:ring-4 autofill:shadow-[inset_0_0_0px_1000px_rgba(255,255,255,0.10)] autofill:[-webkit-text-fill-color:white] ${
-                        usernameError
+                      usernameError
                         ? "border-rose-300/50 focus:border-rose-300 focus:ring-rose-300/10"
                         : "border-white/10 focus:border-cyan-300 focus:ring-cyan-300/10"
                     }`}
-                    />
+                  />
 
                   {usernameError ? (
                     <p className="mt-2 text-xs font-medium text-rose-200">
@@ -249,7 +261,7 @@ export default function LoginPage() {
                       type={showPassword ? "text" : "password"}
                       placeholder="Masukkan password"
                       autoComplete="current-password"
-                      className={`w-full rounded-2xl border bg-white/10 px-4 py-4 text-sm font-medium !text-white caret-cyan-200 outline-none transition placeholder:text-slate-400 focus:bg-white/15 focus:ring-4 autofill:shadow-[inset_0_0_0px_1000px_rgba(255,255,255,0.10)] autofill:[-webkit-text-fill-color:white] ${
+                      className={`w-full rounded-2xl border bg-white/10 px-4 py-4 pr-12 text-sm font-medium !text-white caret-cyan-200 outline-none transition placeholder:text-slate-400 focus:bg-white/15 focus:ring-4 autofill:shadow-[inset_0_0_0px_1000px_rgba(255,255,255,0.10)] autofill:[-webkit-text-fill-color:white] ${
                         passwordError
                           ? "border-rose-300/50 focus:border-rose-300 focus:ring-rose-300/10"
                           : "border-white/10 focus:border-cyan-300 focus:ring-cyan-300/10"
@@ -289,9 +301,13 @@ export default function LoginPage() {
                     Ingat perangkat ini
                   </label>
 
-                  <span className="text-xs font-medium text-slate-400">
-                    Gunakan akun resmi.
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => router.push("/auth/forgot-password")}
+                    className="text-left text-xs font-semibold text-cyan-200 transition hover:text-white sm:text-right"
+                  >
+                    Lupa kata sandi?
+                  </button>
                 </div>
 
                 {error && (
