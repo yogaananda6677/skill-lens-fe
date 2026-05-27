@@ -318,13 +318,6 @@ export function AdminSchoolDataSiswa({
           </button>
         </div>
 
-        {!jurusanFilterAktif && (
-          <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-700">
-            Filter kelas akan aktif setelah jurusan dipilih. Password awal tidak
-            ditampilkan di tabel maupun file export.
-          </div>
-        )}
-
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/50">
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">

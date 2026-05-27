@@ -204,12 +204,6 @@ export function AdminSchoolImportSiswa({
                       Struktur sheet template SMA:
                     </p>
 
-                    <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs leading-6 text-blue-700">
-                      <p><b>Semester 1–2</b> digunakan untuk siswa kelas 10.</p>
-                      <p><b>Semester 3–4</b> digunakan untuk siswa kelas 11.</p>
-                      <p><b>Semester 5–6</b> digunakan untuk siswa kelas 12.</p>
-                    </div>
-
                     <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                       {[
                         "SMT 1",
@@ -236,21 +230,20 @@ export function AdminSchoolImportSiswa({
                       Sheet hanya dibuat jika mata pelajaran pada semester atau
                       jurusan tersebut sudah tersedia di menu Mata Pelajaran.
                     </p>
+                    <button
+                      type="button"
+                      onClick={handleDownloadTemplate}
+                      disabled={downloadingTemplate}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <Icon name="download" className="h-4 w-4" />
+                      {downloadingTemplate
+                        ? "Mengunduh Template..."
+                        : "Download Template Nilai"}
+                    </button>
                   </div>
                 )}
               </div>
-
-              <button
-                type="button"
-                onClick={handleDownloadTemplate}
-                disabled={downloadingTemplate}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Icon name="download" className="h-4 w-4" />
-                {downloadingTemplate
-                  ? "Mengunduh Template..."
-                  : "Download Template Nilai"}
-              </button>
             </div>
           </div>
 
@@ -267,15 +260,8 @@ export function AdminSchoolImportSiswa({
 
               <p className="mt-2 text-sm leading-6 text-slate-500">
                 Upload file Excel hasil template. Sistem akan membaca semua
-                sheet yang tersedia. Sheet kosong atau sheet yang tidak ada akan
-                dilewati otomatis.
+                sheet yang tersedia.
               </p>
-            </div>
-
-            <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-700">
-              Untuk SMA, kamu tidak perlu memilih semester atau jurusan. Sistem
-              akan membaca dari nama sheet seperti <b>SMT 3 IPA</b> atau{" "}
-              <b>SMT 4 IPS</b>.
             </div>
           </div>
 

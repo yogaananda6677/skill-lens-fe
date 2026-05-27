@@ -936,9 +936,9 @@ export function AdminSchoolMataPelajaran({
                         value={formData.nama_mapel}
                         onChange={handleInputChange}
                         placeholder={`Contoh:
-Matematika
-Fisika
-Kimia`}
+                          Matematika
+                          Fisika
+                          Kimia`}
                         rows={8}
                         className="mt-1 w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50"
                         required
