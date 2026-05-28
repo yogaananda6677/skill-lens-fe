@@ -7,9 +7,9 @@ import { StudentRecommendationCard } from "./StudentRecommendationCard";
 
 function recommendationRoadmapId(item: Recommendation | null) {
   if (!item) return null;
-  // Roadmap harus eksplisit. Jangan memakai alternativeId/id sebagai fallback.
-  const raw = item.roadmapId;
-  const parsed = Number(raw);
+
+  const parsed = Number(item.roadmapId);
+
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
@@ -46,14 +46,14 @@ export function StudentRecommendationPanel({
           <SectionTitle
             eyebrow="Hasil Rekomendasi"
             title="Pilihan terbaik berdasarkan SPK"
-            description="Klik salah satu rekomendasi, lalu buat roadmap untuk mulai mengikuti langkahnya. Kartu yang sudah dipakai akan diberi warna berbeda."
+            description="Klik salah satu rekomendasi yang sudah memiliki roadmap, lalu buat roadmap untuk mulai mengikuti langkahnya. Kartu yang dipilih dan yang aktif diberi warna berbeda supaya tidak membingungkan."
           />
 
           {recommendations.length ? (
             <button
               type="button"
               onClick={onGenerateRoadmap}
-              disabled={generatingRoadmap || !recommendationRoadmapId(selectedRecommendation)}
+              disabled={generatingRoadmap || !selectedRecommendation || !selectedRoadmapId}
               className="inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50 skilllens-button-primary"
             >
               <Icon name={selectedAlreadyActive ? "roadmap" : "rocket"} className="mr-2 h-4 w-4" />
@@ -84,7 +84,7 @@ export function StudentRecommendationPanel({
           </div>
         ) : recommendations.length ? (
           <div className="mt-5 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm font-semibold text-amber-800 skilllens-fade-slide">
-            Pilih salah satu rekomendasi terlebih dahulu sebelum generate roadmap.
+            Pilih salah satu rekomendasi yang memiliki roadmap terlebih dahulu sebelum generate roadmap.
           </div>
         ) : null}
 

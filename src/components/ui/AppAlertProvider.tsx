@@ -49,13 +49,13 @@ function defaultAutoClose(type: AppAlertType): number | false {
 function alertTone(type: AppAlertType) {
   if (type === "success") {
     return {
-      shell: "border-emerald-100",
-      accent: "bg-emerald-500",
-      iconBox: "bg-emerald-50 text-emerald-600 ring-emerald-100",
+      shell: "border-sky-100",
+      accent: "bg-sky-600",
+      iconBox: "bg-sky-50 text-sky-700 ring-sky-100",
       icon: "check",
       title: "text-slate-950",
-      progress: "bg-emerald-500",
-      action: "text-emerald-700 hover:bg-emerald-50",
+      progress: "bg-sky-600",
+      action: "text-sky-700 hover:bg-sky-50",
     };
   }
 

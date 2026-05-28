@@ -61,6 +61,13 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
   }, [router]);
 
   useEffect(() => {
+    for (const item of studentNav) {
+      const href = normalizeHref(item.href).split("#")[0];
+      if (href) router.prefetch(href);
+    }
+  }, [router]);
+
+  useEffect(() => {
     setHash(getCurrentHash());
 
     function handleHashChange() {
@@ -135,6 +142,7 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
                 <Link
                   key={item.key}
                   href={href}
+                  prefetch
                   onClick={() => handleNavClick(href)}
                   className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-bold skilllens-smooth ${
                     active
@@ -209,6 +217,7 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
                     <Link
                       key={item.key}
                       href={href}
+                      prefetch
                       onClick={() => handleNavClick(href)}
                       className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold skilllens-smooth ${
                         active

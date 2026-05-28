@@ -16,7 +16,7 @@ export function FeedbackModal({ open, type = "success", title, description, acti
   if (!open) return null;
 
   const tone = {
-    success: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+    success: "bg-sky-50 text-sky-700 ring-sky-100",
     error: "bg-rose-50 text-rose-700 ring-rose-100",
     info: "bg-sky-50 text-sky-700 ring-sky-100",
   }[type];
@@ -33,7 +33,7 @@ export function FeedbackModal({ open, type = "success", title, description, acti
         </div>
         <h2 className="mt-5 text-2xl font-extrabold tracking-tight text-slate-950">{title}</h2>
         {description && <p className="mt-3 text-sm font-medium leading-7 text-slate-500">{description}</p>}
-        <button type="button" onClick={onAction ?? onClose} className="mt-6 w-full rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-extrabold text-white transition hover:bg-sky-800">
+        <button type="button" onClick={onAction ?? onClose} className="mt-6 w-full rounded-2xl bg-[#07142f] px-5 py-3.5 text-sm font-extrabold text-white transition hover:bg-sky-800">
           {actionLabel}
         </button>
       </section>

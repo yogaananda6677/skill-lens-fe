@@ -28,6 +28,7 @@ type AchievementPayload = {
   penyelenggara?: string | null;
   keterangan?: string | null;
   bukti_url?: string | null;
+  bukti_file?: File | null;
 };
 
 type WizardStepId = "minat" | "hobi" | "bakat" | "pengalaman" | "prestasi" | "tujuan";
@@ -42,6 +43,7 @@ type ChoiceStepConfig = {
   options: string[];
   selected: string[];
   minimum: number;
+  maximum: number;
   suggestions: string[];
 };
 
@@ -59,6 +61,10 @@ const BASE_SEARCH_SUGGESTIONS = [
   "Bahasa",
   "Agama",
 ];
+
+const PROFILE_CHOICE_MIN = 1;
+const PROFILE_CHOICE_MAX = 4;
+const ACHIEVEMENT_MAX = 4;
 
 const STEP_ACCENTS: Record<WizardStepId, {
   text: string;
@@ -187,6 +193,7 @@ function ChoiceWizardStep({
   }
 
   const accent = STEP_ACCENTS[config.id];
+  const maxReached = config.selected.length >= config.maximum;
 
   return (
     <div key={config.id} className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_270px] skilllens-page-enter">
@@ -205,7 +212,7 @@ function ChoiceWizardStep({
           </div>
 
           <span className={`w-fit rounded-full px-3 py-1.5 text-xs font-bold ring-1 ${accent.badge}`}>
-            {config.selected.length} dipilih • {config.options.length} opsi
+            {config.selected.length}/{config.maximum} dipilih • {config.options.length} opsi
           </span>
         </div>
 
@@ -268,22 +275,29 @@ function ChoiceWizardStep({
           <span>
             Menampilkan {visibleOptions.length} dari {filteredOptions.length} hasil cocok
           </span>
-          <span>Klik beberapa yang paling menggambarkan kamu</span>
+          <span>Pilih minimal {config.minimum} dan maksimal {config.maximum}</span>
         </div>
 
         <div className="mt-3 grid max-h-[430px] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3 skilllens-page-enter">
           {visibleOptions.map((option) => {
             const active = config.selected.includes(option);
+            const disabled = !active && maxReached;
 
             return (
               <button
                 key={option}
                 type="button"
-                onClick={() => onToggle(config.field, option)}
+                disabled={disabled}
+                onClick={() => {
+                  if (disabled) return;
+                  onToggle(config.field, option);
+                }}
                 className={`group rounded-2xl border p-3 text-left text-sm font-semibold leading-5 skilllens-smooth ${
                   active
                     ? accent.selected
-                    : "border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-sky-200 hover:text-sky-700 hover:shadow-md"
+                    : disabled
+                      ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300 opacity-70"
+                      : "border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-sky-200 hover:text-sky-700 hover:shadow-md"
                 }`}
               >
                 <span className="flex items-start justify-between gap-2">
@@ -292,16 +306,24 @@ function ChoiceWizardStep({
                     className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border text-[10px] ${
                       active
                         ? "border-white bg-white text-sky-700"
-                        : "border-slate-200 text-slate-300 group-hover:border-sky-200 group-hover:text-sky-600"
+                        : disabled
+                          ? "border-slate-100 bg-white text-slate-300"
+                          : "border-slate-200 text-slate-300 group-hover:border-sky-200 group-hover:text-sky-600"
                     }`}
                   >
-                    {active ? "✓" : "+"}
+                    {active ? "✓" : disabled ? "•" : "+"}
                   </span>
                 </span>
               </button>
             );
           })}
         </div>
+
+        {maxReached ? (
+          <div className="mt-4 rounded-2xl bg-sky-50 p-3 text-xs font-bold leading-5 text-sky-700 ring-1 ring-sky-100">
+            Maksimal {config.maximum} pilihan. Hapus salah satu pilihan dulu kalau ingin mengganti.
+          </div>
+        ) : null}
 
         {visibleOptions.length < filteredOptions.length ? (
           <button
@@ -343,9 +365,13 @@ function ChoiceWizardStep({
           </ul>
         </div>
 
-        {config.minimum > 0 && config.selected.length < config.minimum ? (
+        {config.selected.length < config.minimum ? (
           <div className="mt-4 rounded-2xl bg-amber-50 p-3 text-xs font-bold leading-5 text-amber-700 ring-1 ring-amber-100">
             Minimal pilih {config.minimum} agar bisa lanjut dengan data yang cukup.
+          </div>
+        ) : config.selected.length > config.maximum ? (
+          <div className="mt-4 rounded-2xl bg-rose-50 p-3 text-xs font-bold leading-5 text-rose-700 ring-1 ring-rose-100">
+            Maksimal hanya {config.maximum} pilihan. Kurangi dulu pilihan yang kurang relevan.
           </div>
         ) : (
           <div className="mt-4 rounded-2xl bg-emerald-50 p-3 text-xs font-bold leading-5 text-emerald-700 ring-1 ring-emerald-100">
@@ -445,6 +471,8 @@ function AchievementStep({
   onDeleteAchievement?: (id: number) => Promise<void>;
   onDelete: (id?: number) => void;
 }) {
+  const maxReached = prestasiRows.length >= ACHIEVEMENT_MAX;
+
   return (
     <div className="mt-6 rounded-[1.8rem] border border-sky-100/80 bg-white/[0.78] p-5 shadow-lg shadow-sky-950/5 backdrop-blur-md skilllens-page-enter">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -456,17 +484,18 @@ function AchievementStep({
             Tambahkan prestasi yang pernah kamu dapatkan
           </h3>
           <p className="mt-1 max-w-2xl text-sm font-semibold leading-6 text-slate-500">
-            Prestasi bisa berupa lomba, sertifikat, organisasi, karya, proyek, finalis, juara, atau kegiatan lain yang membuktikan kemampuanmu.
+            Prestasi ini opsional. Isi kalau kamu punya lomba, sertifikat, organisasi, karya, proyek, finalis, juara, atau kegiatan lain. Maksimal {ACHIEVEMENT_MAX} prestasi.
           </p>
         </div>
 
         <button
           type="button"
           onClick={onOpenModal}
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#0a54c7] to-[#39d9ff] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-sky-600/20 transition hover:-translate-y-0.5"
+          disabled={maxReached || achievementSaving}
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#0a54c7] to-[#39d9ff] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-sky-600/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Icon name="sparkles" className="h-4 w-4" />
-          Tambah Prestasi
+          {maxReached ? "Maksimal 4 Prestasi" : "Tambah Prestasi"}
         </button>
       </div>
 
@@ -528,19 +557,29 @@ function AchievementStep({
             ))}
           </div>
         ) : (
-          <div className="grid place-items-center rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
-            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-sky-50 text-sky-700">
-              <Icon name="clipboard" className="h-6 w-6" />
+          <div className="rounded-3xl border border-sky-100 bg-sky-50/50 p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:text-left">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white text-sky-700 shadow-sm ring-1 ring-sky-100">
+                <Icon name="clipboard" className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-800">
+                  Belum ada prestasi
+                </p>
+                <p className="mt-1 max-w-2xl text-xs font-semibold leading-5 text-slate-500">
+                  Bagian ini boleh dilewati. Kalau ada sertifikat atau bukti prestasi, tekan tombol Tambah Prestasi di atas.
+                </p>
+              </div>
             </div>
-            <p className="mt-4 text-sm font-bold text-slate-700">
-              Belum ada prestasi
-            </p>
-            <p className="mt-1 max-w-md text-xs font-semibold leading-5 text-slate-400">
-              Langkah ini boleh dilewati, tapi prestasi akan menjadi nilai tambah jika ada bukti kemampuan yang relevan.
-            </p>
           </div>
         )}
       </div>
+
+      {maxReached ? (
+        <div className="mt-3 rounded-2xl bg-sky-50 p-3 text-xs font-bold text-sky-700 ring-1 ring-sky-100">
+          Batas prestasi sudah mencapai {ACHIEVEMENT_MAX}. Hapus salah satu jika ingin mengganti data.
+        </div>
+      ) : null}
 
       <p className="mt-3 text-xs font-semibold leading-5 text-slate-400">
         Tingkat dan keterangan seperti Juara 1, Nasional, Internasional, Sertifikasi, atau Finalis akan ikut memengaruhi bobot prestasi di SPK.
@@ -614,6 +653,7 @@ export function StudentProfilePanel({
     keterangan: "",
     bukti_url: "",
   });
+  const [achievementFile, setAchievementFile] = useState<File | null>(null);
 
   const resolvedInterestOptions = uniqueOptions(
     profileOptions?.interestOptions?.length
@@ -688,10 +728,11 @@ export function StudentProfilePanel({
       title: "Pilih minat kamu",
       eyebrow: "Langkah 1 dari 6",
       description: "Mulai dari hal yang paling kamu sukai atau bidang yang bikin kamu penasaran.",
-      tip: "Minat dibuat paling penting karena ini menentukan arah utama rekomendasi. Pilih minimal satu, lebih bagus 3 sampai 8 pilihan.",
+      tip: "Minat dibuat paling penting karena ini menentukan arah utama rekomendasi. Pilih 1 sampai 4 pilihan yang paling menggambarkan kamu.",
       options: resolvedInterestOptions,
       selected: profile.interests,
-      minimum: 1,
+      minimum: PROFILE_CHOICE_MIN,
+      maximum: PROFILE_CHOICE_MAX,
       suggestions: BASE_SEARCH_SUGGESTIONS,
     },
     hobi: {
@@ -703,7 +744,8 @@ export function StudentProfilePanel({
       tip: "Hobi bukan penentu utama, tapi bisa membantu membedakan dua rekomendasi yang skornya dekat.",
       options: resolvedHobbyOptions,
       selected: profile.hobbies,
-      minimum: 0,
+      minimum: PROFILE_CHOICE_MIN,
+      maximum: PROFILE_CHOICE_MAX,
       suggestions: ["Menulis", "Menggambar", "Musik", "Olahraga", "Membaca", "Memasak", "Gaming", "Fotografi", "Organisasi", "Merawat", "Berkebun", "Video"],
     },
     bakat: {
@@ -715,7 +757,8 @@ export function StudentProfilePanel({
       tip: "Bakat membantu SPK membedakan antara sekadar suka dan benar-benar punya potensi untuk berkembang di bidang itu.",
       options: resolvedTalentOptions,
       selected: profile.talents,
-      minimum: 0,
+      minimum: PROFILE_CHOICE_MIN,
+      maximum: PROFILE_CHOICE_MAX,
       suggestions: ["Komunikasi", "Logika", "Desain", "Analisis", "Mengajar", "Menulis", "Manajemen", "Kesehatan", "Akuntansi", "Mekanik", "Bahasa", "Kreatif"],
     },
     pengalaman: {
@@ -727,7 +770,8 @@ export function StudentProfilePanel({
       tip: "Pengalaman membuat rekomendasi lebih realistis karena sistem tahu apa yang sudah pernah kamu kerjakan.",
       options: resolvedExperienceOptions,
       selected: profile.experiences,
-      minimum: 0,
+      minimum: PROFILE_CHOICE_MIN,
+      maximum: PROFILE_CHOICE_MAX,
       suggestions: ["Organisasi", "Lomba", "Magang", "Proyek", "Desain", "Riset", "Jualan", "Kesehatan", "Debat", "Mengajar", "Konten", "Admin"],
     },
   };
@@ -737,15 +781,25 @@ export function StudentProfilePanel({
       ? choiceStepConfigs[activeStep]
       : null;
 
-  const canGoNext = !activeChoiceConfig || activeChoiceConfig.selected.length >= activeChoiceConfig.minimum;
+  const canGoNext = !activeChoiceConfig || (
+    activeChoiceConfig.selected.length >= activeChoiceConfig.minimum &&
+    activeChoiceConfig.selected.length <= activeChoiceConfig.maximum
+  );
   const isLastStep = currentStepIndex === steps.length - 1;
-  const mainProfileComplete = profile.interests.length > 0 && Boolean(profile.goal);
+  const hasValidChoiceCount = (items: string[]) =>
+    items.length >= PROFILE_CHOICE_MIN && items.length <= PROFILE_CHOICE_MAX;
+  const mainProfileComplete =
+    hasValidChoiceCount(profile.interests) &&
+    hasValidChoiceCount(profile.hobbies) &&
+    hasValidChoiceCount(profile.talents) &&
+    hasValidChoiceCount(profile.experiences) &&
+    Boolean(profile.goal);
 
   function stepIsFilled(stepId: WizardStepId) {
-    if (stepId === "minat") return profile.interests.length > 0;
-    if (stepId === "hobi") return profile.hobbies.length > 0;
-    if (stepId === "bakat") return profile.talents.length > 0;
-    if (stepId === "pengalaman") return profile.experiences.length > 0;
+    if (stepId === "minat") return hasValidChoiceCount(profile.interests);
+    if (stepId === "hobi") return hasValidChoiceCount(profile.hobbies);
+    if (stepId === "bakat") return hasValidChoiceCount(profile.talents);
+    if (stepId === "pengalaman") return hasValidChoiceCount(profile.experiences);
     if (stepId === "prestasi") return prestasiRows.length > 0;
     return Boolean(profile.goal);
   }
@@ -765,8 +819,36 @@ export function StudentProfilePanel({
     setAchievementForm((current) => ({ ...current, [key]: value }));
   }
 
+  function updateAchievementFile(file?: File | null) {
+    if (!file) {
+      setAchievementFile(null);
+      return;
+    }
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+    if (!allowedTypes.includes(file.type)) {
+      setAchievementError("Bukti prestasi harus berupa JPG, PNG, WEBP, atau PDF.");
+      setAchievementFile(null);
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setAchievementError("Ukuran bukti maksimal 5 MB.");
+      setAchievementFile(null);
+      return;
+    }
+
+    setAchievementError("");
+    setAchievementFile(file);
+  }
+
   async function submitAchievement(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (prestasiRows.length >= ACHIEVEMENT_MAX) {
+      setAchievementError(`Maksimal hanya ${ACHIEVEMENT_MAX} prestasi.`);
+      return;
+    }
+
     const nama = achievementForm.nama_prestasi.trim();
     if (!nama) {
       setAchievementError("Nama prestasi wajib diisi.");
@@ -783,6 +865,7 @@ export function StudentProfilePanel({
         penyelenggara: achievementForm.penyelenggara.trim() || null,
         keterangan: achievementForm.keterangan.trim() || null,
         bukti_url: achievementForm.bukti_url.trim() || null,
+        bukti_file: achievementFile,
       });
       setAchievementForm({
         nama_prestasi: "",
@@ -792,6 +875,7 @@ export function StudentProfilePanel({
         keterangan: "",
         bukti_url: "",
       });
+      setAchievementFile(null);
       setAchievementModalOpen(false);
     } catch (err) {
       setAchievementError(err instanceof Error ? err.message : "Gagal menambah prestasi.");
@@ -907,6 +991,10 @@ export function StudentProfilePanel({
           prestasiRows={prestasiRows}
           achievementSaving={achievementSaving}
           onOpenModal={() => {
+            if (prestasiRows.length >= ACHIEVEMENT_MAX) {
+              setAchievementError(`Maksimal hanya ${ACHIEVEMENT_MAX} prestasi.`);
+              return;
+            }
             setAchievementError("");
             setAchievementModalOpen(true);
           }}
@@ -931,7 +1019,9 @@ export function StudentProfilePanel({
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           {!canGoNext ? (
             <span className="rounded-full bg-amber-50 px-4 py-2 text-center text-xs font-bold text-amber-700 ring-1 ring-amber-100">
-              Pilih minimal {activeChoiceConfig?.minimum} data untuk lanjut
+              {activeChoiceConfig && activeChoiceConfig.selected.length > activeChoiceConfig.maximum
+                ? `Maksimal ${activeChoiceConfig.maximum} data untuk lanjut`
+                : `Pilih minimal ${activeChoiceConfig?.minimum} data untuk lanjut`}
             </span>
           ) : null}
 
@@ -939,7 +1029,7 @@ export function StudentProfilePanel({
             <button
               type="button"
               onClick={handleFinalSave}
-              disabled={processing || !canGoNext}
+              disabled={processing || !canGoNext || !mainProfileComplete}
               className="inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60 skilllens-button-primary skilllens-shimmer"
             >
               <Icon name="check" className="h-4 w-4" />
@@ -1049,13 +1139,22 @@ export function StudentProfilePanel({
               </label>
 
               <label className="block md:col-span-2">
-                <span className="mb-2 block text-sm font-bold text-slate-700">Link bukti (opsional)</span>
+                <span className="mb-2 block text-sm font-bold text-slate-700">Foto sertifikat / bukti prestasi (opsional)</span>
                 <input
-                  value={achievementForm.bukti_url}
-                  onChange={(event) => updateAchievementForm("bukti_url", event.target.value)}
-                  placeholder="https://..."
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  onChange={(event) => updateAchievementFile(event.target.files?.[0] ?? null)}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600 outline-none file:mr-4 file:rounded-full file:border-0 file:bg-sky-600 file:px-4 file:py-2 file:text-sm file:font-bold file:text-white hover:file:bg-sky-700 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
                 />
+                <p className="mt-2 text-xs font-semibold leading-5 text-slate-400">
+                  Bisa berupa foto sertifikat JPG/PNG/WEBP atau PDF. Maksimal 5 MB. Bagian ini boleh dikosongi.
+                </p>
+                {achievementFile ? (
+                  <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1.5 text-xs font-bold text-sky-700 ring-1 ring-sky-100">
+                    <Icon name="check" className="h-3.5 w-3.5" />
+                    {achievementFile.name}
+                  </div>
+                ) : null}
               </label>
             </div>
 

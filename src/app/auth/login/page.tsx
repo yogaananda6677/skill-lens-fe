@@ -117,6 +117,7 @@ export default function LoginPage() {
       const result = await apiFetch<LoginResponse>("/auth/login", {
         method: "POST",
         skipAuth: true,
+        alert: false,
         body: JSON.stringify({
           username: username.trim(),
           password,
@@ -125,7 +126,9 @@ export default function LoginPage() {
 
       persistAuth(result.token, result.user, remember);
 
-      if (result.user?.must_change_password) {
+      // Untuk siswa, password default tidak lagi memblokir masuk dashboard.
+      // Siswa akan mendapat dialog pengingat yang bisa ditutup di halaman siswa.
+      if (result.user?.must_change_password && result.user.role !== "siswa") {
         router.replace("/auth/force-change-password");
         return;
       }
@@ -193,8 +196,8 @@ export default function LoginPage() {
               <div className="mt-8 rounded-2xl border border-cyan-200/15 bg-cyan-300/10 p-4">
                 <p className="text-sm font-medium leading-6 text-cyan-50">
                   Setelah login, sistem akan membuka dashboard sesuai akun yang
-                  digunakan. Jika akun masih memakai password default, kamu akan
-                  diminta mengganti password terlebih dahulu.
+                  digunakan. Untuk siswa, jika password masih default, pengingat
+                  ganti password akan tampil sebagai dialog yang bisa ditutup.
                 </p>
               </div>
             </div>

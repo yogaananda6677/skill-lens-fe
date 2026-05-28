@@ -29,8 +29,10 @@ type AdminSchoolImportSiswaProps = {
 
 export function AdminSchoolImportSiswa({
   fileRef,
+  jurusanRows,
   selectedFile,
   dragActive,
+  importJurusanId,
   importMessage,
   importError,
   loadingImport,
@@ -39,7 +41,6 @@ export function AdminSchoolImportSiswa({
   setSelectedFile,
   setDragActive,
   setImportJurusanId,
-  setImportSemester,
   setImportError,
   onSubmitImport,
   onBack,
@@ -48,6 +49,11 @@ export function AdminSchoolImportSiswa({
   const isSma = normalizedJenisSekolah === "SMA";
 
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+
+  const hasJurusan = jurusanRows.length > 0;
+  const selectedJurusan = jurusanRows.find(
+    (item) => String(item.id) === String(importJurusanId)
+  );
 
   const canImport = Boolean(selectedFile);
 
@@ -86,8 +92,25 @@ export function AdminSchoolImportSiswa({
   }
 
   async function handleDownloadTemplate() {
-    setDownloadingTemplate(true);
     setImportError("");
+
+    if (!hasJurusan) {
+      setImportError(
+        isSma
+          ? "Tambahkan jurusan/peminatan terlebih dahulu, misalnya IPA dan IPS, sebelum download template."
+          : "Tambahkan jurusan SMK terlebih dahulu, misalnya TKRO, RPL, atau TKJ, sebelum download template."
+      );
+      return;
+    }
+
+    if (!isSma && !importJurusanId) {
+      setImportError(
+        "Pilih jurusan SMK terlebih dahulu. Template SMK dibuat per jurusan, misalnya hanya TKRO semester 1 sampai 6."
+      );
+      return;
+    }
+
+    setDownloadingTemplate(true);
 
     try {
       const token =
@@ -102,13 +125,14 @@ export function AdminSchoolImportSiswa({
 
       url.searchParams.set("multiSemester", "true");
       url.searchParams.set("jenisSekolah", normalizedJenisSekolah);
+      url.searchParams.set("semesterStart", "1");
+      url.searchParams.set("semesterEnd", "6");
 
       if (isSma) {
         url.searchParams.set("mode", "sma_multi_jurusan");
-        url.searchParams.set("semesterStart", "1");
-        url.searchParams.set("semesterEnd", "6");
       } else {
-        url.searchParams.set("mode", "smk_multi_sheet");
+        url.searchParams.set("mode", "smk_per_jurusan");
+        url.searchParams.set("jurusanId", importJurusanId);
       }
 
       const response = await fetch(url.toString(), {
@@ -125,7 +149,7 @@ export function AdminSchoolImportSiswa({
 
         throw new Error(
           errorText ||
-            "Gagal mengunduh template. Pastikan mata pelajaran sudah ditambahkan."
+            "Gagal mengunduh template. Pastikan jurusan dan mata pelajaran sudah benar."
         );
       }
 
@@ -136,7 +160,7 @@ export function AdminSchoolImportSiswa({
       link.href = downloadUrl;
       link.download = isSma
         ? "template_nilai_sma_multi_semester.xlsx"
-        : "template_nilai_smk_multi_sheet.xlsx";
+        : `template_nilai_smk_${selectedJurusan?.nama || "jurusan"}_semester_1_6.xlsx`;
 
       document.body.appendChild(link);
       link.click();
@@ -153,6 +177,25 @@ export function AdminSchoolImportSiswa({
       setDownloadingTemplate(false);
     }
   }
+
+  const structureSheets = isSma
+    ? [
+        "SMT 1",
+        "SMT 2",
+        "SMT 3 IPA",
+        "SMT 3 IPS",
+        "SMT 4 IPA",
+        "SMT 4 IPS",
+        "SMT 5 IPA",
+        "SMT 5 IPS",
+        "SMT 6 IPA",
+        "SMT 6 IPS",
+      ]
+    : importJurusanId
+      ? [1, 2, 3, 4, 5, 6].map(
+          (semester) => `SMT ${semester} ${selectedJurusan?.nama || "TKRO"}`
+        )
+      : ["Pilih jurusan dulu"];
 
   return (
     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-blue-50/40 to-blue-100/20 p-[1px] shadow-md">
@@ -174,8 +217,8 @@ export function AdminSchoolImportSiswa({
 
           <p className="mt-1 text-sm leading-6 text-blue-100">
             {isSma
-              ? "Gunakan satu file Excel berisi sheet semester dan jurusan. Tidak perlu memilih semester atau jurusan saat import."
-              : "Gunakan satu file Excel template nilai untuk import data siswa dan nilai."}
+              ? "Gunakan satu file Excel berisi sheet semester dan jurusan."
+              : "Untuk SMK, template dibuat per jurusan. Pilih jurusan dulu, lalu download template semester 1 sampai 6."}
           </p>
         </div>
 
@@ -189,61 +232,73 @@ export function AdminSchoolImportSiswa({
                 </div>
 
                 <h3 className="text-lg font-bold text-slate-900">
-                  Download Template Nilai Multi-Sheet
+                  {isSma
+                    ? "Download Template Nilai Multi-Sheet"
+                    : "Download Template Nilai SMK Per Jurusan"}
                 </h3>
 
                 <p className="mt-2 text-sm leading-6 text-slate-600">
                   {isSma
-                    ? "Template SMA akan otomatis berisi sheet SMT 1, SMT 2, SMT 3 IPA, SMT 3 IPS, SMT 4 IPA, SMT 4 IPS, SMT 5 IPA, dan SMT 5 IPS sesuai mata pelajaran yang sudah ditambahkan."
-                    : "Template SMK akan dibuat otomatis sesuai struktur mata pelajaran yang tersedia."}
+                    ? "Template SMA otomatis mengikuti jurusan yang sudah dibuat. Semester 1-2 dibuat umum, semester 3-6 dibuat per jurusan."
+                    : "Template SMK dibuat untuk satu jurusan saja. Contoh TKRO akan menghasilkan sheet SMT 1 TKRO sampai SMT 6 TKRO."}
                 </p>
 
-                {isSma && (
-                  <div className="mt-4 rounded-xl border border-white bg-white/80 p-4 text-sm leading-6 text-slate-600 shadow-sm">
-                    <p className="font-semibold text-blue-800">
-                      Struktur sheet template SMA:
-                    </p>
-
-                    <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                      {[
-                        "SMT 1",
-                        "SMT 2",
-                        "SMT 3 IPA",
-                        "SMT 3 IPS",
-                        "SMT 4 IPA",
-                        "SMT 4 IPS",
-                        "SMT 5 IPA",
-                        "SMT 5 IPS",
-                        "SMT 6 IPA",
-                        "SMT 6 IPS",
-                      ].map((sheet) => (
-                        <span
-                          key={sheet}
-                          className="rounded-lg bg-blue-50 px-3 py-2 text-center text-xs font-semibold text-blue-700 ring-1 ring-blue-100"
-                        >
-                          {sheet}
-                        </span>
-                      ))}
-                    </div>
-
-                    <p className="mt-3 text-xs leading-5 text-slate-500">
-                      Sheet hanya dibuat jika mata pelajaran pada semester atau
-                      jurusan tersebut sudah tersedia di menu Mata Pelajaran.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={handleDownloadTemplate}
-                      disabled={downloadingTemplate}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+                {!isSma && (
+                  <div className="mt-4 max-w-md">
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">
+                      Pilih Jurusan SMK
+                    </label>
+                    <select
+                      value={importJurusanId}
+                      onChange={(event) => {
+                        setImportJurusanId(event.target.value);
+                        setImportError("");
+                      }}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
                     >
-                      <Icon name="download" className="h-4 w-4" />
-                      {downloadingTemplate
-                        ? "Mengunduh Template..."
-                        : "Download Template Nilai"}
-                    </button>
+                      <option value="">Pilih jurusan</option>
+                      {jurusanRows.map((jurusan) => (
+                        <option key={jurusan.id} value={String(jurusan.id)}>
+                          {jurusan.nama}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 )}
+
+                <div className="mt-4 rounded-xl border border-white bg-white/80 p-4 text-sm leading-6 text-slate-600 shadow-sm">
+                  <p className="font-semibold text-blue-800">
+                    Struktur sheet template {isSma ? "SMA" : "SMK"}:
+                  </p>
+
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                    {structureSheets.map((sheet) => (
+                      <span
+                        key={sheet}
+                        className="rounded-lg bg-blue-50 px-3 py-2 text-center text-xs font-semibold text-blue-700 ring-1 ring-blue-100"
+                      >
+                        {sheet}
+                      </span>
+                    ))}
+                  </div>
+
+                  <p className="mt-3 text-xs leading-5 text-slate-500">
+                    Sheet tetap dibuat walaupun mata pelajaran belum diisi. Kalau belum ada kolom mapel, tambahkan nama mapel mulai dari kolom setelah Jurusan.
+                  </p>
+                </div>
               </div>
+
+              <button
+                type="button"
+                onClick={handleDownloadTemplate}
+                disabled={downloadingTemplate || (!hasJurusan || (!isSma && !importJurusanId))}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Icon name="download" className="h-4 w-4" />
+                {downloadingTemplate
+                  ? "Mengunduh Template..."
+                  : "Download Template Nilai"}
+              </button>
             </div>
           </div>
 
@@ -259,26 +314,17 @@ export function AdminSchoolImportSiswa({
               </h3>
 
               <p className="mt-2 text-sm leading-6 text-slate-500">
-                Upload file Excel hasil template. Sistem akan membaca semua
-                sheet yang tersedia.
+                Upload file Excel hasil template. Sistem akan membaca semua sheet yang tersedia.
               </p>
             </div>
           </div>
 
-          <input
-            type="hidden"
-            name="jenis_sekolah"
-            value={normalizedJenisSekolah}
-          />
-
+          <input type="hidden" name="jenis_sekolah" value={normalizedJenisSekolah} />
           <input type="hidden" name="multi_semester" value="true" />
-          <input
-            type="hidden"
-            name="mode"
-            value={isSma ? "sma_multi_jurusan" : "smk_multi_sheet"}
-          />
+          <input type="hidden" name="mode" value={isSma ? "sma_multi_jurusan" : "smk_per_jurusan"} />
           <input type="hidden" name="semester_start" value="1" />
           <input type="hidden" name="semester_end" value="6" />
+          {!isSma && <input type="hidden" name="jurusanId" value={importJurusanId} />}
 
           <div
             onDragOver={(event) => {
@@ -315,8 +361,7 @@ export function AdminSchoolImportSiswa({
             </h3>
 
             <p className="mt-1 text-sm text-slate-500">
-              Upload satu file template nilai multi-sheet. Format file .xlsx
-              atau .xls.
+              Upload satu file template nilai multi-sheet. Format file .xlsx atau .xls.
             </p>
 
             {selectedFile && (

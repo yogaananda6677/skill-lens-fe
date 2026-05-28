@@ -177,7 +177,20 @@ export default function AdminSekolahPage() {
         { method: "GET" }
       );
 
-      setJurusanRows(result.data || []);
+      const rows = (result.data || []).map((item: any) => ({
+        id: item.id ?? item.id_jurusan,
+        id_jurusan: item.id_jurusan ?? item.id,
+        nama: item.nama ?? item.nama_jurusan,
+        nama_jurusan: item.nama_jurusan ?? item.nama,
+        id_sekolah: item.id_sekolah,
+        usage: item.usage,
+        usage_count: item.usage_count ?? item.usage?.total ?? 0,
+        is_used: item.is_used ?? item.usage?.is_used ?? false,
+        can_edit: item.can_edit ?? item.usage?.can_edit ?? true,
+        can_delete: item.can_delete ?? item.usage?.can_delete ?? true,
+      }));
+
+      setJurusanRows(rows);
     } catch {
       setJurusanRows([]);
     }
@@ -457,9 +470,18 @@ export default function AdminSekolahPage() {
 
     // Mode baru: 1 file Excel multi-sheet
     formData.append("multi_semester", "true");
-    formData.append("mode", isSma ? "sma_multi_jurusan" : "smk_multi_sheet");
+    if (!isSma && !importJurusanId) {
+      setImportError("Pilih jurusan SMK terlebih dahulu sebelum import nilai.");
+      return;
+    }
+
+    formData.append("mode", isSma ? "sma_multi_jurusan" : "smk_per_jurusan");
     formData.append("semester_start", "1");
-    formData.append("semester_end", "5");
+    formData.append("semester_end", "6");
+
+    if (!isSma) {
+      formData.append("jurusanId", importJurusanId);
+    }
 
     setLoadingImport(true);
 
@@ -597,6 +619,9 @@ export default function AdminSekolahPage() {
           loadingJurusan={loadingJurusan}
           setJurusanName={setJurusanName}
           onSubmitJurusan={submitJurusan}
+          jenisSekolah={jenisSekolah}
+          onReloadJurusan={loadJurusan}
+          showModal={showModal}
         />
       );
     }
@@ -691,6 +716,7 @@ export default function AdminSekolahPage() {
         <AdminSchoolDataNilai
           siswaRows={siswaRows}
           jurusanRows={jurusanRows}
+          jenisSekolah={jenisSekolah}
           loadSiswa={loadSiswa}
         />
       );

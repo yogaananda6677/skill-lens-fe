@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { StudentTopNav } from "../../../components/layout/StudentTopNav";
 import { UserProfilePanel } from "../../../components/profile/UserProfilePanel";
-import { FeedbackModal } from "../../../components/ui/FeedbackModal";
 import { Icon } from "../../../components/ui/icons";
 import {
   createStudentAchievement,
@@ -20,7 +19,17 @@ import { buildStudentPayload } from "../utils/buildStudentPayload";
 
 type ProfileTab = "potensi" | "akun";
 
+const PROFILE_CHOICE_MIN = 1;
+const PROFILE_CHOICE_MAX = 4;
+const PROFILE_CHOICE_LABELS: Record<ArrayField, string> = {
+  interests: "Minat",
+  hobbies: "Hobi",
+  talents: "Bakat",
+  experiences: "Pengalaman",
+};
+
 export default function SiswaProfilPage() {
+  const router = useRouter();
   const {
     profile,
     setProfile,
@@ -36,7 +45,6 @@ export default function SiswaProfilPage() {
 
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [profileOptions, setProfileOptions] = useState<{
     interestOptions: string[];
@@ -80,6 +88,10 @@ export default function SiswaProfilPage() {
     setProfile((current) => {
       const exists = current[field].includes(value);
 
+      if (!exists && current[field].length >= PROFILE_CHOICE_MAX) {
+        return current;
+      }
+
       return {
         ...current,
         [field]: exists
@@ -87,6 +99,23 @@ export default function SiswaProfilPage() {
           : [...current[field], value],
       };
     });
+  }
+
+  function getProfileChoiceError() {
+    const fields: ArrayField[] = ["interests", "hobbies", "talents", "experiences"];
+
+    for (const field of fields) {
+      const total = profile[field].length;
+      if (total < PROFILE_CHOICE_MIN) {
+        return `${PROFILE_CHOICE_LABELS[field]} wajib diisi minimal ${PROFILE_CHOICE_MIN}.`;
+      }
+      if (total > PROFILE_CHOICE_MAX) {
+        return `${PROFILE_CHOICE_LABELS[field]} maksimal ${PROFILE_CHOICE_MAX} pilihan.`;
+      }
+    }
+
+    if (!profile.goal) return "Tujuan karir wajib dipilih.";
+    return "";
   }
 
   async function handleCreateAchievement(
@@ -100,7 +129,6 @@ export default function SiswaProfilPage() {
       await reloadStudent();
 
       setMessage("Prestasi berhasil ditambahkan.");
-      setModalOpen(true);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Gagal menambahkan prestasi.",
@@ -117,7 +145,6 @@ export default function SiswaProfilPage() {
       await reloadStudent();
 
       setMessage("Prestasi berhasil dihapus.");
-      setModalOpen(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal menghapus prestasi.");
     }
@@ -126,13 +153,22 @@ export default function SiswaProfilPage() {
   async function handleSaveOnly() {
     setError("");
     setMessage("");
+
+    const validationMessage = getProfileChoiceError();
+    if (validationMessage) {
+      setError(validationMessage);
+      return;
+    }
+
     setSaving(true);
 
     try {
       await saveSiswaProfile(buildStudentPayload(profile, prestasiRows));
 
-      setMessage("Profil berhasil disimpan.");
-      setModalOpen(true);
+      setMessage("Profil berhasil disimpan. Kamu akan diarahkan ke rekomendasi.");
+      window.setTimeout(() => {
+        router.push("/siswa/rekomendasi?auto=1");
+      }, 450);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal menyimpan profil.");
     } finally {
@@ -140,10 +176,10 @@ export default function SiswaProfilPage() {
     }
   }
 
-  const profileReady = profile.interests.length > 0 && Boolean(profile.goal);
+  const profileReady = !getProfileChoiceError();
 
   return (
-    <StudentTopNav>
+    <>
       <main className="min-h-screen skilllens-blue-page">
         <section className="mx-auto max-w-6xl px-5 py-8 skilllens-page-enter">
           <div className="relative mb-6 overflow-hidden rounded-[2rem] border border-white/10 skilllens-hero-grid p-6 text-white shadow-2xl shadow-blue-950/20 md:p-7">
@@ -263,7 +299,7 @@ export default function SiswaProfilPage() {
                   className={`mb-6 rounded-2xl p-4 text-sm font-semibold ${
                     error
                       ? "bg-rose-50 text-rose-700 ring-1 ring-rose-100"
-                      : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
+                      : "bg-sky-50 text-sky-700 ring-1 ring-sky-100"
                   }`}
                 >
                   {error || message}
@@ -296,16 +332,6 @@ export default function SiswaProfilPage() {
         </section>
       </main>
 
-      <FeedbackModal
-        open={modalOpen}
-        title="Profil berhasil disimpan"
-        description="Data profilmu sudah tersimpan. Sekarang kamu bisa lanjut memproses rekomendasi."
-        actionLabel="Lanjut Rekomendasi"
-        onClose={() => setModalOpen(false)}
-        onAction={() => {
-          window.location.href = "/siswa/rekomendasi";
-        }}
-      />
-    </StudentTopNav>
+    </>
   );
 }

@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { StudentTopNav } from "../../../components/layout/StudentTopNav";
 import { Icon } from "../../../components/ui/icons";
 import { useAppAlert } from "../../../components/ui/AppAlertProvider";
 import { getActiveStudentRoadmap, updateStudentRoadmapProgress } from "../../../features/siswa/api";
@@ -245,8 +244,7 @@ export default function RoadmapClient() {
   }
 
   return (
-    <StudentTopNav>
-      <main className="min-h-screen skilllens-blue-page">
+    <main className="min-h-screen skilllens-blue-page">
         <section className="mx-auto max-w-7xl px-5 py-8 skilllens-page-enter">
           <div className="relative mb-6 overflow-hidden rounded-[1.8rem] border border-white/10 skilllens-hero-grid p-6 text-white shadow-lg shadow-blue-950/10 md:p-8">
             <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(57,217,255,0.055)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,255,0.055)_1px,transparent_1px)] bg-[size:52px_52px]" />
@@ -458,6 +456,5 @@ export default function RoadmapClient() {
           )}
         </section>
       </main>
-    </StudentTopNav>
   );
 }

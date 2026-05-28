@@ -13,6 +13,7 @@ export type AdminSchoolStatus = {
   school_status: "none" | "pending" | "approved";
   id_sekolah: number | null;
   nama_sekolah: string | null;
+  jenis_sekolah?: string | null;
   message: string;
 };
 
@@ -44,10 +45,27 @@ export type TeacherRow = {
   status?: string;
 };
 
+export type JurusanUsage = {
+  siswa: number;
+  mapel: number;
+  kurikulum: number;
+  total: number;
+  is_used: boolean;
+  can_edit: boolean;
+  can_delete: boolean;
+};
+
 export type JurusanRow = {
   id: number;
+  id_jurusan?: number;
   nama: string;
+  nama_jurusan?: string;
   id_sekolah?: number;
+  usage?: JurusanUsage;
+  usage_count?: number;
+  is_used?: boolean;
+  can_edit?: boolean;
+  can_delete?: boolean;
 };
 
 export type SiswaRow = {

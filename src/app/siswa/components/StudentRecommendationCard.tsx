@@ -112,7 +112,7 @@ export function StudentRecommendationCard({
         <span className={`text-xs font-semibold ${roadmapActive ? "text-cyan-100/80" : "text-slate-400"}`}>
           {roadmapActive
             ? "Sedang dipakai sebagai roadmap kamu"
-            : (item.roadmapId ?? item.alternativeId ?? item.id)
+            : item.roadmapId
               ? "Roadmap tersedia"
               : "Roadmap belum tersedia"}
         </span>

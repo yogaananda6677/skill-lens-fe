@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { StudentTopNav } from "../../../components/layout/StudentTopNav";
-import { FeedbackModal } from "../../../components/ui/FeedbackModal";
 import { useAppAlert } from "../../../components/ui/AppAlertProvider";
 import { Icon } from "../../../components/ui/icons";
 import {
@@ -17,8 +15,14 @@ import { StudentRecommendationPanel } from "../components/StudentRecommendationP
 import { useStudentData } from "../hooks/useStudentData";
 import { buildStudentPayload } from "../utils/buildStudentPayload";
 
+function getRecommendationRoadmapId(item: Recommendation | null) {
+  if (!item) return null;
 
-function RecommendationLoadingOverlay({ open }: { open: boolean }) {
+  const parsed = Number(item.roadmapId);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function RecommendationLoadingOverlay({ open, autoMode }: { open: boolean; autoMode?: boolean }) {
   if (!open) return null;
 
   const steps = [
@@ -47,7 +51,9 @@ function RecommendationLoadingOverlay({ open }: { open: boolean }) {
             Sedang menghitung rekomendasi terbaik
           </h2>
           <p className="mx-auto mt-2 max-w-md text-center text-sm font-semibold leading-6 text-slate-500">
-            Tunggu sebentar ya. Sistem sedang membaca data profil, prestasi, dan ribuan alternatif agar hasilnya lebih sesuai.
+            {autoMode
+              ? "Profil sudah tersimpan. Sistem langsung menghitung rekomendasi dan menyiapkan roadmap terbaik untukmu."
+              : "Tunggu sebentar ya. Sistem sedang membaca data profil, prestasi, nilai, dan alternatif terbaik."}
           </p>
 
           <div className="mt-6 h-2 overflow-hidden rounded-full bg-slate-100">
@@ -55,7 +61,7 @@ function RecommendationLoadingOverlay({ open }: { open: boolean }) {
           </div>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            {steps.map((step, index) => (
+            {steps.map((step) => (
               <div
                 key={step.label}
                 className="flex items-center gap-3 rounded-3xl border border-sky-100 bg-white/[0.82] p-3 text-sm font-bold text-slate-600 shadow-sm backdrop-blur skilllens-smooth"
@@ -78,10 +84,14 @@ function RecommendationLoadingOverlay({ open }: { open: boolean }) {
   );
 }
 
-function RoadmapGenerationOverlay({ open }: { open: boolean }) {
+function RoadmapGenerationOverlay({ open, autoMode }: { open: boolean; autoMode?: boolean }) {
   if (!open) return null;
 
-  const stages = ["Menyusun alur belajar", "Membuat tahapan mingguan", "Menyiapkan progress tracker"];
+  const stages = [
+    "Memilih rekomendasi peringkat terbaik",
+    "Menyusun alur belajar",
+    "Menyiapkan progress tracker",
+  ];
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-[#07142f]/[0.64] px-4 backdrop-blur-md">
@@ -97,7 +107,9 @@ function RoadmapGenerationOverlay({ open }: { open: boolean }) {
             Roadmap sedang dibuat
           </h2>
           <p className="mx-auto mt-2 max-w-md text-sm font-semibold leading-6 text-slate-500">
-            Sistem sedang mengubah hasil rekomendasi menjadi langkah belajar yang rapi dan bisa kamu ikuti.
+            {autoMode
+              ? "Rekomendasi terbaik sudah ditemukan. Kamu akan langsung diarahkan ke halaman roadmap."
+              : "Sistem sedang mengubah hasil rekomendasi menjadi langkah belajar yang rapi dan bisa kamu ikuti."}
           </p>
 
           <div className="mt-6 grid gap-3">
@@ -125,7 +137,8 @@ export default function SiswaRekomendasiPage() {
   const { profile, prestasiRows, loadingProfile, error, setError } =
     useStudentData();
   const router = useRouter();
-  const { showSuccess, showError, showProcessing, dismissAlert } = useAppAlert();
+  const autoStartedRef = useRef(false);
+  const { showSuccess, showError } = useAppAlert();
 
   const [mounted, setMounted] = useState(false);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
@@ -138,10 +151,11 @@ export default function SiswaRekomendasiPage() {
   const [loadingLatest, setLoadingLatest] = useState(false);
   const [generatingRoadmap, setGeneratingRoadmap] = useState(false);
   const [message, setMessage] = useState("");
-  const [modalOpen, setModalOpen] = useState(false);
+  const [autoMode, setAutoMode] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    setAutoMode(new URLSearchParams(window.location.search).get("auto") === "1");
   }, []);
 
   useEffect(() => {
@@ -190,13 +204,65 @@ export default function SiswaRekomendasiPage() {
   }, []);
 
   const isProcessDisabled = mounted
-    ? processing || loadingProfile || loadingLatest
+    ? processing || loadingProfile || loadingLatest || generatingRoadmap
     : false;
 
-  async function handleProcessSpk() {
+  async function generateRoadmapFromRecommendation(
+    recommendation: Recommendation | null,
+    options?: { auto?: boolean },
+  ) {
+    if (!recommendation) {
+      showError("Pilih rekomendasi dulu", "Klik salah satu kartu rekomendasi sebelum membuat roadmap.");
+      setError("Pilih salah satu rekomendasi terlebih dahulu.");
+      return false;
+    }
+
+    const parsedRoadmapId = getRecommendationRoadmapId(recommendation);
+
+    if (!parsedRoadmapId) {
+      const errMessage = "Rekomendasi ini belum memiliki data roadmap. Hubungi admin untuk melengkapi roadmap pada alternatif tersebut.";
+      showError("Roadmap belum tersedia", errMessage);
+      setError(errMessage);
+      return false;
+    }
+
+    if (parsedRoadmapId === activeRoadmapId || parsedRoadmapId === generatedRoadmapId) {
+      router.push("/siswa/roadmap");
+      return true;
+    }
+
     setError("");
     setMessage("");
-    showProcessing("Menghitung rekomendasi", "Sistem sedang mencocokkan profil, prestasi, nilai, dan alternatif terbaik.");
+    setGeneratingRoadmap(true);
+
+    try {
+      await selectStudentRoadmap(parsedRoadmapId);
+
+      setGeneratedRoadmapId(parsedRoadmapId);
+      setActiveRoadmapId(parsedRoadmapId);
+      setMessage("Roadmap berhasil dibuat. Kamu akan diarahkan ke halaman roadmap.");
+
+      if (!options?.auto) {
+        showSuccess("Roadmap berhasil dibuat", "Kamu akan diarahkan ke halaman roadmap.");
+      }
+
+      window.setTimeout(() => {
+        router.push("/siswa/roadmap");
+      }, options?.auto ? 450 : 800);
+
+      return true;
+    } catch (err) {
+      const errMessage = err instanceof Error ? err.message : "Gagal membuat roadmap.";
+      showError("Gagal membuat roadmap", errMessage);
+      setError(errMessage);
+      setGeneratingRoadmap(false);
+      return false;
+    }
+  }
+
+  async function handleProcessSpk(options?: { autoGenerateRoadmap?: boolean }) {
+    setError("");
+    setMessage("");
     setProcessing(true);
     setSelectedRecommendation(null);
 
@@ -213,83 +279,46 @@ export default function SiswaRekomendasiPage() {
 
       if (!rows.length) {
         const errMessage = "Rekomendasi berhasil diproses, tetapi hasilnya belum terbaca di frontend. Cek response API proses SPK.";
-        dismissAlert();
         showError("Hasil rekomendasi belum terbaca", errMessage);
         setError(errMessage);
-        return;
+        return [];
       }
 
-      dismissAlert();
+      if (options?.autoGenerateRoadmap) {
+        const topRecommendation = rows.find((item) => getRecommendationRoadmapId(item)) ?? rows[0];
+        setSelectedRecommendation(topRecommendation);
+        setProcessing(false);
+        await generateRoadmapFromRecommendation(topRecommendation, { auto: true });
+        return rows;
+      }
+
       showSuccess("Rekomendasi berhasil diproses", "Pilih salah satu kartu hasil, lalu generate roadmap untuk mulai belajar.");
       setMessage(result.message || "Rekomendasi berhasil diproses.");
-      setModalOpen(true);
+      return rows;
     } catch (err) {
       const errMessage = err instanceof Error ? err.message : "Gagal memproses rekomendasi.";
-      dismissAlert();
       showError("Gagal memproses rekomendasi", errMessage);
       setError(errMessage);
+      return [];
     } finally {
       setProcessing(false);
     }
   }
 
- async function handleGenerateRoadmap() {
-  if (!selectedRecommendation) {
-    showError("Pilih rekomendasi dulu", "Klik salah satu kartu rekomendasi sebelum membuat roadmap.");
-    setError("Pilih salah satu rekomendasi terlebih dahulu.");
-    return;
+  async function handleGenerateRoadmap() {
+    await generateRoadmapFromRecommendation(selectedRecommendation);
   }
 
-  const roadmapId =
-    selectedRecommendation.roadmapId ??
-    selectedRecommendation.alternativeId ??
-    selectedRecommendation.id;
+  useEffect(() => {
+    if (!autoMode || autoStartedRef.current) return;
+    if (loadingProfile || loadingLatest || processing || generatingRoadmap) return;
 
-  const parsedRoadmapId = Number(roadmapId);
-
-  if (!Number.isFinite(parsedRoadmapId) || parsedRoadmapId <= 0) {
-    const errMessage = "Rekomendasi ini belum memiliki data roadmap. Hubungi admin untuk melengkapi roadmap.";
-    showError("Roadmap belum tersedia", errMessage);
-    setError(errMessage);
-    return;
-  }
-
-  if (parsedRoadmapId === activeRoadmapId || parsedRoadmapId === generatedRoadmapId) {
-    router.push("/siswa/roadmap");
-    return;
-  }
-
-  setError("");
-  setMessage("");
-  showProcessing("Membuat roadmap", "Hasil rekomendasi sedang diubah menjadi alur belajar yang bisa diikuti.");
-  setGeneratingRoadmap(true);
-
-  try {
-    await selectStudentRoadmap(parsedRoadmapId);
-
-    setGeneratedRoadmapId(parsedRoadmapId);
-    setActiveRoadmapId(parsedRoadmapId);
-    dismissAlert();
-    showSuccess("Roadmap berhasil dibuat", "Kamu akan diarahkan ke halaman roadmap.");
-    setMessage(
-      "Roadmap berhasil dibuat. Kamu akan diarahkan ke halaman roadmap.",
-    );
-
-    window.setTimeout(() => {
-      router.push("/siswa/roadmap");
-    }, 900);
-  } catch (err) {
-    const errMessage = err instanceof Error ? err.message : "Gagal membuat roadmap.";
-    dismissAlert();
-    showError("Gagal membuat roadmap", errMessage);
-    setError(errMessage);
-    setGeneratingRoadmap(false);
-  }
-}
-  
+    autoStartedRef.current = true;
+    handleProcessSpk({ autoGenerateRoadmap: true });
+  }, [autoMode, loadingProfile, loadingLatest, processing, generatingRoadmap]);
 
   return (
-    <StudentTopNav>
+    <>
       <main className="min-h-screen skilllens-blue-page">
         <section className="mx-auto max-w-7xl px-5 py-8 skilllens-page-enter">
           <section className="relative mb-6 overflow-hidden rounded-[2rem] border border-white/10 skilllens-hero-grid p-6 text-white shadow-2xl shadow-blue-950/20">
@@ -310,11 +339,18 @@ export default function SiswaRekomendasiPage() {
                   Sistem akan menghitung rekomendasi berdasarkan nilai akademik,
                   profil, tujuan, dan prestasi dari tabel prestasi siswa.
                 </p>
+
+                {autoMode ? (
+                  <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-bold text-sky-50 ring-1 ring-white/[0.15]">
+                    <Icon name="sparkles" className="h-4 w-4 text-cyan-300" />
+                    Mode otomatis aktif setelah simpan profil
+                  </div>
+                ) : null}
               </div>
 
               <button
                 type="button"
-                onClick={handleProcessSpk}
+                onClick={() => handleProcessSpk()}
                 disabled={isProcessDisabled}
                 className={`inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60 skilllens-button-primary ${processing ? "animate-pulse" : ""}`}
               >
@@ -328,6 +364,18 @@ export default function SiswaRekomendasiPage() {
             </div>
           </section>
 
+          {(message || error) && (
+            <div
+              className={`mb-6 rounded-2xl p-4 text-sm font-semibold ${
+                error
+                  ? "bg-rose-50 text-rose-700 ring-1 ring-rose-100"
+                  : "bg-sky-50 text-sky-700 ring-1 ring-sky-100"
+              }`}
+            >
+              {error || message}
+            </div>
+          )}
+
           <StudentRecommendationPanel
             recommendations={recommendations}
             selectedRecommendation={selectedRecommendation}
@@ -340,17 +388,8 @@ export default function SiswaRekomendasiPage() {
         </section>
       </main>
 
-      <RecommendationLoadingOverlay open={processing} />
-      <RoadmapGenerationOverlay open={generatingRoadmap} />
-
-      <FeedbackModal
-        open={modalOpen}
-        title="Rekomendasi berhasil diproses"
-        description="Pilih salah satu hasil rekomendasi, lalu tekan Generate Roadmap."
-        actionLabel="Mengerti"
-        onClose={() => setModalOpen(false)}
-        onAction={() => setModalOpen(false)}
-      />
-    </StudentTopNav>
+      <RecommendationLoadingOverlay open={processing} autoMode={autoMode} />
+      <RoadmapGenerationOverlay open={generatingRoadmap} autoMode={autoMode} />
+    </>
   );
 }

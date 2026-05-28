@@ -1,5 +1,5 @@
-import { apiFetch } from "../../lib/axios";
-import type { AcademicScores, CareerRoadmap, PublishedRoadmap, Recommendation, RoadmapDetail, RoadmapStep, StudentProfileForm , StudentAchievement} from "./types";
+import { apiFetch, API_BASE_URL } from "../../lib/axios";
+import type { AcademicScores, CareerRoadmap, PublishedRoadmap, Recommendation, RoadmapDetail, RoadmapStep, StudentProfileForm, StudentAchievement, StudentAcademicDetailResponse } from "./types";
 
 function asArray(value: unknown): string[] {
   if (Array.isArray(value)) return value.map((item) => String(item ?? "").trim()).filter(Boolean);
@@ -9,6 +9,14 @@ function asArray(value: unknown): string[] {
 
 function firstDefined<T>(...values: T[]) {
   return values.find((value) => value !== undefined && value !== null && value !== "") as T | undefined;
+}
+
+function normalizeAssetUrl(value: unknown) {
+  const url = String(value ?? "").trim();
+  if (!url) return null;
+  if (/^(https?:)?\/\//i.test(url) || url.startsWith("data:")) return url;
+  if (url.startsWith("/")) return `${API_BASE_URL}${url}`;
+  return url;
 }
 export type PrestasiSiswaResponse = {
   id?: number;
@@ -75,6 +83,7 @@ export type SiswaMeResponse = {
   kelas: string;
   jurusan: string;
   id_jurusan?: number | null;
+  must_change_password?: boolean;
   minat?: string[];
   hobi?: string[];
   bakat?: string[];
@@ -102,6 +111,13 @@ export async function getSiswaMe() {
   return apiFetch<SiswaMeResponse>("/siswa/me");
 }
 
+export async function getSiswaNilai() {
+  return apiFetch<StudentAcademicDetailResponse>("/siswa/nilai", {
+    method: "GET",
+    alert: false,
+  });
+}
+
 export type CreateStudentAchievementPayload = {
   nama_prestasi: string;
   tahun?: string | number | null;
@@ -109,12 +125,31 @@ export type CreateStudentAchievementPayload = {
   penyelenggara?: string | null;
   keterangan?: string | null;
   bukti_url?: string | null;
+  bukti_file?: File | null;
 };
 
 export async function createStudentAchievement(payload: CreateStudentAchievementPayload) {
+  const { bukti_file, ...jsonPayload } = payload;
+
+  if (bukti_file) {
+    const formData = new FormData();
+
+    Object.entries(jsonPayload).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === "") return;
+      formData.append(key, String(value));
+    });
+
+    formData.append("bukti_file", bukti_file);
+
+    return apiFetch<{ message: string; data?: PrestasiSiswaResponse }>("/prestasi-siswa", {
+      method: "POST",
+      body: formData,
+    });
+  }
+
   return apiFetch<{ message: string; data?: PrestasiSiswaResponse }>("/prestasi-siswa", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify(jsonPayload),
   });
 }
 
@@ -141,43 +176,59 @@ function normalizeRecommendations(response: any) {
 
   const rows = Array.isArray(raw) ? raw : [];
 
-  return rows.map((item: any, index: number) => ({
-    id: item.id ?? item.id_rekomendasi ?? index + 1,
-    title:
-      item.title ??
-      item.nama ??
-      item.nama_rekomendasi ??
-      item.nama_jurusan ??
-      "Rekomendasi",
-    category: item.category ?? item.kategori ?? item.tipe ?? "rekomendasi",
-    score: Number(
-      item.score ?? item.nilai ?? item.topsis_score ?? item.skor ?? 0,
-    ),
-    summary:
-      item.summary ??
-      item.deskripsi ??
-      item.alasan ??
-      "Rekomendasi berdasarkan nilai akademik dan profil siswa.",
-    dominantFactors: Array.isArray(item.dominantFactors)
-      ? item.dominantFactors
-      : Array.isArray(item.faktor_dominan)
-        ? item.faktor_dominan
-        : typeof item.faktor_dominan === "string"
-          ? item.faktor_dominan.split(",").map((value: string) => value.trim())
-          : [],
-    // Roadmap harus eksplisit dari backend/SPK.
-    // Jangan fallback ke alternatif_id/id karena relasi alternatif dan roadmap tidak selalu sama.
-    roadmapId:
-      item.roadmapId ??
-      item.id_roadmap ??
-      item.roadmap_id ??
-      item.roadmap?.id_roadmap ??
-      item.roadmap?.id ??
+  return rows.map((item: any, index: number) => {
+    const recommendationId = item.id ?? item.id_rekomendasi ?? index + 1;
+    const alternativeId = Number(firstDefined(
+      item.alternativeId,
+      item.alternative_id,
+      item.id_alternatif,
+      item.alternatif_id,
+      item.id_alternative,
+      item.id_jurusan,
+      item.jurusan_id,
       null,
-    topsisRank: Number(
-      item.topsisRank ?? item.rank ?? item.peringkat ?? index + 1,
-    ),
-  }));
+    ));
+    const roadmapId = Number(firstDefined(
+      item.roadmapId,
+      item.id_roadmap,
+      item.roadmap_id,
+      item.id_roadmap_master,
+      item.roadmap?.id_roadmap,
+      item.roadmap?.id,
+      null,
+    ));
+
+    return {
+      id: recommendationId,
+      alternativeId: Number.isFinite(alternativeId) && alternativeId > 0 ? alternativeId : undefined,
+      title:
+        item.title ??
+        item.nama ??
+        item.nama_rekomendasi ??
+        item.nama_jurusan ??
+        "Rekomendasi",
+      category: item.category ?? item.kategori ?? item.tipe ?? "rekomendasi",
+      score: Number(
+        item.score ?? item.nilai ?? item.topsis_score ?? item.skor ?? 0,
+      ),
+      summary:
+        item.summary ??
+        item.deskripsi ??
+        item.alasan ??
+        "Rekomendasi berdasarkan nilai akademik dan profil siswa.",
+      dominantFactors: Array.isArray(item.dominantFactors)
+        ? item.dominantFactors
+        : Array.isArray(item.faktor_dominan)
+          ? item.faktor_dominan
+          : typeof item.faktor_dominan === "string"
+            ? item.faktor_dominan.split(",").map((value: string) => value.trim())
+            : [],
+      roadmapId: Number.isFinite(roadmapId) && roadmapId > 0 ? roadmapId : null,
+      topsisRank: Number(
+        item.topsisRank ?? item.rank ?? item.peringkat ?? index + 1,
+      ),
+    };
+  });
 }
 
 export async function processSiswaSpk(payload: any) {
@@ -351,7 +402,7 @@ export function normalizeStudentAchievements(data: any): StudentAchievement[] {
         tingkat: item?.tingkat ?? null,
         penyelenggara: item?.penyelenggara ?? null,
         keterangan: item?.keterangan ?? null,
-        bukti_url: item?.bukti_url ?? item?.bukti ?? null,
+        bukti_url: normalizeAssetUrl(item?.bukti_url ?? item?.bukti),
       };
     })
     .filter((item: StudentAchievement) => item.nama_prestasi);

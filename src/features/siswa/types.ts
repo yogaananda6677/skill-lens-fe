@@ -42,7 +42,7 @@ export type CriteriaBreakdown = Partial<Record<
 >>;
 
 export type Recommendation = {
-  id: string;
+  id: string | number;
   alternativeId?: number;
   roadmapId?: number | null;
   title: string;
@@ -103,4 +103,39 @@ export type StudentAchievement = {
   penyelenggara?: string | null;
   keterangan?: string | null;
   bukti_url?: string | null;
+};
+export type StudentSubjectScore = {
+  id_nilai: number;
+  id_kurikulum_mapel?: number | null;
+  nama_mapel: string;
+  nilai: number;
+  semester: number;
+  kategori: string;
+  kategori_label: string;
+};
+
+export type StudentSemesterCategorySummary = {
+  kategori: string;
+  label: string;
+  rata_rata: number | null;
+  jumlah_mapel: number;
+  mapel: string[];
+};
+
+export type StudentSemesterScoreSummary = {
+  semester: number;
+  kategori: Record<string, StudentSemesterCategorySummary>;
+  rata_rata: number | null;
+  jumlah_mapel: number;
+};
+
+export type StudentAcademicDetailResponse = {
+  data: StudentSubjectScore[];
+  per_semester: StudentSemesterScoreSummary[];
+  semester_options: number[];
+  summary: {
+    rata_rata: number | null;
+    jumlah_mapel: number;
+    semester_terbaru: number | null;
+  };
 };
