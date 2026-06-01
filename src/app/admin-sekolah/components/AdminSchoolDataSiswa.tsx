@@ -88,6 +88,7 @@ function downloadExcel(
           <td>${escapeHtml(siswa.kelas || "-")}</td>
           <td>${escapeHtml(siswa.jurusan || "-")}</td>
           <td>${escapeHtml(siswa.username || "-")}</td>
+          <td>${escapeHtml(siswa.password_awal || siswa.nisn || "-")}</td>
           <td>${escapeHtml(siswa.status || "Aktif")}</td>
         </tr>
       `;
@@ -96,12 +97,12 @@ function downloadExcel(
 
   const filterInfo = `
     <tr>
-      <td colspan="7"><b>Filter Jurusan:</b> ${escapeHtml(
+      <td colspan="8"><b>Filter Jurusan:</b> ${escapeHtml(
         options?.jurusan || "Semua Jurusan"
       )}</td>
     </tr>
     <tr>
-      <td colspan="7"><b>Filter Kelas:</b> ${escapeHtml(
+      <td colspan="8"><b>Filter Kelas:</b> ${escapeHtml(
         options?.kelas || "Semua Kelas"
       )}</td>
     </tr>
@@ -117,7 +118,7 @@ function downloadExcel(
         <table border="1">
           <thead>
             <tr>
-              <th colspan="7">Data Siswa SkillLens</th>
+              <th colspan="8">Data Siswa SkillLens</th>
             </tr>
             ${filterInfo}
             <tr>
@@ -127,6 +128,7 @@ function downloadExcel(
               <th>Kelas</th>
               <th>Jurusan</th>
               <th>Username</th>
+              <th>Password Awal</th>
               <th>Status</th>
             </tr>
           </thead>
@@ -265,8 +267,7 @@ export function AdminSchoolDataSiswa({
           </div>
           <h2 className="mt-2 text-xl font-bold text-white">Kelola data siswa</h2>
           <p className="mt-1 text-sm text-blue-100">
-            Lihat dan export data siswa berdasarkan nama, NISN, kelas, username,
-            dan jurusan tanpa menampilkan password awal.
+            Lihat dan export data siswa berdasarkan nama, NISN, username, password awal, kelas, dan jurusan.
           </p>
         </div>
 
@@ -328,6 +329,7 @@ export function AdminSchoolDataSiswa({
                   <th className="px-5 py-3">Kelas</th>
                   <th className="px-5 py-3">Jurusan</th>
                   <th className="px-5 py-3">Username</th>
+                  <th className="px-5 py-3">Password Awal</th>
                   <th className="px-5 py-3">Status</th>
                 </tr>
               </thead>
@@ -351,6 +353,9 @@ export function AdminSchoolDataSiswa({
                       <td className="px-5 py-3 text-slate-600">
                         {siswa.username || "-"}
                       </td>
+                      <td className="px-5 py-3 text-slate-600">
+                        {siswa.password_awal || siswa.nisn || "-"}
+                      </td>
                       <td className="px-5 py-3">
                         <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">
                           {siswa.status || "Aktif"}
@@ -360,7 +365,7 @@ export function AdminSchoolDataSiswa({
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="px-5 py-12 text-center text-slate-500">
+                    <td colSpan={7} className="px-5 py-12 text-center text-slate-500">
                       Belum ada data siswa sesuai filter.
                     </td>
                   </tr>

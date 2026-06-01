@@ -24,7 +24,7 @@ export function uploadWithProgress<T>({
   return new Promise<T>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     const startedAt = Date.now();
-    let processingTimer: ReturnType<typeof window.setInterval> | null = null;
+    let processingTimer: number | null = null;
     let currentPercent = 1;
 
     function emit(partial: Partial<UploadProgressState>) {

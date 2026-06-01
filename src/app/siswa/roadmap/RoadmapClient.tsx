@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Icon } from "../../../components/ui/icons";
 import { useAppAlert } from "../../../components/ui/AppAlertProvider";
 import { getActiveStudentRoadmap, updateStudentRoadmapProgress } from "../../../features/siswa/api";
-import type { CareerRoadmap, RoadmapDetail } from "../../../features/siswa/types";
+import type { CareerRoadmap, RoadmapDetail, RoadmapNote } from "../../../features/siswa/types";
 
 type RoadmapStatus = "belum" | "proses" | "selesai";
 
@@ -176,6 +176,52 @@ function patchRoadmapDetailStatus(
   };
 }
 
+function formatNoteDate(value?: string | null) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function GuidanceNotesCard({ notes }: { notes: RoadmapNote[] }) {
+  return (
+    <div className="mt-5 rounded-2xl bg-gradient-to-br from-cyan-50 to-sky-50 p-4 ring-1 ring-sky-100">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-extrabold text-sky-950">Catatan Guru BK</p>
+          <p className="mt-1 text-xs font-semibold text-sky-700/75">Arahan bimbingan yang bisa kamu ikuti pada tahap ini.</p>
+        </div>
+        <span className="rounded-full bg-white px-3 py-1 text-[11px] font-bold text-sky-700 ring-1 ring-sky-100">{notes.length} catatan</span>
+      </div>
+      <div className="mt-4 space-y-3">
+        {notes.map((note, index) => {
+          const noteDate = formatNoteDate(note.createdAt);
+          return (
+            <article key={note.id || index} className="rounded-2xl bg-white/85 p-4 text-sm shadow-sm ring-1 ring-sky-100/80">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <p className="font-extrabold text-slate-900">{note.title || "Catatan bimbingan"}</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-sky-500">{note.guruName || "Guru BK"}{noteDate ? ` • ${noteDate}` : ""}</p>
+              </div>
+              <p className="mt-2 leading-6 text-slate-600">{note.note}</p>
+              {note.followUp ? (
+                <div className="mt-3 rounded-xl bg-sky-50 p-3 text-xs font-semibold leading-5 text-sky-800 ring-1 ring-sky-100">
+                  <span className="font-extrabold">Tindak lanjut:</span> {note.followUp}
+                </div>
+              ) : null}
+            </article>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function RoadmapClient() {
   const { showSuccess, showError, showProcessing, dismissAlert } = useAppAlert();
   const [roadmap, setRoadmap] = useState<CareerRoadmap | null>(null);
@@ -211,6 +257,11 @@ export default function RoadmapClient() {
   const inProgress = details.filter((detail) => detail.status === "proses").length;
   const progress = details.length ? Math.round((completed / details.length) * 100) : roadmap?.progress ?? 0;
   const activeDetail = details.find((detail) => detail.id === activeDetailId) ?? getNextDetail(details);
+  const activeStep = roadmap?.steps.find((step) => step.details.some((detail) => detail.id === activeDetail?.id)) ?? null;
+  const activeGuidanceNotes = [
+    ...(activeStep?.notes ?? []),
+    ...(activeDetail?.notes ?? []),
+  ].filter((note) => note.note?.trim());
   const nextDetail = getNextDetail(details);
 
   async function handleUpdateStatus(detail: RoadmapDetail, status: RoadmapStatus) {
@@ -354,14 +405,11 @@ export default function RoadmapClient() {
                         </a>
                       )}
 
-                      {!!activeDetail.notes?.length && (
-                        <div className="mt-5 rounded-2xl bg-sky-50 p-4 ring-1 ring-sky-100">
-                          <p className="text-sm font-bold text-sky-900">Catatan guru</p>
-                          <div className="mt-3 space-y-2">
-                            {activeDetail.notes.map((note) => (
-                              <p key={note.id} className="text-sm leading-6 text-sky-800">• {note.note}</p>
-                            ))}
-                          </div>
+                      {activeGuidanceNotes.length ? (
+                        <GuidanceNotesCard notes={activeGuidanceNotes} />
+                      ) : (
+                        <div className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-500 ring-1 ring-slate-100">
+                          Belum ada catatan dari Guru BK untuk tahap ini.
                         </div>
                       )}
 
@@ -413,6 +461,13 @@ export default function RoadmapClient() {
                             </div>
 
                             <div className="mt-4"><ProgressBar value={stepProgress} compact /></div>
+
+                            {!!step.notes?.length && (
+                              <div className="mt-4 rounded-2xl bg-cyan-50/70 p-3 text-xs font-semibold leading-5 text-sky-800 ring-1 ring-cyan-100">
+                                <span className="font-extrabold">Catatan Guru BK:</span> {step.notes[0]?.note}
+                                {step.notes.length > 1 ? ` +${step.notes.length - 1} catatan lain` : ""}
+                              </div>
+                            )}
 
                             <div className="mt-4 grid gap-3">
                               {step.details.map((detail) => {

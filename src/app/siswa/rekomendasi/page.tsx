@@ -285,7 +285,7 @@ export default function SiswaRekomendasiPage() {
       }
 
       if (options?.autoGenerateRoadmap) {
-        const topRecommendation = rows.find((item) => getRecommendationRoadmapId(item)) ?? rows[0];
+        const topRecommendation = rows.find((item: any) => getRecommendationRoadmapId(item)) ?? rows[0];
         setSelectedRecommendation(topRecommendation);
         setProcessing(false);
         await generateRoadmapFromRecommendation(topRecommendation, { auto: true });

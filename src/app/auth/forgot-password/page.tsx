@@ -2,35 +2,28 @@
 
 import { useState } from "react";
 import type React from "react";
+import { notifyAppAlert } from "../../../lib/app-alert-events";
 import { apiFetch } from "../../../lib/axios";
 
 export default function ForgotPasswordPage() {
   const [identifier, setIdentifier] = useState("");
   const [otp, setOtp] = useState("");
-  const [devOtp, setDevOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const [requestingOtp, setRequestingOtp] = useState(false);
   const [resetting, setResetting] = useState(false);
 
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-
   async function requestOtp() {
-    setMessage("");
-    setError("");
-    setDevOtp("");
-
     if (!identifier.trim()) {
-      setError("Username atau email wajib diisi.");
+      notifyAppAlert({ type: "error", title: "Username atau email wajib diisi", autoCloseMs: 2400 });
       return;
     }
 
     setRequestingOtp(true);
 
     try {
-      const result = await apiFetch<{
+      await apiFetch<{
         message?: string;
         dev_otp?: string;
       }>("/auth/forgot-password/request-otp", {
@@ -43,14 +36,9 @@ export default function ForgotPasswordPage() {
         skipAuth: true,
       });
 
-      if (result.dev_otp) {
-        setDevOtp(result.dev_otp);
-        setOtp(result.dev_otp);
-      }
-
-      setMessage(result.message || "OTP berhasil dikirim.");
+      notifyAppAlert({ type: "success", title: "Kode OTP telah dikirim", description: "Silakan cek email Anda.", autoCloseMs: 2600 });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Gagal meminta OTP.");
+      notifyAppAlert({ type: "error", title: "Gagal meminta OTP", description: err instanceof Error ? err.message : "Gagal meminta OTP.", autoCloseMs: false });
     } finally {
       setRequestingOtp(false);
     }
@@ -59,26 +47,23 @@ export default function ForgotPasswordPage() {
   async function resetPassword(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    setMessage("");
-    setError("");
-
     if (!identifier.trim()) {
-      setError("Username atau email wajib diisi.");
+      notifyAppAlert({ type: "error", title: "Username atau email wajib diisi", autoCloseMs: 2400 });
       return;
     }
 
     if (!otp || otp.length !== 6) {
-      setError("OTP wajib diisi 6 digit.");
+      notifyAppAlert({ type: "error", title: "OTP wajib diisi 6 digit", autoCloseMs: 2400 });
       return;
     }
 
     if (newPassword.length < 8) {
-      setError("Password baru minimal 8 karakter.");
+      notifyAppAlert({ type: "error", title: "Password baru minimal 8 karakter", autoCloseMs: 2400 });
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError("Konfirmasi password baru tidak sesuai.");
+      notifyAppAlert({ type: "error", title: "Konfirmasi password baru tidak sesuai", autoCloseMs: 2400 });
       return;
     }
 
@@ -101,15 +86,13 @@ export default function ForgotPasswordPage() {
         },
       );
 
-      setMessage(
-        result.message || "Password berhasil direset. Silakan login kembali.",
-      );
+      notifyAppAlert({ type: "success", title: "Password berhasil direset", description: result.message || "Silakan login kembali.", autoCloseMs: 2200 });
 
       setTimeout(() => {
         window.location.href = "/auth/login";
       }, 1200);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Gagal reset password.");
+      notifyAppAlert({ type: "error", title: "Gagal reset password", description: err instanceof Error ? err.message : "Gagal reset password.", autoCloseMs: false });
     } finally {
       setResetting(false);
     }
@@ -128,25 +111,6 @@ export default function ForgotPasswordPage() {
           <p className="mt-2 text-sm leading-6 text-slate-500">
             Masukkan username/email, minta OTP, lalu buat password baru.
           </p>
-
-          {(message || error) && (
-            <div
-              className={`mt-5 rounded-2xl px-4 py-3 text-sm font-semibold ${
-                error
-                  ? "border border-red-100 bg-red-50 text-red-700"
-                  : "border border-emerald-100 bg-emerald-50 text-emerald-700"
-              }`}
-            >
-              {error || message}
-            </div>
-          )}
-
-          {devOtp && (
-            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
-              Mode development: OTP kamu adalah{" "}
-              <span className="font-extrabold tracking-[0.2em]">{devOtp}</span>
-            </div>
-          )}
 
           <form onSubmit={resetPassword} className="mt-6 space-y-4">
             <label className="block">

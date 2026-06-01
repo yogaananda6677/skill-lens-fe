@@ -57,6 +57,15 @@ export type Recommendation = {
   dominantFactors: string[];
 };
 
+export type RoadmapNote = {
+  id: number;
+  title?: string | null;
+  note: string;
+  followUp?: string | null;
+  createdAt?: string | null;
+  guruName?: string | null;
+};
+
 export type RoadmapDetail = {
   id: number;
   progressId?: number;
@@ -65,7 +74,7 @@ export type RoadmapDetail = {
   referenceLink?: string | null;
   status: "belum" | "proses" | "selesai" | string;
   completedAt?: string | null;
-  notes?: Array<{ id: number; note: string; createdAt?: string | null; guruName?: string | null }>;
+  notes?: RoadmapNote[];
 };
 
 export type RoadmapStep = {
@@ -73,6 +82,7 @@ export type RoadmapStep = {
   title: string;
   description?: string | null;
   order: number;
+  notes?: RoadmapNote[];
   details: RoadmapDetail[];
 };
 

@@ -46,17 +46,35 @@ export type GuruWorkspace = {
   jurusan: Array<{ id: number; nama: string }>;
 };
 
+export type GuidanceRecommendation = {
+  id: number | string;
+  rank: number;
+  title: string;
+  category?: string | null;
+  score?: number;
+  roadmapId?: number | null;
+  summary?: string | null;
+};
+
 export type GuidanceCase = {
   id: string;
   studentId: string;
   studentName: string;
+  nisn?: string | null;
   className: string;
+  jurusan?: string | null;
+  phone?: string | null;
   topic: string;
   priority: string;
   status: string;
   requestedAt: string;
   schedule: string;
   recommendation: string;
+  recommendations?: GuidanceRecommendation[];
+  selectedRecommendation?: GuidanceRecommendation | null;
+  selectedRoadmapId?: number | null;
+  selectedRoadmapTitle?: string | null;
+  hasActiveRoadmap?: boolean;
   lastNote: string;
   progress: number;
 };
@@ -122,6 +140,10 @@ export async function requestNewSchool(payload: {
 
 export async function getGuidanceCases() {
   return apiFetch<GuidanceCase[]>("/guru/guidance-cases");
+}
+
+export async function getGuruStudentNilai(idSiswa: string | number) {
+  return apiFetch<{ data?: Array<any> }>(`/guru/siswa/${idSiswa}/nilai`);
 }
 
 export async function importExcelGrades(payload: {

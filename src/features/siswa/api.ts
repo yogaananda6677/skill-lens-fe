@@ -275,6 +275,17 @@ export function toStudentProfile(data: any): StudentProfileForm {
     constraints: "",
   };
 }
+function normalizeRoadmapNote(note: any) {
+  return {
+    id: Number(firstDefined(note?.id, note?.id_roadmap_step_note, note?.id_note, 0)),
+    title: firstDefined(note?.title, note?.judul, null) as string | null,
+    note: String(firstDefined(note?.note, note?.catatan, note?.text, "")),
+    followUp: firstDefined(note?.follow_up, note?.followUp, note?.tindak_lanjut, null) as string | null,
+    createdAt: firstDefined(note?.created_at, note?.createdAt, null) as string | null,
+    guruName: firstDefined(note?.guru_name, note?.guruName, note?.guru?.nama, note?.guru?.user?.nama, null) as string | null,
+  };
+}
+
 function normalizeRoadmapDetail(raw: any): RoadmapDetail {
   const progress = raw?.progress ?? {};
 
@@ -292,12 +303,7 @@ function normalizeRoadmapDetail(raw: any): RoadmapDetail {
     referenceLink: firstDefined(raw?.reference_link, raw?.referenceLink, raw?.link, raw?.url, null) as string | null,
     status: String(firstDefined(progress?.status, raw?.status, raw?.progress_status, "belum")),
     completedAt: firstDefined(progress?.completed_at, raw?.completed_at, raw?.completedAt, null) as string | null,
-    notes: (raw?.notes ?? raw?.catatan ?? []).map?.((note: any) => ({
-      id: Number(firstDefined(note?.id, note?.id_roadmap_step_note, note?.id_note, 0)),
-      note: String(firstDefined(note?.note, note?.catatan, note?.text, "")),
-      createdAt: firstDefined(note?.created_at, note?.createdAt, null) as string | null,
-      guruName: firstDefined(note?.guru_name, note?.guruName, note?.guru?.nama, null) as string | null,
-    })) ?? [],
+    notes: (raw?.notes ?? raw?.catatan ?? []).map?.(normalizeRoadmapNote) ?? [],
   };
 }
 
@@ -308,6 +314,7 @@ function normalizeRoadmapStep(raw: any, index: number): RoadmapStep {
     title: String(firstDefined(raw?.title, raw?.judul, raw?.name, `Tahap ${index + 1}`)),
     description: firstDefined(raw?.description, raw?.deskripsi, null) as string | null,
     order: Number(firstDefined(raw?.step_order, raw?.order, index + 1)),
+    notes: (raw?.notes ?? raw?.catatan ?? raw?.step_notes ?? []).map?.(normalizeRoadmapNote) ?? [],
     details: Array.isArray(details) ? details.map(normalizeRoadmapDetail) : [],
   };
 }

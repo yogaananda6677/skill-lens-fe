@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type React from "react";
 
+import { notifyAppAlert } from "../../lib/app-alert-events";
 import { apiFetch } from "../../lib/axios";
 import { persistAuth, type AuthRole } from "../../lib/auth";
 import { Icon } from "../ui/icons";
@@ -88,17 +89,12 @@ export function UserProfilePanel({
   const [sendingOtp, setSendingOtp] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
 
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-  const [devOtp, setDevOtp] = useState("");
-
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   async function loadProfile() {
     setLoading(true);
-    setError("");
 
     try {
       const result = await apiFetch<{ data: ProfileUser }>("/auth/me", {
@@ -115,7 +111,7 @@ export function UserProfilePanel({
         no_hp: nextUser.no_hp || "",
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Profil gagal dimuat.");
+      notifyAppAlert({ type: "error", title: "Profil gagal dimuat", description: err instanceof Error ? err.message : "Profil gagal dimuat.", autoCloseMs: false });
     } finally {
       setLoading(false);
     }
@@ -143,21 +139,18 @@ export function UserProfilePanel({
   async function submitProfile(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    setMessage("");
-    setError("");
-
     if (!profileForm.nama.trim()) {
-      setError("Nama wajib diisi.");
+      notifyAppAlert({ type: "error", title: "Nama wajib diisi", autoCloseMs: 2400 });
       return;
     }
 
     if (!profileForm.email.trim()) {
-      setError("Email wajib diisi.");
+      notifyAppAlert({ type: "error", title: "Email wajib diisi", autoCloseMs: 2400 });
       return;
     }
 
     if (!profileForm.username.trim()) {
-      setError("Username wajib diisi.");
+      notifyAppAlert({ type: "error", title: "Username wajib diisi", autoCloseMs: 2400 });
       return;
     }
 
@@ -203,21 +196,17 @@ export function UserProfilePanel({
         }
       }
 
-      setMessage(result.message || "Profil berhasil diperbarui.");
+      notifyAppAlert({ type: "success", title: "Profil berhasil diperbarui", description: result.message || "Data profil berhasil disimpan.", autoCloseMs: 2200 });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Profil gagal diperbarui.");
+      notifyAppAlert({ type: "error", title: "Profil gagal diperbarui", description: err instanceof Error ? err.message : "Profil gagal diperbarui.", autoCloseMs: false });
     } finally {
       setSavingProfile(false);
     }
   }
 
   async function requestOtp() {
-    setMessage("");
-    setError("");
-    setDevOtp("");
-
     if (!passwordForm.current_password) {
-      setError("Isi password lama terlebih dahulu untuk meminta OTP.");
+      notifyAppAlert({ type: "error", title: "Password lama wajib diisi", description: "Isi password lama terlebih dahulu untuk meminta OTP.", autoCloseMs: 2400 });
       return;
     }
 
@@ -237,20 +226,9 @@ export function UserProfilePanel({
         errorMessage: false,
       });
 
-      if (result.dev_otp) {
-        setDevOtp(result.dev_otp);
-        setPasswordForm((current) => ({
-          ...current,
-          otp: result.dev_otp || current.otp,
-        }));
-      }
-
-      setMessage(
-        result.message ||
-          "OTP berhasil dikirim ke email. Kode berlaku selama 10 menit.",
-      );
+      notifyAppAlert({ type: "success", title: "Kode OTP telah dikirim", description: "Silakan cek email Anda.", autoCloseMs: 2600 });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Gagal meminta OTP.");
+      notifyAppAlert({ type: "error", title: "Gagal meminta OTP", description: err instanceof Error ? err.message : "Gagal meminta OTP.", autoCloseMs: false });
     } finally {
       setSendingOtp(false);
     }
@@ -259,26 +237,23 @@ export function UserProfilePanel({
   async function submitPassword(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    setMessage("");
-    setError("");
-
     if (!passwordForm.current_password) {
-      setError("Password lama wajib diisi.");
+      notifyAppAlert({ type: "error", title: "Password lama wajib diisi", autoCloseMs: 2400 });
       return;
     }
 
     if (!passwordForm.otp || passwordForm.otp.length !== 6) {
-      setError("Kode OTP wajib diisi 6 digit.");
+      notifyAppAlert({ type: "error", title: "Kode OTP wajib diisi 6 digit", autoCloseMs: 2400 });
       return;
     }
 
     if (passwordForm.new_password.length < 8) {
-      setError("Password baru minimal 8 karakter.");
+      notifyAppAlert({ type: "error", title: "Password baru minimal 8 karakter", autoCloseMs: 2400 });
       return;
     }
 
     if (passwordForm.new_password !== passwordForm.confirm_password) {
-      setError("Konfirmasi password baru tidak sesuai.");
+      notifyAppAlert({ type: "error", title: "Konfirmasi password tidak sesuai", autoCloseMs: 2400 });
       return;
     }
 
@@ -296,12 +271,9 @@ export function UserProfilePanel({
       );
 
       setPasswordForm(emptyPassword);
-      setDevOtp("");
-      setMessage(result.message || "Password berhasil diperbarui dengan OTP.");
+      notifyAppAlert({ type: "success", title: "Password berhasil diperbarui", description: result.message || "Password berhasil diperbarui dengan OTP.", autoCloseMs: 2600 });
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Password gagal diperbarui.",
-      );
+      notifyAppAlert({ type: "error", title: "Password gagal diperbarui", description: err instanceof Error ? err.message : "Password gagal diperbarui.", autoCloseMs: false });
     } finally {
       setSavingPassword(false);
     }
@@ -329,18 +301,6 @@ export function UserProfilePanel({
         <h1 className="mt-2 text-3xl font-extrabold">{title}</h1>
         <p className="mt-2 max-w-2xl text-sm text-blue-100">{subtitle}</p>
       </div>
-
-      {(message || error) && (
-        <div
-          className={`rounded-2xl px-5 py-4 text-sm font-semibold ${
-            error
-              ? "border border-red-100 bg-red-50 text-red-700"
-              : "border border-emerald-100 bg-emerald-50 text-emerald-700"
-          }`}
-        >
-          {error || message}
-        </div>
-      )}
 
       <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <aside className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
@@ -534,15 +494,6 @@ export function UserProfilePanel({
                   {sendingOtp ? "Mengirim OTP..." : "Kirim OTP"}
                 </button>
               </div>
-
-              {devOtp && (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
-                  Mode development: kode OTP kamu adalah{" "}
-                  <span className="font-extrabold tracking-[0.2em]">
-                    {devOtp}
-                  </span>
-                </div>
-              )}
 
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="block">

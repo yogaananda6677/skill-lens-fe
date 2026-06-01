@@ -438,3 +438,21 @@ body {
   from { transform: scaleX(1); }
   to { transform: scaleX(0); }
 }
+
+
+@keyframes skilllensWhiteSheen {
+  0% { transform: translateX(-120%) skewX(-18deg); opacity: 0; }
+  18% { opacity: 0.78; }
+  55% { opacity: 0.28; }
+  100% { transform: translateX(140%) skewX(-18deg); opacity: 0; }
+}
+
+.skilllens-white-sheen::before {
+  content: "";
+  position: absolute;
+  inset: -20% auto -20% -35%;
+  width: 34%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.76), transparent);
+  filter: blur(0.5px);
+  animation: skilllensWhiteSheen 2.35s ease-in-out infinite;
+}

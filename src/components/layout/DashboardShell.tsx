@@ -205,14 +205,24 @@ function NavItem({
 
   if (item.href && !item.href.startsWith("#")) {
     return (
-      <Link href={item.href} onClick={onClick} className={className}>
+      <Link
+        href={item.href}
+        onClick={onClick}
+        id={`dashboard-nav-${item.key}`}
+        className={className}
+      >
         {content}
       </Link>
     );
   }
 
   return (
-    <button type="button" onClick={onClick} className={className}>
+    <button
+      type="button"
+      onClick={onClick}
+      id={`dashboard-nav-${item.key}`}
+      className={className}
+    >
       {content}
     </button>
   );

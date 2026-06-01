@@ -17,6 +17,8 @@ import { AdminSchoolDataSiswa } from "./components/AdminSchoolDataSiswa";
 import { AdminSchoolImportSiswa } from "./components/AdminSchoolImportSiswa";
 import { AdminSchoolJurusan } from "./components/AdminSchoolJurusan";
 import { AdminSchoolMataPelajaran } from "./components/AdminSchoolMataPelajaran";
+import { AdminSchoolOnbordaProvider } from "./components/AdminSchoolOnbordaProvider";
+import { StartAdminSchoolOnbordaButton } from "./components/StartAdminSchoolOnbordaButton";
 import { LockedFeatureCard } from "./components/AdminSchoolShared";
 
 import { initialSchoolForm, initialTeacherForm } from "./constants";
@@ -736,6 +738,7 @@ export default function AdminSekolahPage() {
   }
 
   return (
+    <AdminSchoolOnbordaProvider>
     <DashboardShell
       requiredRole="admin_sekolah"
       activeKey={active}
@@ -743,7 +746,7 @@ export default function AdminSekolahPage() {
       title="Dashboard Admin Sekolah"
       subtitle="Kelola data sekolah, guru, jurusan, import siswa, dan data siswa dalam satu panel."
       onNavigate={(key) => setActive(key as AdminSchoolPageKey)}
-      rightSlot={null}
+      rightSlot={<StartAdminSchoolOnbordaButton />}
     >
       {renderContent()}
 
@@ -755,5 +758,6 @@ export default function AdminSekolahPage() {
         onClose={() => setModal(null)}
       />
     </DashboardShell>
+    </AdminSchoolOnbordaProvider>
   );
 }

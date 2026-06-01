@@ -5,6 +5,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import { PublicNavbar } from "../../../components/layout/PublicNavbar";
+import { PreparingOverlay } from "../../../components/ui/PreparingOverlay";
 import { Icon } from "../../../components/ui/icons";
 import { apiFetch } from "../../../lib/axios";
 import {
@@ -86,6 +87,8 @@ export default function LoginPage() {
   const [touchedPassword, setTouchedPassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
+  const [preparing, setPreparing] = useState(false);
+  const [preparingText, setPreparingText] = useState("Menyiapkan dashboard...");
   const [error, setError] = useState("");
 
   const usernameError = touchedUsername ? validateIdentifier(username) : "";
@@ -125,16 +128,18 @@ export default function LoginPage() {
       });
 
       persistAuth(result.token, result.user, remember);
+      setPreparing(true);
 
-      // Untuk siswa, password default tidak lagi memblokir masuk dashboard.
-      // Siswa akan mendapat dialog pengingat yang bisa ditutup di halaman siswa.
-      if (result.user?.must_change_password && result.user.role !== "siswa") {
+      if (result.user?.must_change_password) {
+        setPreparingText("Menyiapkan halaman ganti password...");
         router.replace("/auth/force-change-password");
         return;
       }
 
+      setPreparingText(`Menyiapkan dashboard ${result.user.role}...`);
       router.replace(redirectPathByRole(result.user.role));
     } catch (err) {
+      setPreparing(false);
       setError(getLoginErrorMessage(err));
     } finally {
       setLoading(false);
@@ -142,7 +147,13 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#07111f] text-white">
+    <>
+      <PreparingOverlay
+        show={preparing}
+        title={preparingText}
+        description="Login berhasil. SkillLens sedang mengarahkan kamu ke halaman yang sesuai."
+      />
+      <main className="relative min-h-screen overflow-hidden bg-[#07111f] text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(34,211,238,0.22),transparent_28%),radial-gradient(circle_at_85%_20%,rgba(59,130,246,0.18),transparent_30%),linear-gradient(135deg,#07111f_0%,#0b1730_48%,#050b16_100%)]" />
       <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.045)_1px,transparent_1px)] bg-[size:72px_72px]" />
       <div className="absolute -left-32 top-28 h-80 w-80 rounded-full bg-cyan-400/20 blur-[110px]" />
@@ -196,8 +207,8 @@ export default function LoginPage() {
               <div className="mt-8 rounded-2xl border border-cyan-200/15 bg-cyan-300/10 p-4">
                 <p className="text-sm font-medium leading-6 text-cyan-50">
                   Setelah login, sistem akan membuka dashboard sesuai akun yang
-                  digunakan. Untuk siswa, jika password masih default, pengingat
-                  ganti password akan tampil sebagai dialog yang bisa ditutup.
+                  digunakan. Jika password masih default, sistem akan mengarahkan pengguna untuk
+                  mengganti password terlebih dahulu.
                 </p>
               </div>
             </div>
@@ -343,5 +354,7 @@ export default function LoginPage() {
         </div>
       </section>
     </main>
+  );
+    </>
   );
 }

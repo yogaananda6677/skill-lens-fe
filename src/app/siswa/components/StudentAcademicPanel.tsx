@@ -41,6 +41,8 @@ export function StudentAcademicPanel({
   const [selectedSemester, setSelectedSemester] = useState<number | "all">("all");
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [detailError, setDetailError] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   useEffect(() => {
     let active = true;
@@ -86,6 +88,22 @@ export function StudentAcademicPanel({
     if (selectedSemester === "all") return subjects;
     return subjects.filter((item) => item.semester === selectedSemester);
   }, [selectedSemester, subjects]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredSubjects.length / itemsPerPage));
+  const paginatedSubjects = filteredSubjects.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedSemester]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const activeSemesterSummary =
     selectedSemester === "all"
@@ -252,7 +270,7 @@ export function StudentAcademicPanel({
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredSubjects.map((item) => (
+                    {paginatedSubjects.map((item) => (
                       <tr key={`${item.id_nilai}-${item.nama_mapel}`} className="border-b border-slate-50 last:border-0">
                         <td className="px-3 py-3 font-bold text-slate-800">{item.nama_mapel}</td>
                         <td className="px-3 py-3 font-semibold text-slate-500">Semester {item.semester || "-"}</td>
@@ -268,6 +286,36 @@ export function StudentAcademicPanel({
                     ))}
                   </tbody>
                 </table>
+
+                {filteredSubjects.length > itemsPerPage && (
+                  <div className="mt-4 flex flex-col gap-3 rounded-2xl bg-slate-50 p-3 text-sm font-bold text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+                    <span>
+                      Menampilkan {(currentPage - 1) * itemsPerPage + 1}-
+                      {Math.min(currentPage * itemsPerPage, filteredSubjects.length)} dari {filteredSubjects.length} nilai
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={currentPage <= 1}
+                        onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Sebelumnya
+                      </button>
+                      <span className="rounded-xl bg-white px-3 py-2 ring-1 ring-slate-200">
+                        {currentPage} / {totalPages}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={currentPage >= totalPages}
+                        onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Berikutnya
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm font-semibold text-slate-500">
