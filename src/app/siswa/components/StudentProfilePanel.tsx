@@ -197,7 +197,10 @@ function ChoiceWizardStep({
 
   return (
     <div key={config.id} className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_270px] skilllens-page-enter">
-      <div className="rounded-[1.8rem] border border-sky-100/80 bg-white/75 p-4 shadow-lg shadow-sky-950/5 backdrop-blur-md md:p-5 skilllens-smooth-card">
+      <div className="relative overflow-hidden rounded-[1.8rem] p-4 shadow-xl shadow-sky-950/7 skilllens-smooth-card">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#08224f_0%,#0a54c7_58%,#39d9ff_100%)]" />
+        <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-cyan-200/35 blur-3xl" />
+        <div className="relative">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
             <p className={`text-xs font-bold uppercase tracking-[0.2em] ${accent.text}`}>
@@ -216,14 +219,14 @@ function ChoiceWizardStep({
           </span>
         </div>
 
-        <div className="mt-5 rounded-3xl bg-white/80 p-3 ring-1 ring-sky-100 backdrop-blur">
+        <div className="mt-5 rounded-3xl border border-sky-100 bg-[linear-gradient(180deg,#ffffff_0%,#edf8ff_100%)] p-3 shadow-sm shadow-sky-950/5 ring-1 ring-sky-50 backdrop-blur">
           <label className="relative block">
             <Icon name="search" className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               value={query}
               onChange={(event) => handleSearch(event.target.value)}
               placeholder={`Cari ${config.title.toLowerCase()}...`}
-              className={`w-full rounded-2xl border border-sky-100 bg-white/90 py-3 pl-11 pr-4 text-sm font-semibold text-slate-800 outline-none placeholder:text-slate-400 focus:bg-white focus:ring-4 skilllens-smooth ${accent.ring}`}
+              className={`w-full rounded-2xl border border-sky-200 bg-white/95 py-3 pl-11 pr-4 text-sm font-semibold text-slate-800 outline-none placeholder:text-slate-400 focus:bg-white focus:ring-4 skilllens-smooth ${accent.ring}`}
             />
           </label>
 
@@ -297,7 +300,7 @@ function ChoiceWizardStep({
                     ? accent.selected
                     : disabled
                       ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300 opacity-70"
-                      : "border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-sky-200 hover:text-sky-700 hover:shadow-md"
+                      : "border-sky-200 bg-[linear-gradient(180deg,#ffffff_0%,#f2f9ff_100%)] text-slate-700 hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-[linear-gradient(180deg,#f9fdff_0%,#eaf7ff_100%)] hover:text-sky-700 hover:shadow-md hover:shadow-sky-950/7"
                 }`}
               >
                 <span className="flex items-start justify-between gap-2">
@@ -336,14 +339,17 @@ function ChoiceWizardStep({
         ) : null}
 
         {!visibleOptions.length ? (
-          <div className="mt-4 rounded-2xl bg-white p-4 text-sm font-semibold text-slate-500 ring-1 ring-slate-100">
+          <div className="mt-4 rounded-2xl border border-sky-100 bg-[linear-gradient(180deg,#ffffff_0%,#eef8ff_100%)] p-4 text-sm font-semibold text-slate-500 ring-1 ring-sky-50">
             Belum ada hasil yang cocok. Coba kata kunci lain, misalnya desain,
             kesehatan, hukum, bisnis, kuliner, atau pendidikan.
           </div>
         ) : null}
+        </div>
       </div>
 
-      <aside className="rounded-[1.8rem] border border-sky-100/80 bg-white/[0.78] p-5 shadow-lg shadow-sky-950/5 backdrop-blur-md skilllens-smooth-card">
+      <aside className="relative overflow-hidden rounded-[1.8rem] border border-sky-200/80 bg-[linear-gradient(180deg,#f0faff_0%,#ffffff_58%,#eef8ff_100%)] p-5 shadow-xl shadow-sky-950/7 ring-1 ring-sky-50 backdrop-blur-md skilllens-smooth-card">
+        <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-cyan-200/35 blur-3xl" />
+        <div className="relative">
         <div className={`grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br ${accent.gradient} text-white shadow-lg shadow-slate-950/20`}>
           <Icon name="sparkles" className="h-5 w-5 skilllens-float" />
         </div>
@@ -354,7 +360,7 @@ function ChoiceWizardStep({
           {config.tip}
         </p>
 
-        <div className="mt-5 rounded-3xl bg-slate-50 p-4">
+        <div className="mt-5 rounded-3xl border border-sky-100 bg-[linear-gradient(180deg,#ffffff_0%,#edf8ff_100%)] p-4 shadow-sm shadow-sky-950/5">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
             Saran
           </p>
@@ -378,6 +384,7 @@ function ChoiceWizardStep({
             Langkah ini sudah cukup. Kamu bisa lanjut ke tahap berikutnya.
           </div>
         )}
+        </div>
       </aside>
     </div>
   );
@@ -413,7 +420,7 @@ function GoalStep({
   ];
 
   return (
-    <div className="mt-6 rounded-[1.8rem] border border-sky-100/80 bg-white/[0.78] p-5 shadow-lg shadow-sky-950/5 backdrop-blur-md skilllens-page-enter">
+    <div className="relative mt-6 overflow-hidden rounded-[1.8rem] border border-sky-200/80 bg-[linear-gradient(180deg,#f2fbff_0%,#ffffff_52%,#eaf7ff_100%)] p-5 shadow-xl shadow-sky-950/7 ring-1 ring-sky-50 backdrop-blur-md skilllens-page-enter">
       <p className={`text-xs font-bold uppercase tracking-[0.2em] ${accent.text}`}>
         Tahap Terakhir
       </p>
@@ -436,7 +443,7 @@ function GoalStep({
               className={`rounded-[1.5rem] border p-5 text-left skilllens-smooth hover:-translate-y-1 ${
                 active
                   ? `border-cyan-300 bg-gradient-to-br ${accent.gradient} text-white shadow-xl shadow-sky-700/25`
-                  : "border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-md"
+                  : "border-sky-200 bg-[linear-gradient(180deg,#ffffff_0%,#f2f9ff_100%)] text-slate-700 hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-[linear-gradient(180deg,#f9fdff_0%,#eaf7ff_100%)] hover:shadow-md hover:shadow-sky-950/7"
               }`}
             >
               <div className={`grid h-11 w-11 place-items-center rounded-2xl ${active ? "bg-white/20" : "bg-sky-50 text-sky-700"}`}>
@@ -451,7 +458,7 @@ function GoalStep({
         })}
       </div>
 
-      <div className="mt-5 rounded-3xl bg-white p-4 text-sm font-semibold leading-6 text-slate-500 ring-1 ring-slate-100">
+      <div className="mt-5 rounded-3xl border border-sky-100 bg-[linear-gradient(180deg,#ffffff_0%,#eef8ff_100%)] p-4 text-sm font-semibold leading-6 text-slate-500 shadow-sm shadow-sky-950/5 ring-1 ring-sky-50">
         Setelah kamu klik <span className="font-bold text-slate-800">Simpan Profil</span>, data akan tersimpan dulu. Setelah itu lanjut ke halaman rekomendasi untuk memproses SPK dengan animasi tunggu.
       </div>
     </div>
@@ -474,7 +481,7 @@ function AchievementStep({
   const maxReached = prestasiRows.length >= ACHIEVEMENT_MAX;
 
   return (
-    <div className="mt-6 rounded-[1.8rem] border border-sky-100/80 bg-white/[0.78] p-5 shadow-lg shadow-sky-950/5 backdrop-blur-md skilllens-page-enter">
+    <div className="relative mt-6 overflow-hidden rounded-[1.8rem] border border-sky-200/80 bg-[linear-gradient(180deg,#f2fbff_0%,#ffffff_52%,#eaf7ff_100%)] p-5 shadow-xl shadow-sky-950/7 ring-1 ring-sky-50 backdrop-blur-md skilllens-page-enter">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-600">
@@ -499,13 +506,13 @@ function AchievementStep({
         </button>
       </div>
 
-      <div className="mt-5 min-h-40 rounded-3xl bg-white p-4 ring-1 ring-slate-100">
+      <div className="mt-5 min-h-40 rounded-3xl border border-sky-100 bg-[linear-gradient(180deg,#ffffff_0%,#edf8ff_100%)] p-4 shadow-sm shadow-sky-950/5 ring-1 ring-sky-50">
         {prestasiRows.length ? (
           <div className="grid gap-3">
             {prestasiRows.map((item) => (
               <div
                 key={item.id ?? item.id_prestasi ?? item.nama_prestasi}
-                className="rounded-2xl border border-sky-100 bg-sky-50/40 p-4"
+                className="rounded-2xl border border-sky-200 bg-[linear-gradient(180deg,#ffffff_0%,#f1f9ff_100%)] p-4 shadow-sm shadow-sky-950/5"
               >
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div>
@@ -901,7 +908,7 @@ export function StudentProfilePanel({
   }
 
   return (
-    <Panel id="profil" className="relative overflow-hidden">
+    <Panel id="profil" className="relative overflow-hidden border-sky-200 bg-[linear-gradient(180deg,#f2fbff_0%,#ffffff_50%,#eaf7ff_100%)] shadow-xl shadow-sky-950/7">
       <div className="pointer-events-none absolute -left-24 top-16 h-64 w-64 rounded-full bg-blue-300/25 blur-3xl" />
       <div className="pointer-events-none absolute -right-24 top-1/2 h-72 w-72 rounded-full bg-cyan-200/[0.35] blur-3xl" />
       <div className="relative">
@@ -921,7 +928,8 @@ export function StudentProfilePanel({
         </span>
       </div>
 
-      <div className="mt-6 rounded-[1.5rem] border border-white/80 bg-white/70 p-4 shadow-inner shadow-sky-100/50 backdrop-blur skilllens-fade-slide">
+      <div className="mt-6 overflow-hidden rounded-[1.7rem] border border-sky-200 bg-white p-4 shadow-xl shadow-sky-950/5 ring-1 ring-sky-50 backdrop-blur skilllens-fade-slide">
+        <div className="-mx-4 -mt-4 mb-4 h-1 bg-[linear-gradient(90deg,#08224f_0%,#0a54c7_58%,#39d9ff_100%)]" />        
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-sm font-bold text-slate-900">
@@ -936,7 +944,7 @@ export function StudentProfilePanel({
             {selectedSummary(profile, prestasiRows).map((item) => (
               <span
                 key={item.label}
-                className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-600 ring-1 ring-slate-100"
+                className="rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700 ring-1 ring-sky-100"
               >
                 {item.label}: {item.value}
               </span>
@@ -964,12 +972,12 @@ export function StudentProfilePanel({
                 onClick={() => setActiveStep(step.id)}
                 className={`rounded-2xl border p-3 text-left skilllens-smooth hover:-translate-y-1 ${
                   active
-                    ? "border-sky-300 bg-white text-sky-700 shadow-md"
+                    ? "border-sky-300 bg-[linear-gradient(180deg,#ffffff_0%,#e8f6ff_100%)] text-sky-800 shadow-md shadow-sky-950/7"
                     : done
                       ? "border-emerald-100 bg-emerald-50 text-emerald-700"
                       : optionalEmpty
                         ? "border-amber-100 bg-amber-50/70 text-amber-700 hover:bg-white"
-                        : "border-white bg-white/70 text-slate-500 hover:bg-white"
+                        : "border-sky-200 bg-[linear-gradient(180deg,#ffffff_0%,#f1f9ff_100%)] text-slate-600 hover:border-cyan-300 hover:bg-[linear-gradient(180deg,#f9fdff_0%,#e8f6ff_100%)]"
                 }`}
               >
                 <span className="flex items-center gap-2 text-xs font-bold">
@@ -1005,12 +1013,12 @@ export function StudentProfilePanel({
         <GoalStep profile={profile} onChangeProfile={onChangeProfile} />
       )}
 
-      <div className="mt-6 flex flex-col gap-3 rounded-[1.5rem] border border-sky-100 bg-white/80 p-4 shadow-sm shadow-sky-950/5 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-6 flex flex-col gap-3 rounded-[1.6rem] border border-sky-200 bg-white p-4 shadow-lg shadow-sky-950/5 ring-1 ring-sky-50 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
         <button
           type="button"
           onClick={goBack}
           disabled={currentStepIndex === 0 || processing}
-          className="inline-flex items-center justify-center gap-2 rounded-full border border-sky-100 bg-white px-5 py-3 text-sm font-bold text-slate-700 skilllens-smooth hover:-translate-y-0.5 hover:border-cyan-300 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex items-center justify-center gap-2 rounded-full border border-sky-200 bg-[linear-gradient(180deg,#ffffff_0%,#eef8ff_100%)] px-5 py-3 text-sm font-extrabold text-sky-800 shadow-sm shadow-sky-950/5 transition hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-[linear-gradient(180deg,#f8fcff_0%,#dff3ff_100%)] disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Icon name="arrowLeft" className="h-4 w-4" />
           Kembali
@@ -1018,8 +1026,9 @@ export function StudentProfilePanel({
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           {!canGoNext ? (
-            <span className="rounded-full bg-amber-50 px-4 py-2 text-center text-xs font-bold text-amber-700 ring-1 ring-amber-100">
-              {activeChoiceConfig && activeChoiceConfig.selected.length > activeChoiceConfig.maximum
+            <span className="rounded-full border border-amber-200 bg-[linear-gradient(180deg,#fffdf5_0%,#fff2cc_100%)] px-4 py-2 text-center text-xs font-extrabold text-amber-800 shadow-sm">
+              {activeChoiceConfig &&
+              activeChoiceConfig.selected.length > activeChoiceConfig.maximum
                 ? `Maksimal ${activeChoiceConfig.maximum} data untuk lanjut`
                 : `Pilih minimal ${activeChoiceConfig?.minimum} data untuk lanjut`}
             </span>
@@ -1030,7 +1039,7 @@ export function StudentProfilePanel({
               type="button"
               onClick={handleFinalSave}
               disabled={processing || !canGoNext || !mainProfileComplete}
-              className="inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60 skilllens-button-primary skilllens-shimmer"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#08224f_0%,#0a54c7_58%,#39d9ff_100%)] px-6 py-3 text-sm font-extrabold text-white shadow-lg shadow-sky-700/25 transition hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Icon name="check" className="h-4 w-4" />
               {processing ? "Menyimpan..." : processLabel}
@@ -1040,7 +1049,7 @@ export function StudentProfilePanel({
               type="button"
               onClick={goNext}
               disabled={!canGoNext || processing}
-              className="inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60 skilllens-button-primary skilllens-shimmer"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#08224f_0%,#0a54c7_58%,#39d9ff_100%)] px-6 py-3 text-sm font-extrabold text-white shadow-lg shadow-sky-700/25 transition hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60"
             >
               Lanjut
               <Icon name="chevronRight" className="h-4 w-4" />
