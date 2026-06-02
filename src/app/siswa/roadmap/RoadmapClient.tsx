@@ -44,6 +44,31 @@ function ProgressBar({
   );
 }
 
+
+function BlueProgressBar({ value }: { value: number }) {
+  const safeValue = clampProgress(value);
+
+  return (
+    <div className="h-3 overflow-hidden rounded-full bg-white/18 ring-1 ring-white/20">
+      <div
+        className="h-full rounded-full bg-[linear-gradient(90deg,#ffffff_0%,#7dd3fc_48%,#39d9ff_100%)] shadow-[0_0_18px_rgba(57,217,255,0.45)] transition-[width] duration-300 ease-out"
+        style={{ width: `${safeValue}%` }}
+      />
+    </div>
+  );
+}
+
+function BluePanel({ children }: { children: ReactNode }) {
+  return (
+    <section className="relative overflow-hidden rounded-[1.7rem] border border-cyan-300/35 bg-[linear-gradient(135deg,#07142f_0%,#0a2f73_48%,#0a54c7_100%)] p-5 text-white shadow-xl shadow-sky-900/25 ring-1 ring-cyan-200/20 sm:p-6">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(57,217,255,0.10)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,255,0.10)_1px,transparent_1px)] bg-[size:42px_42px] opacity-35" />
+      <div className="pointer-events-none absolute -right-20 -top-20 h-52 w-52 rounded-full bg-cyan-300/35 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-20 left-10 h-44 w-44 rounded-full bg-blue-500/35 blur-3xl" />
+      <div className="relative">{children}</div>
+    </section>
+  );
+}
+
 function Panel({
   children,
   className = "",
@@ -53,9 +78,12 @@ function Panel({
 }) {
   return (
     <section
-      className={`rounded-[1.7rem] border border-sky-100 bg-white/95 p-5 shadow-lg shadow-sky-950/5 sm:p-6 ${className}`}
+      className={`relative overflow-hidden rounded-[1.7rem] border border-sky-200/80 bg-[linear-gradient(180deg,#f4fbff_0%,#ffffff_100%)] p-5 shadow-lg shadow-sky-950/7 ring-1 ring-sky-50 sm:p-6 ${className}`}
     >
-      {children}
+      <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-cyan-200/25 blur-3xl" />
+      <div className="pointer-events-none absolute -left-16 bottom-0 h-36 w-36 rounded-full bg-sky-200/20 blur-3xl" />
+
+      <div className="relative">{children}</div>
     </section>
   );
 }
@@ -498,8 +526,9 @@ export default function RoadmapClient() {
                 ].map(([label, value, detail, icon]) => (
                   <article
                     key={label}
-                    className="rounded-[1.4rem] border border-sky-100 bg-white/95 p-5 shadow-sm shadow-sky-950/5 transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-md"
-                  >
+                    className="group relative overflow-hidden rounded-[1.4rem] border border-sky-200/80 bg-[linear-gradient(180deg,#ffffff_0%,#eff9ff_100%)] p-5 shadow-md shadow-sky-950/5 transition hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-lg hover:shadow-sky-950/10">
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#08224f_0%,#0a54c7_58%,#39d9ff_100%)]" />
+                    <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-cyan-200/35 blur-2xl transition group-hover:bg-cyan-300/40" />
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-slate-400">
@@ -511,7 +540,7 @@ export default function RoadmapClient() {
                         </p>
                       </div>
 
-                      <div className="grid h-12 w-12 place-items-center rounded-2xl bg-sky-50 text-sky-700 ring-1 ring-sky-100">
+                      <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[linear-gradient(135deg,#e0f2fe_0%,#bae6fd_100%)] text-[#0a54c7] ring-1 ring-sky-200 shadow-sm">
                         <Icon name={icon as never} className="h-5 w-5" />
                       </div>
                     </div>
@@ -525,7 +554,7 @@ export default function RoadmapClient() {
 
               <div className="mt-6 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
                 <div className="space-y-6 xl:sticky xl:top-28 xl:self-start">
-                  <Panel className="border-0 bg-[linear-gradient(135deg,#08224f_0%,#0a54c7_58%,#39d9ff_100%)] text-white shadow-xl shadow-sky-700/20">
+                  <BluePanel>
                     <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-cyan-100">
                       Jalur kamu
                     </p>
@@ -539,16 +568,16 @@ export default function RoadmapClient() {
                     </p>
 
                     <div className="mt-6">
-                      <ProgressBar value={progress} />
+                      <BlueProgressBar value={progress} />
                     </div>
 
                     <p className="mt-3 text-xs font-semibold text-sky-100/75">
                       Fokus ke tugas berikutnya agar progress naik lebih cepat.
                     </p>
-                  </Panel>
+                  </BluePanel>
 
                   {nextDetail && (
-                    <Panel>
+                    <Panel className="border-sky-200 bg-[linear-gradient(180deg,#eff9ff_0%,#ffffff_100%)]">
                       <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-sky-600">
                         Lanjutkan sekarang
                       </p>
@@ -569,7 +598,7 @@ export default function RoadmapClient() {
                           onClick={() =>
                             handleUpdateStatus(nextDetail, "proses")
                           }
-                          className="rounded-full bg-sky-50 px-4 py-2 text-xs font-bold text-sky-700 ring-1 ring-sky-100 transition hover:bg-sky-100 disabled:opacity-50"
+                          className="rounded-full bg-white px-4 py-2 text-xs font-bold text-sky-700 ring-1 ring-sky-200 transition hover:bg-sky-50 disabled:opacity-50"
                         >
                           Mulai proses
                         </button>
