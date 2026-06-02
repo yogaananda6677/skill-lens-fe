@@ -87,6 +87,17 @@ export function AppAlertProvider({ children }: { children: ReactNode }) {
 
   const showAlert = useCallback((payload: AppAlertPayload) => {
     const type = payload.type ?? "info";
+    const title = payload.title ?? "";
+
+    const hiddenSuccessTitles = [
+      "Profil siswa berhasil disimpan.",
+      "Profil berhasil disimpan.",
+      "Profil berhasil disimpan",
+    ];
+
+    if (type === "success" && hiddenSuccessTitles.includes(title)) {
+      return;
+    }
 
     setAlert({
       id: Date.now(),

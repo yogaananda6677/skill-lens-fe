@@ -18,6 +18,7 @@ import { buildStudentPayload } from "../utils/buildStudentPayload";
 
 const PROFILE_CHOICE_MIN = 1;
 const PROFILE_CHOICE_MAX = 4;
+const MIN_SAVE_LOADING_MS = 2200;
 
 const PROFILE_CHOICE_LABELS: Record<ArrayField, string> = {
   interests: "Minat",
@@ -25,6 +26,10 @@ const PROFILE_CHOICE_LABELS: Record<ArrayField, string> = {
   talents: "Bakat",
   experiences: "Pengalaman",
 };
+
+function wait(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
 
 export default function SiswaProfilPage() {
   const router = useRouter();
@@ -159,6 +164,8 @@ export default function SiswaProfilPage() {
   }
 
   async function handleSaveOnly() {
+    if (saving) return;
+
     setError("");
     setMessage("");
 
@@ -171,17 +178,21 @@ export default function SiswaProfilPage() {
 
     setSaving(true);
 
+    const startedAt = Date.now();
+
     try {
       await saveSiswaProfile(buildStudentPayload(profile, prestasiRows));
 
-      setMessage("Profil berhasil disimpan. Kamu akan diarahkan ke rekomendasi.");
+      const elapsed = Date.now() - startedAt;
+      const remaining = Math.max(0, MIN_SAVE_LOADING_MS - elapsed);
 
-      window.setTimeout(() => {
-        router.push("/siswa/rekomendasi?auto=1");
-      }, 450);
+      if (remaining > 0) {
+        await wait(remaining);
+      }
+
+      router.push("/siswa/rekomendasi?auto=1");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal menyimpan profil.");
-    } finally {
       setSaving(false);
     }
   }

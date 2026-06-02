@@ -17,17 +17,11 @@ import { StudentRecommendationPanel } from "../components/StudentRecommendationP
 import { useStudentData } from "../hooks/useStudentData";
 import { buildStudentPayload } from "../utils/buildStudentPayload";
 
-type RecommendationPanelProps = {
-  recommendations: Recommendation[];
-  selectedRecommendation: Recommendation | null;
-  activeRoadmapId: number | null;
-  generatedRoadmapId: number | null;
-  generatingRoadmap: boolean;
-  onSelectRecommendation: (recommendation: Recommendation) => void;
-  onGenerateRoadmap: () => void;
-};
+const MIN_RECOMMENDATION_LOADING_MS = 1300;
 
-
+function wait(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
 
 function getRecommendationRoadmapId(item: Recommendation | null) {
   if (!item) return null;
@@ -36,74 +30,96 @@ function getRecommendationRoadmapId(item: Recommendation | null) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
-function InlineRecommendationProcessing({ autoMode }: { autoMode?: boolean }) {
+function RecommendationLoadingOverlay({
+  open,
+  autoMode,
+}: {
+  open: boolean;
+  autoMode?: boolean;
+}) {
+  if (!open) return null;
+
   const steps = [
-    { label: "Membaca nilai akademik", icon: "academic" },
-    { label: "Mencocokkan minat dan bakat", icon: "sparkles" },
-    { label: "Menimbang pengalaman dan prestasi", icon: "clipboard" },
-    { label: "Mengurutkan alternatif terbaik", icon: "chart" },
+    {
+      label: "Membaca nilai akademik",
+      icon: "academic",
+      color: "from-sky-500 to-cyan-500",
+    },
+    {
+      label: "Mencocokkan minat dan bakat",
+      icon: "sparkles",
+      color: "from-blue-500 to-cyan-400",
+    },
+    {
+      label: "Menimbang pengalaman dan prestasi",
+      icon: "clipboard",
+      color: "from-sky-500 to-blue-600",
+    },
+    {
+      label: "Mengurutkan alternatif terbaik",
+      icon: "chart",
+      color: "from-cyan-400 to-sky-600",
+    },
   ];
 
   return (
-    <section className="mt-6 overflow-hidden rounded-[2rem] border border-sky-200 bg-white shadow-xl shadow-sky-950/5">
-      <div className="relative bg-[linear-gradient(180deg,#e9f7ff_0%,#f6fbff_100%)] p-5 md:p-6">
-        <div className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-cyan-300/25 blur-3xl" />
-        <div className="pointer-events-none absolute -left-20 bottom-0 h-56 w-56 rounded-full bg-sky-300/25 blur-3xl" />
+    <div className="fixed inset-0 z-50 grid place-items-center bg-[#07142f]/[0.64] px-4 backdrop-blur-md">
+      <div className="relative w-full max-w-2xl overflow-hidden rounded-[2.2rem] bg-white/[0.96] p-6 shadow-2xl skilllens-page-enter md:p-7">
+        <div className="absolute -right-24 -top-24 h-60 w-60 rounded-full bg-sky-200/60 blur-3xl" />
+        <div className="absolute -bottom-28 -left-20 h-72 w-72 rounded-full bg-blue-300/50 blur-3xl" />
+        <div className="absolute left-1/2 top-8 h-24 w-24 -translate-x-1/2 rounded-full bg-cyan-200/50 blur-2xl" />
 
-        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="grid h-10 w-10 place-items-center rounded-2xl bg-[linear-gradient(135deg,#08224f_0%,#0a54c7_58%,#39d9ff_100%)] text-white shadow-lg shadow-sky-700/20">
-                <Icon name="rocket" className="h-5 w-5" />
+        <div className="relative">
+          <div className="mx-auto grid h-24 w-24 place-items-center rounded-[2rem] bg-[linear-gradient(135deg,#08224f,#0a54c7,#39d9ff)] text-white shadow-2xl shadow-sky-700/30 skilllens-soft-pulse">
+            <div className="relative grid h-14 w-14 place-items-center">
+              <span className="absolute h-14 w-14 animate-ping rounded-full bg-white/25" />
+              <Icon name="rocket" className="relative h-8 w-8" />
+            </div>
+          </div>
+
+          <h2 className="mt-6 text-center text-2xl font-extrabold tracking-tight text-slate-950 md:text-3xl">
+            Sedang menghitung rekomendasi terbaik
+          </h2>
+
+          <p className="mx-auto mt-2 max-w-md text-center text-sm font-semibold leading-6 text-slate-500">
+            {autoMode
+              ? "Profil sudah tersimpan. Sistem langsung menghitung rekomendasi dan menyiapkan hasil terbaik untukmu."
+              : "Tunggu sebentar ya. Sistem sedang membaca data profil, prestasi, nilai, dan alternatif terbaik."}
+          </p>
+
+          <div className="mt-6 h-2 overflow-hidden rounded-full bg-slate-100">
+            <div className="h-full w-3/4 rounded-full bg-gradient-to-r from-[#08224f] via-[#0a54c7] to-[#39d9ff] animate-pulse" />
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            {steps.map((step) => (
+              <div
+                key={step.label}
+                className="flex items-center gap-3 rounded-3xl border border-sky-100 bg-white/[0.82] p-3 text-sm font-bold text-slate-600 shadow-sm backdrop-blur skilllens-smooth"
+              >
+                <span
+                  className={`grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br ${step.color} text-white shadow-lg shadow-slate-950/10`}
+                >
+                  <Icon name={step.icon as any} className="h-5 w-5" />
+                </span>
+
+                <span>{step.label}</span>
+
+                <span className="ml-auto flex gap-1">
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sky-500" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-blue-500 [animation-delay:120ms]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-cyan-400 [animation-delay:240ms]" />
+                </span>
               </div>
-
-              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-sky-700">
-                Proses Rekomendasi
-              </p>
-            </div>
-
-            <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-slate-950 md:text-3xl">
-              Sedang menghitung rekomendasi terbaik
-            </h2>
-
-            <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-500">
-              {autoMode
-                ? "Profil sudah tersimpan. Sistem menghitung rekomendasi dan hasilnya akan langsung tampil di bawah."
-                : "Tunggu sebentar ya. Sistem sedang membaca profil, nilai, pengalaman, prestasi, dan alternatif terbaik."}
-            </p>
+            ))}
           </div>
-
-          <div className="h-2 w-full overflow-hidden rounded-full bg-white ring-1 ring-sky-100 lg:w-80">
-            <div className="h-full w-3/4 rounded-full bg-[linear-gradient(90deg,#08224f_0%,#0a54c7_58%,#39d9ff_100%)] animate-pulse" />
-          </div>
-        </div>
-
-        <div className="relative mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {steps.map((step) => (
-            <div
-              key={step.label}
-              className="flex items-center gap-3 rounded-2xl border border-sky-100 bg-white p-3 text-sm font-bold text-slate-600 shadow-sm"
-            >
-              <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[linear-gradient(135deg,#0a54c7_0%,#1d9bf0_58%,#39d9ff_100%)] text-white shadow-md shadow-sky-700/15">
-                <Icon name={step.icon as any} className="h-5 w-5" />
-              </span>
-
-              <span className="min-w-0 flex-1 leading-5">{step.label}</span>
-
-              <span className="flex gap-1">
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sky-500" />
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-blue-500 [animation-delay:120ms]" />
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-cyan-400 [animation-delay:240ms]" />
-              </span>
-            </div>
-          ))}
         </div>
       </div>
-    </section>
+    </div>
   );
 }
 
-function InlineRoadmapProcessing({ autoMode }: { autoMode?: boolean }) {
+function InlineRoadmapProcessing() {
   return (
     <section className="mt-6 rounded-[2rem] border border-sky-200 bg-sky-50 p-5 text-sm font-semibold text-sky-700 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -113,11 +129,11 @@ function InlineRoadmapProcessing({ autoMode }: { autoMode?: boolean }) {
           </div>
 
           <div>
-            <p className="font-extrabold text-slate-950">Roadmap sedang dibuat</p>
+            <p className="font-extrabold text-slate-950">
+              Roadmap sedang dibuat
+            </p>
             <p className="mt-0.5 text-xs text-sky-700/80">
-              {autoMode
-                ? "Rekomendasi terbaik sedang disiapkan menjadi roadmap."
-                : "Sistem sedang menyiapkan roadmap dari rekomendasi yang kamu pilih."}
+              Sistem sedang menyiapkan roadmap dari rekomendasi yang kamu pilih.
             </p>
           </div>
         </div>
@@ -165,6 +181,9 @@ export default function SiswaRekomendasiPage() {
       setLoadingLatest(true);
 
       try {
+        const shouldAutoProcess =
+          new URLSearchParams(window.location.search).get("auto") === "1";
+
         const [latestResult, activeRoadmapResult] = await Promise.allSettled([
           getLatestSiswaSpk(),
           getActiveStudentRoadmap(),
@@ -172,7 +191,7 @@ export default function SiswaRekomendasiPage() {
 
         if (!active) return;
 
-        if (latestResult.status === "fulfilled") {
+        if (!shouldAutoProcess && latestResult.status === "fulfilled") {
           const rows = Array.isArray(latestResult.value.recommendations)
             ? latestResult.value.recommendations
             : [];
@@ -181,8 +200,9 @@ export default function SiswaRekomendasiPage() {
 
           if (rows.length) {
             setSelectedRecommendation(
-              rows.find((item: Recommendation) => getRecommendationRoadmapId(item)) ??
-                rows[0],
+              rows.find((item: Recommendation) =>
+                getRecommendationRoadmapId(item),
+              ) ?? rows[0],
             );
           }
         }
@@ -195,7 +215,10 @@ export default function SiswaRekomendasiPage() {
           setGeneratedRoadmapId(activeRoadmapResult.value.id);
         }
       } catch {
-  
+        /**
+         * Tidak perlu tampil error di awal.
+         * Bisa saja siswa memang belum pernah memproses rekomendasi.
+         */
       } finally {
         if (active) {
           setLoadingLatest(false);
@@ -224,7 +247,6 @@ export default function SiswaRekomendasiPage() {
 
   async function generateRoadmapFromRecommendation(
     recommendation: Recommendation | null,
-    options?: { auto?: boolean },
   ) {
     if (!recommendation) {
       showError(
@@ -265,16 +287,14 @@ export default function SiswaRekomendasiPage() {
       setActiveRoadmapId(parsedRoadmapId);
       setMessage("Roadmap berhasil dibuat. Kamu akan diarahkan ke halaman roadmap.");
 
-      if (!options?.auto) {
-        showSuccess(
-          "Roadmap berhasil dibuat",
-          "Kamu akan diarahkan ke halaman roadmap.",
-        );
-      }
+      showSuccess(
+        "Roadmap berhasil dibuat",
+        "Kamu akan diarahkan ke halaman roadmap.",
+      );
 
       window.setTimeout(() => {
         router.push("/siswa/roadmap");
-      }, options?.auto ? 450 : 800);
+      }, 800);
 
       return true;
     } catch (err) {
@@ -293,6 +313,8 @@ export default function SiswaRekomendasiPage() {
     setMessage("");
     setProcessing(true);
     setSelectedRecommendation(null);
+
+    const startedAt = Date.now();
 
     try {
       const result = await processSiswaSpk(
@@ -343,8 +365,20 @@ export default function SiswaRekomendasiPage() {
       showError("Gagal memproses rekomendasi", errMessage);
       setError(errMessage);
 
+      if (autoMode) {
+        window.history.replaceState(null, "", "/siswa/rekomendasi");
+        setAutoMode(false);
+      }
+
       return [];
     } finally {
+      const elapsed = Date.now() - startedAt;
+      const remaining = Math.max(0, MIN_RECOMMENDATION_LOADING_MS - elapsed);
+
+      if (remaining > 0) {
+        await wait(remaining);
+      }
+
       setProcessing(false);
     }
   }
@@ -355,105 +389,108 @@ export default function SiswaRekomendasiPage() {
 
   useEffect(() => {
     if (!autoMode || autoStartedRef.current) return;
-    if (loadingProfile || loadingLatest || processing || generatingRoadmap) return;
+    if (loadingProfile || processing || generatingRoadmap) return;
 
     autoStartedRef.current = true;
-    handleProcessSpk({ autoSelectTop: true });
-  }, [autoMode, loadingProfile, loadingLatest, processing, generatingRoadmap]);
+    void handleProcessSpk({ autoSelectTop: true });
+  }, [autoMode, loadingProfile, processing, generatingRoadmap]);
 
   return (
-    <main className="min-h-screen skilllens-blue-page">
-      <section className="mx-auto max-w-7xl px-5 py-8 skilllens-page-enter">
-        <section className="overflow-hidden rounded-[2rem] border border-white/10 skilllens-hero-grid text-white shadow-2xl shadow-blue-950/20">
-          <div className="relative grid gap-8 p-6 md:p-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center">
-            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(57,217,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,255,0.08)_1px,transparent_1px)] bg-[size:48px_48px]" />
-            <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-cyan-300/[0.35] blur-3xl skilllens-orbit-glow" />
-            <div className="pointer-events-none absolute -bottom-24 left-16 h-60 w-60 rounded-full bg-blue-500/30 blur-3xl skilllens-orbit-glow" />
-            <div className="pointer-events-none absolute right-1/3 top-10 h-24 w-24 rounded-full bg-cyan-200/30 blur-2xl" />
+    <>
+      <main className="min-h-screen skilllens-blue-page">
+        <section className="mx-auto max-w-7xl px-5 py-8 skilllens-page-enter">
+          <section className="overflow-hidden rounded-[2rem] border border-white/10 skilllens-hero-grid text-white shadow-2xl shadow-blue-950/20">
+            <div className="relative grid gap-8 p-6 md:p-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center">
+              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(57,217,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,255,0.08)_1px,transparent_1px)] bg-[size:48px_48px]" />
+              <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-cyan-300/[0.35] blur-3xl skilllens-orbit-glow" />
+              <div className="pointer-events-none absolute -bottom-24 left-16 h-60 w-60 rounded-full bg-blue-500/30 blur-3xl skilllens-orbit-glow" />
+              <div className="pointer-events-none absolute right-1/3 top-10 h-24 w-24 rounded-full bg-cyan-200/30 blur-2xl" />
 
-            <div className="relative">
-              <div className="flex items-center gap-2">
-                <div className="grid h-8 w-8 place-items-center rounded-full bg-white/15 text-cyan-100 ring-1 ring-white/15">
-                  <Icon name="rocket" className="h-4 w-4" />
+              <div className="relative">
+                <div className="flex items-center gap-2">
+                  <div className="grid h-8 w-8 place-items-center rounded-full bg-white/15 text-cyan-100 ring-1 ring-white/15">
+                    <Icon name="rocket" className="h-4 w-4" />
+                  </div>
+
+                  <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-cyan-100">
+                    Rekomendasi SPK
+                  </p>
                 </div>
 
-                <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-cyan-100">
-                  Rekomendasi SPK
+                <h1 className="mt-4 max-w-3xl text-3xl font-extrabold tracking-tight text-white md:text-5xl">
+                  Proses rekomendasi arah belajar
+                </h1>
+
+                <p className="mt-4 max-w-2xl text-sm font-semibold leading-7 text-sky-100/80">
+                  Sistem akan menghitung rekomendasi berdasarkan nilai akademik,
+                  profil, tujuan, dan prestasi dari data siswa.
                 </p>
-              </div>
 
-              <h1 className="mt-4 max-w-3xl text-3xl font-extrabold tracking-tight text-white md:text-5xl">
-                Proses rekomendasi arah belajar
-              </h1>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleProcessSpk()}
+                    disabled={isProcessDisabled}
+                    className={`inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60 skilllens-button-primary ${
+                      processing ? "animate-pulse" : ""
+                    }`}
+                  >
+                    <Icon name="rocket" className="h-4 w-4" />
+                    {processing
+                      ? "Memproses..."
+                      : loadingLatest
+                        ? "Memuat data..."
+                        : "Proses Rekomendasi"}
+                  </button>
 
-              <p className="mt-4 max-w-2xl text-sm font-semibold leading-7 text-sky-100/80">
-                Sistem akan menghitung rekomendasi berdasarkan nilai akademik,
-                profil, tujuan, dan prestasi dari data siswa.
-              </p>
-
-              <div className="mt-6 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleProcessSpk()}
-                  disabled={isProcessDisabled}
-                  className={`inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60 skilllens-button-primary ${
-                    processing ? "animate-pulse" : ""
-                  }`}
-                >
-                  <Icon name="rocket" className="h-4 w-4" />
-                  {processing
-                    ? "Memproses..."
-                    : loadingLatest
-                      ? "Memuat data..."
-                      : "Proses Rekomendasi"}
-                </button>
-
-                <Link
-                  href="/siswa/profil"
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-white/[0.15] bg-white/10 px-5 py-3 text-sm font-bold text-white backdrop-blur-md skilllens-smooth hover:-translate-y-0.5 hover:bg-white hover:text-[#07142f]"
-                >
-                  <Icon name="profile" className="h-4 w-4" />
-                  Edit Profil
-                </Link>
-              </div>
-
-              {autoMode ? (
-                <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-bold text-sky-50 ring-1 ring-white/[0.15]">
-                  <Icon name="sparkles" className="h-4 w-4 text-cyan-300" />
-                  Mode otomatis aktif setelah simpan profil
+                  <Link
+                    href="/siswa/profil"
+                    className="inline-flex items-center justify-center gap-2 rounded-full border border-white/[0.15] bg-white/10 px-5 py-3 text-sm font-bold text-white backdrop-blur-md skilllens-smooth hover:-translate-y-0.5 hover:bg-white hover:text-[#07142f]"
+                  >
+                    <Icon name="profile" className="h-4 w-4" />
+                    Edit Profil
+                  </Link>
                 </div>
-              ) : null}
+
+                {autoMode ? (
+                  <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-bold text-sky-50 ring-1 ring-white/[0.15]">
+                    <Icon name="sparkles" className="h-4 w-4 text-cyan-300" />
+                    Mode otomatis aktif setelah simpan profil
+                  </div>
+                ) : null}
+              </div>
             </div>
-          </div>
+          </section>
+
+          {generatingRoadmap ? <InlineRoadmapProcessing /> : null}
+
+          {(message || error) && (
+            <div
+              className={`mt-6 rounded-2xl p-4 text-sm font-semibold ${
+                error
+                  ? "bg-rose-50 text-rose-700 ring-1 ring-rose-100"
+                  : "bg-sky-50 text-sky-700 ring-1 ring-sky-100"
+              }`}
+            >
+              {error || message}
+            </div>
+          )}
+
+          <section className="mt-6">
+            <StudentRecommendationPanel
+              recommendations={recommendations}
+              selectedRecommendation={selectedRecommendation}
+              activeRoadmapId={activeRoadmapId}
+              generatedRoadmapId={generatedRoadmapId}
+              generatingRoadmap={generatingRoadmap}
+              onSelectRecommendation={setSelectedRecommendation}
+              onGenerateRoadmap={handleGenerateRoadmap}
+            />
+          </section>
         </section>
+      </main>
 
-        {processing ? <InlineRecommendationProcessing autoMode={autoMode} /> : null}
-        {generatingRoadmap ? <InlineRoadmapProcessing autoMode={autoMode} /> : null}
-
-        {(message || error) && (
-          <div
-            className={`mt-6 rounded-2xl p-4 text-sm font-semibold ${
-              error
-                ? "bg-rose-50 text-rose-700 ring-1 ring-rose-100"
-                : "bg-sky-50 text-sky-700 ring-1 ring-sky-100"
-            }`}
-          >
-            {error || message}
-          </div>
-        )}
-
-        <section className="mt-6">
-          <StudentRecommendationPanel
-            recommendations={recommendations}
-            selectedRecommendation={selectedRecommendation}
-            activeRoadmapId={activeRoadmapId}
-            generatedRoadmapId={generatedRoadmapId}
-            generatingRoadmap={generatingRoadmap}
-            onSelectRecommendation={setSelectedRecommendation}
-            onGenerateRoadmap={handleGenerateRoadmap}
-          />
-        </section>
-      </section>
-    </main>
+      <RecommendationLoadingOverlay open={processing} autoMode={autoMode} />
+    </>
   );
 }

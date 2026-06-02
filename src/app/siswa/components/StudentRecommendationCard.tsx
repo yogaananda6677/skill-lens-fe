@@ -26,13 +26,14 @@ export function StudentRecommendationCard({
   roadmapActive?: boolean;
   onSelect: () => void;
 }) {
-  const accent = cardAccent(item.topsisRank || 1);
+  const rank = item.topsisRank || 1;
+  const accent = cardAccent(rank);
 
   return (
     <button
       type="button"
       onClick={onSelect}
-      className={`group relative w-full overflow-hidden rounded-[1.55rem] border p-5 text-left transition duration-200 ${
+      className={`group relative flex h-full min-h-[520px] w-full flex-col overflow-hidden rounded-[1.55rem] border p-5 text-left transition duration-200 ${
         roadmapActive
           ? "border-cyan-300 bg-[linear-gradient(135deg,#07142f_0%,#0b2554_58%,#0a54c7_100%)] text-white shadow-xl shadow-sky-900/18 ring-2 ring-cyan-100"
           : selected
@@ -50,7 +51,8 @@ export function StudentRecommendationCard({
         }`}
       />
 
-      <div className="relative flex items-start justify-between gap-4 pr-2">
+      {/* HEADER CARD */}
+      <div className="relative flex min-h-[76px] items-start justify-between gap-4 pr-2">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2 pr-2">
             <span
@@ -62,7 +64,7 @@ export function StudentRecommendationCard({
                     : "bg-sky-50 text-sky-700"
               }`}
             >
-              Peringkat {item.topsisRank}
+              Peringkat {rank}
             </span>
 
             {roadmapActive && (
@@ -103,38 +105,43 @@ export function StudentRecommendationCard({
         </div>
       </div>
 
+      {/* RINGKASAN */}
       <p
-        className={`relative mt-4 text-sm leading-7 ${
+        className={`relative mt-4 min-h-[168px] max-h-[168px] overflow-hidden text-sm leading-7 ${
           roadmapActive ? "text-sky-50/88" : "text-slate-600"
         }`}
       >
         {item.summary}
       </p>
 
-      {!!item.dominantFactors?.length && (
-        <div className="relative mt-4 flex flex-wrap gap-2">
-          {item.dominantFactors.map((factor) => (
-            <span
-              key={factor}
-              className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ${
-                roadmapActive
-                  ? "bg-white/10 text-cyan-100 ring-white/15"
-                  : "bg-white text-sky-700 ring-sky-100"
-              }`}
-            >
-              {factor}
-            </span>
-          ))}
-        </div>
-      )}
+      {/* TAG / DOMINANT FACTORS */}
+      <div className="relative mt-4 min-h-[34px]">
+        {!!item.dominantFactors?.length && (
+          <div className="flex max-h-[70px] flex-wrap gap-2 overflow-hidden">
+            {item.dominantFactors.map((factor) => (
+              <span
+                key={factor}
+                className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ${
+                  roadmapActive
+                    ? "bg-white/10 text-cyan-100 ring-white/15"
+                    : "bg-white text-sky-700 ring-sky-100"
+                }`}
+              >
+                {factor}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
 
+      {/* FOOTER */}
       <div
-        className={`relative mt-5 flex items-center justify-between gap-3 border-t pt-4 ${
+        className={`relative mt-auto flex items-center justify-between gap-3 border-t pt-4 ${
           roadmapActive ? "border-white/10" : "border-slate-100"
         }`}
       >
         <span
-          className={`text-xs font-semibold ${
+          className={`max-w-[58%] text-xs font-semibold leading-5 ${
             roadmapActive ? "text-cyan-100/80" : "text-slate-400"
           }`}
         >
@@ -146,7 +153,7 @@ export function StudentRecommendationCard({
         </span>
 
         <span
-          className={`rounded-full px-3 py-1 text-xs font-bold ${
+          className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${
             roadmapActive
               ? "bg-cyan-300 text-[#07142f]"
               : selected

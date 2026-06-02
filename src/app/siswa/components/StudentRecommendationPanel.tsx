@@ -89,7 +89,7 @@ export function StudentRecommendationPanel({
         ) : null}
 
         {recommendations.length ? (
-          <div className="mt-6 grid gap-5 lg:grid-cols-3">
+          <div className="mt-6 grid items-stretch gap-5 lg:grid-cols-3">
             {recommendations.map((item) => {
               const roadmapId = recommendationRoadmapId(item);
               const roadmapActive = Boolean(roadmapId && (roadmapId === activeRoadmapId || roadmapId === generatedRoadmapId));
