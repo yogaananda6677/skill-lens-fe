@@ -120,8 +120,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Hero image langsung sebagai background */}
-        {/* Hero image */}
         <div className="relative flex animate-fade-up items-center justify-center w-full overflow-visible">
           <img
             src={HERO_IMAGE}
@@ -133,7 +131,6 @@ export default function Home() {
       </div>
     </section>
 
-    {/* ========== METRICS STRIP ========== */}
     <section className="relative -mt-8 z-20 mx-auto w-[min(1220px,calc(100%-32px))]">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {metrics.map((item) => (
@@ -151,7 +148,6 @@ export default function Home() {
       </div>
     </section>
 
-    {/* ========== 1. TENTANG SKILLLENS & PENGGUNA ========== */}
     <section id="tentang" className="scroll-mt-24 mx-auto w-[min(1220px,calc(100%-32px))] py-20">
       <div className="grid gap-12 md:grid-cols-2 items-center">
         <div>
@@ -190,7 +186,6 @@ export default function Home() {
       </div>
     </section>
 
-    {/* ========== 2. FITUR UNGGULAN ========== */}
     <section id="fitur" className="scroll-mt-24 bg-gradient-to-b from-slate-50 to-white py-20">
       <div className="mx-auto w-[min(1220px,calc(100%-32px))]">
         <div className="text-center">
@@ -216,7 +211,6 @@ export default function Home() {
       </div>
     </section>
 
-    {/* ========== 3. KELEBIHAN SKILLLENS ========== */}
     <section id="kelebihan" className="scroll-mt-24 mx-auto w-[min(1220px,calc(100%-32px))] py-20">
       <div className="text-center">
         <p className="text-sm font-bold uppercase tracking-wide text-[#0f2a5f]">Keunggulan</p>
@@ -251,7 +245,6 @@ export default function Home() {
       </div>
     </section>
 
-    {/* ========== 4. PERAN GURU & SISWA ========== */}
     <section id="peran" className="scroll-mt-24 bg-gradient-to-b from-slate-50 to-white py-20">
       <div className="mx-auto w-[min(1220px,calc(100%-32px))]">
         <div className="text-center">
@@ -293,7 +286,6 @@ export default function Home() {
       </div>
     </section>
 
-    {/* ========== 5. KEAMANAN & AUTENTIKASI ========== */}
     <section id="keamanan" className="scroll-mt-24 mx-auto w-[min(1220px,calc(100%-32px))] py-20">
       <div className="grid gap-8 md:grid-cols-2 items-center">
         <div>
