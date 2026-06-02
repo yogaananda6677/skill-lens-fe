@@ -2,10 +2,18 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Icon } from "../../../components/ui/icons";
+
 import { useAppAlert } from "../../../components/ui/AppAlertProvider";
-import { getActiveStudentRoadmap, updateStudentRoadmapProgress } from "../../../features/siswa/api";
-import type { CareerRoadmap, RoadmapDetail, RoadmapNote } from "../../../features/siswa/types";
+import { Icon } from "../../../components/ui/icons";
+import {
+  getActiveStudentRoadmap,
+  updateStudentRoadmapProgress,
+} from "../../../features/siswa/api";
+import type {
+  CareerRoadmap,
+  RoadmapDetail,
+  RoadmapNote,
+} from "../../../features/siswa/types";
 
 type RoadmapStatus = "belum" | "proses" | "selesai";
 
@@ -13,21 +21,40 @@ function clampProgress(value: number) {
   return Math.min(100, Math.max(0, Number.isFinite(value) ? value : 0));
 }
 
-function ProgressBar({ value, compact = false }: { value: number; compact?: boolean }) {
+function ProgressBar({
+  value,
+  compact = false,
+}: {
+  value: number;
+  compact?: boolean;
+}) {
   const safeValue = clampProgress(value);
+
   return (
-    <div className={`${compact ? "h-2" : "h-3"} overflow-hidden rounded-full bg-sky-100 ring-1 ring-sky-100`}>
+    <div
+      className={`${
+        compact ? "h-2" : "h-3"
+      } overflow-hidden rounded-full bg-sky-100 ring-1 ring-sky-100`}
+    >
       <div
-        className="h-full rounded-full bg-gradient-to-r from-[#0a54c7] to-[#38bdf8] transition-[width] duration-300 ease-out"
+        className="h-full rounded-full bg-[linear-gradient(90deg,#0a54c7_0%,#1d9bf0_55%,#39d9ff_100%)] transition-[width] duration-300 ease-out"
         style={{ width: `${safeValue}%` }}
       />
     </div>
   );
 }
 
-function Panel({ children, className = "" }: { children: ReactNode; className?: string }) {
+function Panel({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <section className={`rounded-[1.7rem] p-5 sm:p-6 skilllens-smooth-card ${className}`}>
+    <section
+      className={`rounded-[1.7rem] border border-sky-100 bg-white/95 p-5 shadow-lg shadow-sky-950/5 sm:p-6 ${className}`}
+    >
       {children}
     </section>
   );
@@ -65,8 +92,11 @@ function statusMeta(status: string) {
 
 function DetailStatusBadge({ status }: { status: string }) {
   const meta = statusMeta(status);
+
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ring-1 ${meta.badge}`}>
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ring-1 ${meta.badge}`}
+    >
       <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
       {meta.label}
     </span>
@@ -104,17 +134,21 @@ function LoadingRoadmapState() {
   return (
     <div className="grid gap-6 lg:grid-cols-[0.72fr_1.28fr]">
       <Panel>
-        <div className="h-5 w-36 animate-pulse rounded-full bg-slate-100" />
-        <div className="mt-5 h-9 w-4/5 animate-pulse rounded-2xl bg-slate-100" />
-        <div className="mt-3 h-4 w-full animate-pulse rounded-full bg-slate-100" />
-        <div className="mt-2 h-4 w-3/4 animate-pulse rounded-full bg-slate-100" />
-        <div className="mt-8 h-3 w-full animate-pulse rounded-full bg-slate-100" />
+        <div className="h-5 w-36 animate-pulse rounded-full bg-sky-100" />
+        <div className="mt-5 h-9 w-4/5 animate-pulse rounded-2xl bg-sky-100" />
+        <div className="mt-3 h-4 w-full animate-pulse rounded-full bg-sky-100" />
+        <div className="mt-2 h-4 w-3/4 animate-pulse rounded-full bg-sky-100" />
+        <div className="mt-8 h-3 w-full animate-pulse rounded-full bg-sky-100" />
       </Panel>
+
       <Panel>
-        <div className="h-5 w-44 animate-pulse rounded-full bg-slate-100" />
+        <div className="h-5 w-44 animate-pulse rounded-full bg-sky-100" />
         <div className="mt-5 grid gap-3">
           {[1, 2, 3, 4].map((item) => (
-            <div key={item} className="h-24 animate-pulse rounded-3xl bg-slate-100" />
+            <div
+              key={item}
+              className="h-24 animate-pulse rounded-3xl bg-sky-100"
+            />
           ))}
         </div>
       </Panel>
@@ -126,16 +160,23 @@ function EmptyRoadmapState() {
   return (
     <Panel className="text-center">
       <div className="relative mx-auto max-w-xl">
-        <div className="mx-auto grid h-16 w-16 place-items-center rounded-[1.4rem] bg-[#07142f] text-white shadow-sm">
+        <div className="mx-auto grid h-16 w-16 place-items-center rounded-[1.4rem] bg-[linear-gradient(135deg,#08224f_0%,#0a54c7_58%,#39d9ff_100%)] text-white shadow-lg shadow-sky-700/20">
           <Icon name="roadmap" className="h-8 w-8" />
         </div>
-        <p className="mt-5 text-xs font-bold uppercase tracking-[0.22em] text-sky-600">Belum ada roadmap aktif</p>
-        <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 md:text-3xl">
+
+        <p className="mt-5 text-xs font-extrabold uppercase tracking-[0.22em] text-sky-600">
+          Belum ada roadmap aktif
+        </p>
+
+        <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950 md:text-3xl">
           Buat roadmap dari hasil rekomendasi SPK
         </h2>
-        <p className="mt-3 text-sm leading-7 text-slate-500">
-          Pilih hasil rekomendasi terbaik terlebih dahulu, lalu sistem akan membuat alur belajar yang sesuai dengan profilmu.
+
+        <p className="mt-3 text-sm font-semibold leading-7 text-slate-500">
+          Pilih hasil rekomendasi terbaik terlebih dahulu, lalu sistem akan
+          membuat alur belajar yang sesuai dengan profilmu.
         </p>
+
         <Link
           href="/siswa/rekomendasi"
           className="mt-6 inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold text-white skilllens-button-primary"
@@ -149,7 +190,11 @@ function EmptyRoadmapState() {
 }
 
 function getNextDetail(details: RoadmapDetail[]) {
-  return details.find((detail) => detail.status !== "selesai") ?? details[0] ?? null;
+  return (
+    details.find((detail) => detail.status !== "selesai") ??
+    details[0] ??
+    null
+  );
 }
 
 function patchRoadmapDetailStatus(
@@ -168,7 +213,8 @@ function patchRoadmapDetailStatus(
           ? {
               ...detail,
               status,
-              completedAt: status === "selesai" ? new Date().toISOString() : null,
+              completedAt:
+                status === "selesai" ? new Date().toISOString() : null,
             }
           : detail,
       ),
@@ -178,8 +224,10 @@ function patchRoadmapDetailStatus(
 
 function formatNoteDate(value?: string | null) {
   if (!value) return null;
+
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
+
   return new Intl.DateTimeFormat("id-ID", {
     day: "2-digit",
     month: "short",
@@ -194,24 +242,46 @@ function GuidanceNotesCard({ notes }: { notes: RoadmapNote[] }) {
     <div className="mt-5 rounded-2xl bg-gradient-to-br from-cyan-50 to-sky-50 p-4 ring-1 ring-sky-100">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-extrabold text-sky-950">Catatan Guru BK</p>
-          <p className="mt-1 text-xs font-semibold text-sky-700/75">Arahan bimbingan yang bisa kamu ikuti pada tahap ini.</p>
+          <p className="text-sm font-extrabold text-sky-950">
+            Catatan Guru BK
+          </p>
+
+          <p className="mt-1 text-xs font-semibold text-sky-700/75">
+            Arahan bimbingan yang bisa kamu ikuti pada tahap ini.
+          </p>
         </div>
-        <span className="rounded-full bg-white px-3 py-1 text-[11px] font-bold text-sky-700 ring-1 ring-sky-100">{notes.length} catatan</span>
+
+        <span className="rounded-full bg-white px-3 py-1 text-[11px] font-bold text-sky-700 ring-1 ring-sky-100">
+          {notes.length} catatan
+        </span>
       </div>
+
       <div className="mt-4 space-y-3">
         {notes.map((note, index) => {
           const noteDate = formatNoteDate(note.createdAt);
+
           return (
-            <article key={note.id || index} className="rounded-2xl bg-white/85 p-4 text-sm shadow-sm ring-1 ring-sky-100/80">
+            <article
+              key={note.id || index}
+              className="rounded-2xl bg-white/85 p-4 text-sm shadow-sm ring-1 ring-sky-100/80"
+            >
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                <p className="font-extrabold text-slate-900">{note.title || "Catatan bimbingan"}</p>
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-sky-500">{note.guruName || "Guru BK"}{noteDate ? ` • ${noteDate}` : ""}</p>
+                <p className="font-extrabold text-slate-900">
+                  {note.title || "Catatan bimbingan"}
+                </p>
+
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-sky-500">
+                  {note.guruName || "Guru BK"}
+                  {noteDate ? ` • ${noteDate}` : ""}
+                </p>
               </div>
+
               <p className="mt-2 leading-6 text-slate-600">{note.note}</p>
+
               {note.followUp ? (
                 <div className="mt-3 rounded-xl bg-sky-50 p-3 text-xs font-semibold leading-5 text-sky-800 ring-1 ring-sky-100">
-                  <span className="font-extrabold">Tindak lanjut:</span> {note.followUp}
+                  <span className="font-extrabold">Tindak lanjut:</span>{" "}
+                  {note.followUp}
                 </div>
               ) : null}
             </article>
@@ -223,7 +293,9 @@ function GuidanceNotesCard({ notes }: { notes: RoadmapNote[] }) {
 }
 
 export default function RoadmapClient() {
-  const { showSuccess, showError, showProcessing, dismissAlert } = useAppAlert();
+  const { showSuccess, showError, showProcessing, dismissAlert } =
+    useAppAlert();
+
   const [roadmap, setRoadmap] = useState<CareerRoadmap | null>(null);
   const [activeDetailId, setActiveDetailId] = useState<number | null>(null);
   const [error, setError] = useState("");
@@ -233,14 +305,20 @@ export default function RoadmapClient() {
   async function refresh() {
     setLoading(true);
     setError("");
+
     try {
       const active = await getActiveStudentRoadmap().catch(() => null);
+
       setRoadmap(active);
+
       const allDetails = active?.steps.flatMap((step) => step.details) ?? [];
       const recommendedDetail = getNextDetail(allDetails);
+
       setActiveDetailId(recommendedDetail?.id ?? null);
     } catch (err) {
-      const errMessage = err instanceof Error ? err.message : "Gagal memuat roadmap.";
+      const errMessage =
+        err instanceof Error ? err.message : "Gagal memuat roadmap.";
+
       setError(errMessage);
       showError("Gagal memuat roadmap", errMessage);
     } finally {
@@ -252,39 +330,73 @@ export default function RoadmapClient() {
     refresh();
   }, []);
 
-  const details = useMemo(() => roadmap?.steps.flatMap((step) => step.details) ?? [], [roadmap]);
-  const completed = details.filter((detail) => detail.status === "selesai").length;
-  const inProgress = details.filter((detail) => detail.status === "proses").length;
-  const progress = details.length ? Math.round((completed / details.length) * 100) : roadmap?.progress ?? 0;
-  const activeDetail = details.find((detail) => detail.id === activeDetailId) ?? getNextDetail(details);
-  const activeStep = roadmap?.steps.find((step) => step.details.some((detail) => detail.id === activeDetail?.id)) ?? null;
+  const details = useMemo(
+    () => roadmap?.steps.flatMap((step) => step.details) ?? [],
+    [roadmap],
+  );
+
+  const completed = details.filter((detail) => detail.status === "selesai")
+    .length;
+  const inProgress = details.filter((detail) => detail.status === "proses")
+    .length;
+  const progress = details.length
+    ? Math.round((completed / details.length) * 100)
+    : roadmap?.progress ?? 0;
+
+  const activeDetail =
+    details.find((detail) => detail.id === activeDetailId) ??
+    getNextDetail(details);
+
+  const activeStep =
+    roadmap?.steps.find((step) =>
+      step.details.some((detail) => detail.id === activeDetail?.id),
+    ) ?? null;
+
   const activeGuidanceNotes = [
     ...(activeStep?.notes ?? []),
     ...(activeDetail?.notes ?? []),
   ].filter((note) => note.note?.trim());
+
   const nextDetail = getNextDetail(details);
 
-  async function handleUpdateStatus(detail: RoadmapDetail, status: RoadmapStatus) {
+  async function handleUpdateStatus(
+    detail: RoadmapDetail,
+    status: RoadmapStatus,
+  ) {
     const targetId = detail.progressId ?? detail.id;
+
     if (!targetId) return;
     if (detail.status === status) return;
 
     const previousRoadmap = roadmap;
+
     setActiveDetailId(detail.id);
     setSavingDetailId(detail.id);
     setError("");
-    showProcessing("Menyimpan progress", `${detail.title} sedang diperbarui menjadi ${status}.`);
+
+    showProcessing(
+      "Menyimpan progress",
+      `${detail.title} sedang diperbarui menjadi ${status}.`,
+    );
+
     setRoadmap((current) => patchRoadmapDetailStatus(current, detail.id, status));
 
     try {
       await updateStudentRoadmapProgress(targetId, status);
+
       dismissAlert();
       showSuccess(
-        status === "selesai" ? "Detail ditandai selesai" : "Progress berhasil diperbarui",
-        status === "selesai" ? "Langkah ini sudah masuk ke progress roadmap kamu." : "Perubahan status roadmap sudah tersimpan.",
+        status === "selesai"
+          ? "Detail ditandai selesai"
+          : "Progress berhasil diperbarui",
+        status === "selesai"
+          ? "Langkah ini sudah masuk ke progress roadmap kamu."
+          : "Perubahan status roadmap sudah tersimpan.",
       );
     } catch (err) {
-      const errMessage = err instanceof Error ? err.message : "Gagal memperbarui progress.";
+      const errMessage =
+        err instanceof Error ? err.message : "Gagal memperbarui progress.";
+
       setRoadmap(previousRoadmap);
       setError(errMessage);
       dismissAlert();
@@ -296,44 +408,62 @@ export default function RoadmapClient() {
 
   return (
     <main className="min-h-screen skilllens-blue-page">
-        <section className="mx-auto max-w-7xl px-5 py-8 skilllens-page-enter">
-          <div className="relative mb-6 overflow-hidden rounded-[1.8rem] border border-white/10 skilllens-hero-grid p-6 text-white shadow-lg shadow-blue-950/10 md:p-8">
-            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(57,217,255,0.055)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,255,0.055)_1px,transparent_1px)] bg-[size:52px_52px]" />
+      <section className="mx-auto max-w-7xl px-5 py-8 skilllens-page-enter">
+        <section className="scroll-mt-32 overflow-hidden rounded-[2rem] border border-white/10 skilllens-hero-grid text-white shadow-2xl shadow-blue-950/20">
+          <div className="relative grid gap-8 p-6 md:p-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center">
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(57,217,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,255,0.08)_1px,transparent_1px)] bg-[size:48px_48px]" />
+            <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-cyan-300/[0.35] blur-3xl skilllens-orbit-glow" />
+            <div className="pointer-events-none absolute -bottom-24 left-16 h-60 w-60 rounded-full bg-blue-500/30 blur-3xl skilllens-orbit-glow" />
+            <div className="pointer-events-none absolute right-1/3 top-10 h-24 w-24 rounded-full bg-cyan-200/30 blur-2xl" />
 
-            <div className="relative grid gap-6 lg:grid-cols-[1fr_330px] lg:items-center">
-              <div>
-                <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-bold text-cyan-100 ring-1 ring-white/[0.15]">
-                  <span className="h-2 w-2 rounded-full bg-cyan-300" />
-                  Roadmap aktif siswa
-                </span>
-                <h1 className="mt-5 text-3xl font-bold tracking-tight md:text-5xl">
-                  Ikuti roadmap belajar dengan alur yang jelas
-                </h1>
-                <p className="mt-4 max-w-3xl text-sm leading-7 text-sky-100/80">
-                  Fokus ke satu langkah terdekat, tandai statusnya, lalu lanjut ke tahap berikutnya tanpa halaman terasa refresh.
+            <div className="relative">
+              <div className="flex items-center gap-2">
+                <div className="grid h-8 w-8 place-items-center rounded-full bg-white/15 text-cyan-100 ring-1 ring-white/15">
+                  <Icon name="roadmap" className="h-4 w-4" />
+                </div>
+
+                <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-cyan-100">
+                  Roadmap Aktif Siswa
                 </p>
               </div>
 
-              <div className="rounded-[1.5rem] border border-white/10 bg-white/10 p-5 backdrop-blur-md">
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-200">Progress keseluruhan</p>
-                <div className="mt-4 flex items-end justify-between gap-4">
-                  <p className="text-5xl font-bold">{progress}%</p>
-                  <Icon name="target" className="h-10 w-10 text-cyan-200" />
-                </div>
-                <div className="mt-5"><ProgressBar value={progress} /></div>
-                <p className="mt-3 text-xs text-sky-100/75">
-                  {completed} dari {details.length} detail selesai
-                </p>
+              <h1 className="mt-4 max-w-3xl text-3xl font-extrabold tracking-tight text-white md:text-5xl">
+                Ikuti roadmap belajar dengan alur yang jelas
+              </h1>
+
+              <p className="mt-4 max-w-2xl text-sm font-semibold leading-7 text-sky-100/80">
+                Fokus ke satu langkah terdekat, tandai statusnya, lalu lanjut
+                ke tahap berikutnya tanpa halaman terasa refresh.
+              </p>
+
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link
+                  href="/siswa/rekomendasi"
+                  className="inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold text-white skilllens-button-primary"
+                >
+                  Ke rekomendasi
+                  <Icon name="chevronRight" className="h-4 w-4" />
+                </Link>
+
+                <Link
+                  href="/siswa"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-white/[0.15] bg-white/10 px-5 py-3 text-sm font-bold text-white backdrop-blur-md skilllens-smooth hover:-translate-y-0.5 hover:bg-white hover:text-[#07142f]"
+                >
+                  <Icon name="home" className="h-4 w-4" />
+                  Beranda
+                </Link>
               </div>
             </div>
           </div>
+        </section>
 
-          {error && !loading && !roadmap && (
-            <div className="mb-6 rounded-2xl bg-rose-50 p-4 text-sm font-semibold text-rose-700 ring-1 ring-rose-100">
-              {error}
-            </div>
-          )}
+        {error && !loading && !roadmap && (
+          <div className="mt-6 rounded-2xl bg-rose-50 p-4 text-sm font-semibold text-rose-700 ring-1 ring-rose-100">
+            {error}
+          </div>
+        )}
 
+        <div className="mt-6">
           {loading && <LoadingRoadmapState />}
           {!loading && !roadmap && <EmptyRoadmapState />}
 
@@ -341,48 +471,117 @@ export default function RoadmapClient() {
             <>
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {[
-                  ["Progress", `${progress}%`, "Capaian roadmap saat ini.", "progress"],
-                  ["Tahap", `${roadmap.steps.length}`, "Alur utama yang diikuti.", "roadmap"],
-                  ["Proses", `${inProgress}`, "Detail yang sedang dikerjakan.", "clock"],
-                  ["Selesai", `${completed}`, "Detail yang sudah ditandai.", "check"],
+                  [
+                    "Progress",
+                    `${progress}%`,
+                    "Capaian roadmap saat ini.",
+                    "progress",
+                  ],
+                  [
+                    "Tahap",
+                    `${roadmap.steps.length}`,
+                    "Alur utama yang diikuti.",
+                    "roadmap",
+                  ],
+                  [
+                    "Proses",
+                    `${inProgress}`,
+                    "Detail yang sedang dikerjakan.",
+                    "clock",
+                  ],
+                  [
+                    "Selesai",
+                    `${completed}`,
+                    "Detail yang sudah ditandai.",
+                    "check",
+                  ],
                 ].map(([label, value, detail, icon]) => (
-                  <article key={label} className="rounded-[1.4rem] border border-sky-100/80 bg-white/90 p-5 shadow-sm shadow-sky-950/5 transition hover:border-sky-200">
+                  <article
+                    key={label}
+                    className="rounded-[1.4rem] border border-sky-100 bg-white/95 p-5 shadow-sm shadow-sky-950/5 transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-md"
+                  >
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">{label}</p>
-                        <p className="mt-3 text-3xl font-bold tracking-tight text-slate-950">{value}</p>
+                        <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-slate-400">
+                          {label}
+                        </p>
+
+                        <p className="mt-3 text-3xl font-extrabold tracking-tight text-slate-950">
+                          {value}
+                        </p>
                       </div>
+
                       <div className="grid h-12 w-12 place-items-center rounded-2xl bg-sky-50 text-sky-700 ring-1 ring-sky-100">
                         <Icon name={icon as never} className="h-5 w-5" />
                       </div>
                     </div>
-                    <p className="mt-3 text-sm leading-6 text-slate-500">{detail}</p>
+
+                    <p className="mt-3 text-sm font-semibold leading-6 text-slate-500">
+                      {detail}
+                    </p>
                   </article>
                 ))}
               </div>
 
               <div className="mt-6 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
                 <div className="space-y-6 xl:sticky xl:top-28 xl:self-start">
-                  <Panel className="bg-[#07142f] text-white">
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-200">Jalur kamu</p>
-                    <h2 className="mt-3 text-3xl font-bold tracking-tight">{roadmap.headline}</h2>
-                    <p className="mt-3 text-sm leading-7 text-sky-100/80">Target: {roadmap.targetRole}</p>
-                    <div className="mt-6"><ProgressBar value={progress} /></div>
-                    <p className="mt-3 text-xs text-sky-100/75">Fokus ke tugas berikutnya agar progress naik lebih cepat.</p>
+                  <Panel className="border-0 bg-[linear-gradient(135deg,#08224f_0%,#0a54c7_58%,#39d9ff_100%)] text-white shadow-xl shadow-sky-700/20">
+                    <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-cyan-100">
+                      Jalur kamu
+                    </p>
+
+                    <h2 className="mt-3 text-3xl font-extrabold tracking-tight">
+                      {roadmap.headline}
+                    </h2>
+
+                    <p className="mt-3 text-sm font-semibold leading-7 text-sky-100/80">
+                      Target: {roadmap.targetRole}
+                    </p>
+
+                    <div className="mt-6">
+                      <ProgressBar value={progress} />
+                    </div>
+
+                    <p className="mt-3 text-xs font-semibold text-sky-100/75">
+                      Fokus ke tugas berikutnya agar progress naik lebih cepat.
+                    </p>
                   </Panel>
 
                   {nextDetail && (
                     <Panel>
-                      <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-600">Lanjutkan sekarang</p>
-                      <h3 className="mt-2 text-xl font-bold tracking-tight text-slate-950">{nextDetail.title}</h3>
-                      <p className="mt-2 text-sm leading-6 text-slate-500">
-                        {nextDetail.description || "Kerjakan detail ini, lalu tandai proses atau selesai."}
+                      <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-sky-600">
+                        Lanjutkan sekarang
                       </p>
+
+                      <h3 className="mt-2 text-xl font-extrabold tracking-tight text-slate-950">
+                        {nextDetail.title}
+                      </h3>
+
+                      <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
+                        {nextDetail.description ||
+                          "Kerjakan detail ini, lalu tandai proses atau selesai."}
+                      </p>
+
                       <div className="mt-5 flex flex-wrap gap-2">
-                        <button type="button" disabled={savingDetailId === nextDetail.id} onClick={() => handleUpdateStatus(nextDetail, "proses")} className="rounded-full bg-sky-50 px-4 py-2 text-xs font-bold text-sky-700 ring-1 ring-sky-100 transition hover:bg-sky-100 disabled:opacity-50">
+                        <button
+                          type="button"
+                          disabled={savingDetailId === nextDetail.id}
+                          onClick={() =>
+                            handleUpdateStatus(nextDetail, "proses")
+                          }
+                          className="rounded-full bg-sky-50 px-4 py-2 text-xs font-bold text-sky-700 ring-1 ring-sky-100 transition hover:bg-sky-100 disabled:opacity-50"
+                        >
                           Mulai proses
                         </button>
-                        <button type="button" disabled={savingDetailId === nextDetail.id} onClick={() => handleUpdateStatus(nextDetail, "selesai")} className="rounded-full px-4 py-2 text-xs font-bold text-white disabled:opacity-50 skilllens-button-primary">
+
+                        <button
+                          type="button"
+                          disabled={savingDetailId === nextDetail.id}
+                          onClick={() =>
+                            handleUpdateStatus(nextDetail, "selesai")
+                          }
+                          className="rounded-full px-4 py-2 text-xs font-bold text-white disabled:opacity-50 skilllens-button-primary"
+                        >
                           Tandai selesai
                         </button>
                       </div>
@@ -391,15 +590,30 @@ export default function RoadmapClient() {
 
                   {activeDetail && (
                     <Panel>
-                      <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-600">Detail terpilih</p>
+                      <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-sky-600">
+                        Detail terpilih
+                      </p>
+
                       <div className="mt-2 flex items-start justify-between gap-3">
-                        <h2 className="text-2xl font-bold tracking-tight text-slate-950">{activeDetail.title}</h2>
+                        <h2 className="text-2xl font-extrabold tracking-tight text-slate-950">
+                          {activeDetail.title}
+                        </h2>
+
                         <DetailStatusBadge status={activeDetail.status} />
                       </div>
-                      <p className="mt-3 text-sm leading-7 text-slate-600">{activeDetail.description || "Tidak ada deskripsi tambahan."}</p>
+
+                      <p className="mt-3 text-sm font-semibold leading-7 text-slate-600">
+                        {activeDetail.description ||
+                          "Tidak ada deskripsi tambahan."}
+                      </p>
 
                       {activeDetail.referenceLink && (
-                        <a href={activeDetail.referenceLink} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 rounded-full bg-sky-50 px-4 py-2 text-sm font-bold text-sky-700 ring-1 ring-sky-100 transition hover:bg-sky-100">
+                        <a
+                          href={activeDetail.referenceLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-4 inline-flex items-center gap-2 rounded-full bg-sky-50 px-4 py-2 text-sm font-bold text-sky-700 ring-1 ring-sky-100 transition hover:bg-sky-100"
+                        >
                           <Icon name="book" className="h-4 w-4" />
                           Buka referensi
                         </a>
@@ -414,9 +628,30 @@ export default function RoadmapClient() {
                       )}
 
                       <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                        <StatusButton label="Belum" active={activeDetail.status === "belum"} saving={savingDetailId === activeDetail.id} onClick={() => handleUpdateStatus(activeDetail, "belum")} />
-                        <StatusButton label="Proses" active={activeDetail.status === "proses"} saving={savingDetailId === activeDetail.id} onClick={() => handleUpdateStatus(activeDetail, "proses")} />
-                        <StatusButton label="Selesai" active={activeDetail.status === "selesai"} saving={savingDetailId === activeDetail.id} onClick={() => handleUpdateStatus(activeDetail, "selesai")} />
+                        <StatusButton
+                          label="Belum"
+                          active={activeDetail.status === "belum"}
+                          saving={savingDetailId === activeDetail.id}
+                          onClick={() => handleUpdateStatus(activeDetail, "belum")}
+                        />
+
+                        <StatusButton
+                          label="Proses"
+                          active={activeDetail.status === "proses"}
+                          saving={savingDetailId === activeDetail.id}
+                          onClick={() =>
+                            handleUpdateStatus(activeDetail, "proses")
+                          }
+                        />
+
+                        <StatusButton
+                          label="Selesai"
+                          active={activeDetail.status === "selesai"}
+                          saving={savingDetailId === activeDetail.id}
+                          onClick={() =>
+                            handleUpdateStatus(activeDetail, "selesai")
+                          }
+                        />
                       </div>
                     </Panel>
                   )}
@@ -425,47 +660,97 @@ export default function RoadmapClient() {
                 <Panel className="overflow-hidden">
                   <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-600">Timeline roadmap</p>
-                      <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">Checklist belajar bertahap</h2>
-                      <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-                        Detail yang sedang dipilih diberi warna agar posisinya jelas. Status bisa diubah tanpa reload tampilan.
+                      <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-sky-600">
+                        Timeline roadmap
+                      </p>
+
+                      <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950">
+                        Checklist belajar bertahap
+                      </h2>
+
+                      <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-500">
+                        Detail yang sedang dipilih diberi warna agar posisinya
+                        jelas. Status bisa diubah tanpa reload tampilan.
                       </p>
                     </div>
-                    <span className="w-fit rounded-full bg-sky-50 px-4 py-2 text-xs font-bold text-sky-700 ring-1 ring-sky-100">Progress {progress}%</span>
+
+                    <span className="w-fit rounded-full bg-sky-50 px-4 py-2 text-xs font-bold text-sky-700 ring-1 ring-sky-100">
+                      Progress {progress}%
+                    </span>
                   </div>
 
                   <div className="mt-7 space-y-6">
                     {roadmap.steps.map((step, index) => {
-                      const stepDone = step.details.filter((detail) => detail.status === "selesai").length;
-                      const stepProgress = step.details.length ? Math.round((stepDone / step.details.length) * 100) : 0;
-                      const stepHasActive = step.details.some((detail) => detail.id === activeDetail?.id);
+                      const stepDone = step.details.filter(
+                        (detail) => detail.status === "selesai",
+                      ).length;
+                      const stepProgress = step.details.length
+                        ? Math.round((stepDone / step.details.length) * 100)
+                        : 0;
+                      const stepHasActive = step.details.some(
+                        (detail) => detail.id === activeDetail?.id,
+                      );
 
                       return (
                         <div key={step.id} className="relative pl-5">
                           <div className="absolute bottom-0 left-[15px] top-10 w-px bg-sky-100" />
-                          <div className={`absolute left-0 top-0 grid h-8 w-8 place-items-center rounded-full text-xs font-bold text-white shadow-sm ${stepHasActive ? "bg-[#0a54c7]" : "bg-[#07142f]"}`}>
+
+                          <div
+                            className={`absolute left-0 top-0 grid h-8 w-8 place-items-center rounded-full text-xs font-bold text-white shadow-sm ${
+                              stepHasActive ? "bg-[#0a54c7]" : "bg-[#07142f]"
+                            }`}
+                          >
                             {index + 1}
                           </div>
 
-                          <div className={`rounded-[1.45rem] border p-4 md:p-5 ${stepHasActive ? "border-sky-200 bg-sky-50/50" : "border-sky-100/80 bg-white/80"}`}>
+                          <div
+                            className={`rounded-[1.45rem] border p-4 md:p-5 ${
+                              stepHasActive
+                                ? "border-sky-200 bg-sky-50/50"
+                                : "border-sky-100/80 bg-white/80"
+                            }`}
+                          >
                             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                               <div>
-                                <p className="text-xs font-bold uppercase tracking-[0.18em] text-sky-600">Tahap {index + 1}</p>
-                                <h3 className="mt-1 text-lg font-bold text-slate-950">{step.title}</h3>
-                                {step.description && <p className="mt-1 text-sm leading-6 text-slate-500">{step.description}</p>}
+                                <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-sky-600">
+                                  Tahap {index + 1}
+                                </p>
+
+                                <h3 className="mt-1 text-lg font-extrabold text-slate-950">
+                                  {step.title}
+                                </h3>
+
+                                {step.description ? (
+                                  <p className="mt-1 text-sm font-semibold leading-6 text-slate-500">
+                                    {step.description}
+                                  </p>
+                                ) : null}
                               </div>
+
                               <div className="min-w-28 rounded-2xl bg-white p-3 text-right ring-1 ring-sky-100">
-                                <p className="text-lg font-bold text-slate-950">{stepProgress}%</p>
-                                <p className="text-[11px] font-bold text-slate-400">tahap selesai</p>
+                                <p className="text-lg font-extrabold text-slate-950">
+                                  {stepProgress}%
+                                </p>
+
+                                <p className="text-[11px] font-bold text-slate-400">
+                                  tahap selesai
+                                </p>
                               </div>
                             </div>
 
-                            <div className="mt-4"><ProgressBar value={stepProgress} compact /></div>
+                            <div className="mt-4">
+                              <ProgressBar value={stepProgress} compact />
+                            </div>
 
                             {!!step.notes?.length && (
                               <div className="mt-4 rounded-2xl bg-cyan-50/70 p-3 text-xs font-semibold leading-5 text-sky-800 ring-1 ring-cyan-100">
-                                <span className="font-extrabold">Catatan Guru BK:</span> {step.notes[0]?.note}
-                                {step.notes.length > 1 ? ` +${step.notes.length - 1} catatan lain` : ""}
+                                <span className="font-extrabold">
+                                  Catatan Guru BK:
+                                </span>{" "}
+                                {step.notes[0]?.note}
+                                {step.notes.length > 1
+                                  ? ` +${step.notes.length - 1} catatan lain`
+                                  : ""}
                               </div>
                             )}
 
@@ -476,25 +761,80 @@ export default function RoadmapClient() {
                                 const itemSaving = savingDetailId === detail.id;
 
                                 return (
-                                  <article key={detail.id} className={`relative rounded-2xl border p-4 transition ${active ? "skilllens-selected-roadmap" : "border-slate-100 bg-white/[0.92] hover:border-sky-200 hover:bg-white"}`}>
-                                    <button type="button" onClick={() => setActiveDetailId(detail.id)} className="flex w-full items-start justify-between gap-3 text-left">
+                                  <article
+                                    key={detail.id}
+                                    className={`relative rounded-2xl border p-4 transition ${
+                                      active
+                                        ? "skilllens-selected-roadmap"
+                                        : "border-slate-100 bg-white/[0.92] hover:border-sky-200 hover:bg-white"
+                                    }`}
+                                  >
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setActiveDetailId(detail.id)
+                                      }
+                                      className="flex w-full items-start justify-between gap-3 text-left"
+                                    >
                                       <div className="flex min-w-0 gap-3">
-                                        <span className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl ring-1 ${meta.iconBox}`}>
-                                          <Icon name={meta.icon} className="h-4 w-4" />
+                                        <span
+                                          className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl ring-1 ${meta.iconBox}`}
+                                        >
+                                          <Icon
+                                            name={meta.icon}
+                                            className="h-4 w-4"
+                                          />
                                         </span>
+
                                         <div>
-                                          <h4 className="text-sm font-bold text-slate-800">{detail.title}</h4>
-                                          {detail.description ? <p className="mt-1 text-xs leading-5 text-slate-500">{detail.description}</p> : null}
-                                          {itemSaving ? <p className="mt-2 text-xs font-semibold text-sky-700">Menyimpan perubahan...</p> : null}
+                                          <h4 className="text-sm font-extrabold text-slate-800">
+                                            {detail.title}
+                                          </h4>
+
+                                          {detail.description ? (
+                                            <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
+                                              {detail.description}
+                                            </p>
+                                          ) : null}
+
+                                          {itemSaving ? (
+                                            <p className="mt-2 text-xs font-semibold text-sky-700">
+                                              Menyimpan perubahan...
+                                            </p>
+                                          ) : null}
                                         </div>
                                       </div>
+
                                       <DetailStatusBadge status={detail.status} />
                                     </button>
 
                                     <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">
-                                      <StatusButton label="Belum" active={detail.status === "belum"} saving={itemSaving} onClick={() => handleUpdateStatus(detail, "belum")} />
-                                      <StatusButton label="Proses" active={detail.status === "proses"} saving={itemSaving} onClick={() => handleUpdateStatus(detail, "proses")} />
-                                      <StatusButton label="Selesai" active={detail.status === "selesai"} saving={itemSaving} onClick={() => handleUpdateStatus(detail, "selesai")} />
+                                      <StatusButton
+                                        label="Belum"
+                                        active={detail.status === "belum"}
+                                        saving={itemSaving}
+                                        onClick={() =>
+                                          handleUpdateStatus(detail, "belum")
+                                        }
+                                      />
+
+                                      <StatusButton
+                                        label="Proses"
+                                        active={detail.status === "proses"}
+                                        saving={itemSaving}
+                                        onClick={() =>
+                                          handleUpdateStatus(detail, "proses")
+                                        }
+                                      />
+
+                                      <StatusButton
+                                        label="Selesai"
+                                        active={detail.status === "selesai"}
+                                        saving={itemSaving}
+                                        onClick={() =>
+                                          handleUpdateStatus(detail, "selesai")
+                                        }
+                                      />
                                     </div>
                                   </article>
                                 );
@@ -509,7 +849,8 @@ export default function RoadmapClient() {
               </div>
             </>
           )}
-        </section>
-      </main>
+        </div>
+      </section>
+    </main>
   );
 }

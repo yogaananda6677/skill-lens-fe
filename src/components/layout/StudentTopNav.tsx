@@ -158,20 +158,22 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="hidden items-center gap-3 sm:flex">
-            <div className="flex items-center gap-3 rounded-full border border-white/10 bg-white/10 px-3 py-2 shadow-sm backdrop-blur-md">
-              <div className="grid h-8 w-8 place-items-center rounded-full bg-cyan-100 text-xs font-extrabold text-[#07142f]">
-                {currentInitials}
-              </div>
+            <Link href="/siswa/akun" className="hidden items-center gap-3 sm:flex">
+              <div className="flex items-center gap-3 rounded-full border border-white/10 bg-white/10 px-3 py-2 shadow-sm backdrop-blur-md skilllens-smooth hover:bg-white/15">
+                <div className="grid h-8 w-8 place-items-center rounded-full bg-cyan-100 text-xs font-extrabold text-[#07142f]">
+                  {currentInitials}
+                </div>
 
-              <div className="pr-1 leading-tight">
-                <p className="max-w-32 truncate text-sm font-extrabold text-white">
-                  {name}
-                </p>
-                <p className="text-[11px] font-bold text-cyan-100/70">
-                  Siswa
-                </p>
+                <div className="pr-1 leading-tight">
+                  <p className="max-w-32 truncate text-sm font-extrabold text-white">
+                    {name}
+                  </p>
+                  <p className="text-[11px] font-bold text-cyan-100/70">
+                    Akun & Password
+                  </p>
+                </div>
               </div>
-            </div>
+            </Link>
 
             <button
               type="button"
