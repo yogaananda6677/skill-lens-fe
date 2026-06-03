@@ -1,5 +1,5 @@
 import { apiFetch, API_BASE_URL } from "../../lib/axios";
-import type { AcademicScores, CareerRoadmap, PublishedRoadmap, Recommendation, RoadmapDetail, RoadmapStep, StudentProfileForm, StudentAchievement, StudentAcademicDetailResponse } from "./types";
+import type { AcademicScores, CareerRoadmap, PublishedRoadmap, Recommendation, RoadmapDetail, RoadmapStep, StudentProfileForm, StudentAchievement, StudentAcademicDetailResponse, StudentRoadmapHistoryItem, StudentSpkHistoryItem } from "./types";
 
 function asArray(value: unknown): string[] {
   if (Array.isArray(value)) return value.map((item) => String(item ?? "").trim()).filter(Boolean);
@@ -166,6 +166,18 @@ export async function saveSiswaProfile(payload: SiswaProfilePayload) {
   });
 }
 
+function normalizeReason(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item ?? "").trim()).filter(Boolean).join(" ");
+  }
+
+  if (value && typeof value === "object") {
+    return JSON.stringify(value);
+  }
+
+  return String(value ?? "").trim();
+}
+
 function normalizeRecommendations(response: any) {
   const raw =
     response?.recommendations ??
@@ -180,9 +192,10 @@ function normalizeRecommendations(response: any) {
     const recommendationId = item.id ?? item.id_rekomendasi ?? index + 1;
     const alternativeId = Number(firstDefined(
       item.alternativeId,
+      item.alternatifId,
       item.alternative_id,
-      item.id_alternatif,
       item.alternatif_id,
+      item.id_alternatif,
       item.id_alternative,
       item.id_jurusan,
       item.jurusan_id,
@@ -197,6 +210,18 @@ function normalizeRecommendations(response: any) {
       item.roadmap?.id,
       null,
     ));
+    const reasonText = normalizeReason(firstDefined(
+      item.alasan_ai,
+      item.ai_reason,
+      item.alasanPolished,
+      item.alasan_polished,
+      item.alasan,
+      item.summary,
+      item.deskripsi,
+      item.description,
+      "",
+    ));
+    const summary = reasonText || "Rekomendasi berdasarkan nilai akademik dan profil siswa.";
 
     return {
       id: recommendationId,
@@ -206,26 +231,31 @@ function normalizeRecommendations(response: any) {
         item.nama ??
         item.nama_rekomendasi ??
         item.nama_jurusan ??
+        item.alternatif ??
+        item.alternative_name ??
         "Rekomendasi",
-      category: item.category ?? item.kategori ?? item.tipe ?? "rekomendasi",
+      category: item.category ?? item.kategori ?? item.tipe ?? item.jenis ?? "rekomendasi",
       score: Number(
-        item.score ?? item.nilai ?? item.topsis_score ?? item.skor ?? 0,
+        item.score ?? item.nilai ?? item.topsis_score ?? item.skor ?? item.persentase_kecocokan ?? 0,
       ),
-      summary:
-        item.summary ??
-        item.deskripsi ??
-        item.alasan ??
-        "Rekomendasi berdasarkan nilai akademik dan profil siswa.",
+      summary,
+      alasan: summary,
+      reasons: Array.isArray(item.reasons) ? item.reasons : reasonText ? [summary] : [],
+      fuzzyLabel: String(item.fuzzyLabel ?? item.fuzzy_label ?? item.label_fuzzy ?? ""),
+      suggestedMajors: asArray(item.suggestedMajors ?? item.suggested_majors ?? item.saran_jurusan),
+      criteria: item.criteria ?? item.kriteria ?? item.detailScore ?? item.detail_skor ?? {},
       dominantFactors: Array.isArray(item.dominantFactors)
         ? item.dominantFactors
         : Array.isArray(item.faktor_dominan)
           ? item.faktor_dominan
-          : typeof item.faktor_dominan === "string"
-            ? item.faktor_dominan.split(",").map((value: string) => value.trim())
-            : [],
+          : Array.isArray(item.tags_cocok)
+            ? item.tags_cocok
+            : typeof item.faktor_dominan === "string"
+              ? item.faktor_dominan.split(",").map((value: string) => value.trim()).filter(Boolean)
+              : [],
       roadmapId: Number.isFinite(roadmapId) && roadmapId > 0 ? roadmapId : null,
       topsisRank: Number(
-        item.topsisRank ?? item.rank ?? item.peringkat ?? index + 1,
+        item.topsisRank ?? item.rank ?? item.peringkat ?? item.ranking ?? index + 1,
       ),
     };
   });
@@ -361,6 +391,87 @@ export async function selectStudentRoadmap(roadmapId: number) {
 export async function getActiveStudentRoadmap() {
   const response = await apiFetch<any>("/roadmaps/student/active");
   return normalizeActiveRoadmap(response);
+}
+
+function normalizeStudentRoadmapHistoryItem(raw: any): StudentRoadmapHistoryItem {
+  return {
+    id: Number(firstDefined(raw?.id, raw?.id_student_roadmap, raw?.student_roadmap_id, 0)),
+    roadmapId: Number(firstDefined(raw?.roadmapId, raw?.id_roadmap, raw?.roadmap_id, raw?.roadmap?.id_roadmap, raw?.roadmap?.id, 0)),
+    title: String(firstDefined(raw?.title, raw?.headline, raw?.roadmap?.title, raw?.roadmap?.headline, "Roadmap Pengembangan Diri")),
+    targetRole: firstDefined(raw?.recommended_for, raw?.targetRole, raw?.target_role, raw?.roadmap?.recommended_for, null) as string | null,
+    category: firstDefined(raw?.category, raw?.kategori, raw?.roadmap?.category, raw?.roadmap?.kategori, null) as string | null,
+    status: String(firstDefined(raw?.status, "aktif")),
+    progress: Number(firstDefined(raw?.progress, raw?.progress_percent, raw?.progress_percentage, raw?.percentage, 0)),
+    totalDetail: Number(firstDefined(raw?.totalDetail, raw?.total_detail, raw?.total, 0)),
+    completedDetail: Number(firstDefined(raw?.completedDetail, raw?.completed_detail, raw?.completed, 0)),
+    inProgressDetail: Number(firstDefined(raw?.inProgressDetail, raw?.in_progress_detail, raw?.in_progress, 0)),
+    startedAt: firstDefined(raw?.startedAt, raw?.started_at, null) as string | null,
+    completedAt: firstDefined(raw?.completedAt, raw?.completed_at, null) as string | null,
+    createdAt: firstDefined(raw?.createdAt, raw?.created_at, null) as string | null,
+    updatedAt: firstDefined(raw?.updatedAt, raw?.updated_at, null) as string | null,
+    isActive: Boolean(firstDefined(raw?.isActive, raw?.is_active, raw?.status === "aktif")),
+  };
+}
+
+export async function getStudentRoadmapHistory(): Promise<StudentRoadmapHistoryItem[]> {
+  const response = await apiFetch<any>("/roadmaps/student/history", {
+    method: "GET",
+    alert: false,
+  });
+
+  const rows = Array.isArray(response)
+    ? response
+    : Array.isArray(response?.data)
+      ? response.data
+      : Array.isArray(response?.history)
+        ? response.history
+        : [];
+
+  return rows.map(normalizeStudentRoadmapHistoryItem).filter((item) => item.id > 0);
+}
+
+function normalizeSelectedSpkRoadmap(raw: any) {
+  if (!raw) return null;
+
+  return {
+    id: Number(firstDefined(raw?.id, raw?.id_student_roadmap, 0)),
+    roadmapId: Number(firstDefined(raw?.roadmapId, raw?.id_roadmap, raw?.roadmap_id, 0)),
+    title: String(firstDefined(raw?.title, raw?.recommended_for, raw?.roadmap?.recommended_for, "Roadmap dipilih")),
+    roadmapTitle: firstDefined(raw?.roadmapTitle, raw?.roadmap_title, raw?.roadmap?.title, null) as string | null,
+    category: firstDefined(raw?.category, raw?.kategori, raw?.roadmap?.category, null) as string | null,
+    status: firstDefined(raw?.status, null) as string | null,
+    selectedAt: firstDefined(raw?.selectedAt, raw?.selected_at, raw?.createdAt, raw?.created_at, null) as string | null,
+  };
+}
+
+function normalizeStudentSpkHistoryItem(raw: any): StudentSpkHistoryItem {
+  return {
+    id: Number(firstDefined(raw?.id, raw?.id_recommendation_run, 0)),
+    runCode: firstDefined(raw?.runCode, raw?.run_code, null) as string | null,
+    tujuanKarir: firstDefined(raw?.tujuanKarir, raw?.tujuan_karir, null) as string | null,
+    jenisSekolah: firstDefined(raw?.jenisSekolah, raw?.jenis_sekolah, null) as string | null,
+    jurusanSekolah: firstDefined(raw?.jurusanSekolah, raw?.jurusan_sekolah, null) as string | null,
+    createdAt: firstDefined(raw?.createdAt, raw?.created_at, null) as string | null,
+    selected: normalizeSelectedSpkRoadmap(raw?.selected ?? raw?.selectedRoadmap ?? raw?.selected_roadmap),
+    recommendations: normalizeRecommendations({ recommendations: raw?.recommendations ?? raw?.results ?? [] }),
+  };
+}
+
+export async function getStudentSpkHistory(): Promise<StudentSpkHistoryItem[]> {
+  const response = await apiFetch<any>("/siswa/spk/history", {
+    method: "GET",
+    alert: false,
+  });
+
+  const rows = Array.isArray(response)
+    ? response
+    : Array.isArray(response?.data)
+      ? response.data
+      : Array.isArray(response?.history)
+        ? response.history
+        : [];
+
+  return rows.map(normalizeStudentSpkHistoryItem).filter((item) => item.id > 0);
 }
 
 export async function updateStudentRoadmapProgress(progressId: number, status: "belum" | "proses" | "selesai") {

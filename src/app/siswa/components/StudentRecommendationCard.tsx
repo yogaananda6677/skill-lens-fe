@@ -161,7 +161,7 @@ export function StudentRecommendationCard({
                 : "bg-slate-100 text-slate-500 group-hover:bg-sky-50 group-hover:text-sky-700"
           }`}
         >
-          {roadmapActive ? "Buka roadmap" : selected ? "Dipilih" : "Pilih"}
+          {roadmapActive ? "Roadmap aktif" : selected ? "Dipilih" : "Pilih"}
         </span>
       </div>
     </button>

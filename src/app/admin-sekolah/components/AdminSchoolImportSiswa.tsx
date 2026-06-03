@@ -55,7 +55,7 @@ export function AdminSchoolImportSiswa({
     (item) => String(item.id) === String(importJurusanId)
   );
 
-  const canImport = Boolean(selectedFile);
+  const canImport = Boolean(selectedFile) && (isSma || Boolean(importJurusanId));
 
   function pickFile(file?: File | null) {
     if (!file) return;

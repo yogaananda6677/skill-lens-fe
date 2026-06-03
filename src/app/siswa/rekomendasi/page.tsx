@@ -9,10 +9,11 @@ import { Icon } from "../../../components/ui/icons";
 import {
   getActiveStudentRoadmap,
   getLatestSiswaSpk,
+  getStudentSpkHistory,
   processSiswaSpk,
   selectStudentRoadmap,
 } from "../../../features/siswa/api";
-import type { Recommendation } from "../../../features/siswa/types";
+import type { Recommendation, StudentSpkHistoryItem } from "../../../features/siswa/types";
 import { StudentRecommendationPanel } from "../components/StudentRecommendationPanel";
 import { useStudentData } from "../hooks/useStudentData";
 import { buildStudentPayload } from "../utils/buildStudentPayload";
@@ -146,6 +147,162 @@ function InlineRoadmapProcessing() {
   );
 }
 
+function formatHistoryDate(value?: string | null) {
+  if (!value) return "Tanggal belum tersedia";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Tanggal belum tersedia";
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function selectedBadgeClass(status?: string | null) {
+  if (status === "aktif") return "bg-cyan-100 text-cyan-800 ring-cyan-200";
+  if (status === "selesai") return "bg-emerald-50 text-emerald-700 ring-emerald-100";
+  if (status === "dibatalkan") return "bg-slate-100 text-slate-600 ring-slate-200";
+  return "bg-sky-50 text-sky-700 ring-sky-100";
+}
+
+function SpkGenerateHistory({
+  items,
+  loading,
+}: {
+  items: StudentSpkHistoryItem[];
+  loading: boolean;
+}) {
+  return (
+    <section className="mt-6 overflow-hidden rounded-[2rem] border border-sky-200/80 bg-white/95 p-5 shadow-lg shadow-sky-950/5 ring-1 ring-white/70 sm:p-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-sky-600">
+            History generate SPK
+          </p>
+
+          <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950">
+            Riwayat alternatif yang pernah digenerate
+          </h2>
+
+          <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-500">
+            Bagian ini hanya menampilkan catatan hasil SPK dan pilihan roadmap yang pernah dibuat. Semua kartu bersifat read-only dan tidak bisa diklik.
+          </p>
+        </div>
+
+        <span className="inline-flex w-fit items-center gap-2 rounded-full bg-sky-50 px-4 py-2 text-xs font-extrabold text-sky-700 ring-1 ring-sky-100">
+          <Icon name="clock" className="h-4 w-4" />
+          Read-only
+        </span>
+      </div>
+
+      {loading ? (
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          {[1, 2].map((item) => (
+            <div key={item} className="h-48 animate-pulse rounded-3xl bg-sky-100" />
+          ))}
+        </div>
+      ) : items.length ? (
+        <div className="mt-5 grid gap-4 xl:grid-cols-2">
+          {items.slice(0, 6).map((item) => {
+            const selectedRoadmapId = Number(item.selected?.roadmapId ?? 0);
+
+            return (
+              <article
+                key={item.id}
+                aria-label="Riwayat generate SPK, hanya tampilan"
+                className="relative overflow-hidden rounded-3xl border border-sky-100 bg-[linear-gradient(180deg,#ffffff_0%,#f5fbff_100%)] p-4 shadow-sm"
+              >
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#08224f_0%,#0a54c7_58%,#39d9ff_100%)]" />
+
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-[#07142f] px-3 py-1 text-[11px] font-extrabold text-white">
+                        Generate #{item.id}
+                      </span>
+                      <span className="rounded-full bg-sky-50 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.08em] text-sky-700 ring-1 ring-sky-100">
+                        {item.tujuanKarir || "rekomendasi"}
+                      </span>
+                    </div>
+
+                    <p className="mt-2 text-xs font-bold text-slate-500">
+                      {formatHistoryDate(item.createdAt)}
+                    </p>
+                  </div>
+
+                  {item.selected ? (
+                    <span className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-extrabold ring-1 ${selectedBadgeClass(item.selected.status)}`}>
+                      <Icon name="check" className="h-3.5 w-3.5" />
+                      Dipilih: {item.selected.title}
+                    </span>
+                  ) : (
+                    <span className="inline-flex w-fit items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-[11px] font-extrabold text-slate-500 ring-1 ring-slate-100">
+                      Belum ada pilihan roadmap
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  {item.recommendations.slice(0, 3).map((recommendation) => {
+                    const isSelected = Boolean(
+                      selectedRoadmapId && Number(recommendation.roadmapId) === selectedRoadmapId,
+                    );
+
+                    return (
+                      <div
+                        key={`${item.id}-${recommendation.id}`}
+                        className={`rounded-2xl border p-3 ${
+                          isSelected
+                            ? "border-cyan-200 bg-cyan-50 text-[#07142f]"
+                            : "border-slate-100 bg-white text-slate-700"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-extrabold text-slate-950">
+                              {recommendation.topsisRank}. {recommendation.title}
+                            </p>
+                            <p className="mt-1 text-xs font-semibold capitalize text-slate-500">
+                              {recommendation.category}
+                            </p>
+                          </div>
+
+                          <div className="flex shrink-0 items-center gap-2">
+                            {isSelected ? (
+                              <span className="rounded-full bg-[#07142f] px-2.5 py-1 text-[10px] font-extrabold text-white">
+                                Dipilih
+                              </span>
+                            ) : null}
+                            <span className="grid h-9 w-9 place-items-center rounded-2xl bg-sky-50 text-xs font-extrabold text-sky-700 ring-1 ring-sky-100">
+                              {Math.round(recommendation.score || 0)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <p className="mt-2 line-clamp-2 text-xs font-semibold leading-5 text-slate-500">
+                          {recommendation.summary}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="mt-5 rounded-3xl border border-dashed border-sky-200 bg-sky-50 p-5 text-sm font-semibold text-sky-700">
+          Belum ada history generate SPK.
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function SiswaRekomendasiPage() {
   const { profile, prestasiRows, loadingProfile, error, setError } =
     useStudentData();
@@ -162,9 +319,11 @@ export default function SiswaRekomendasiPage() {
   const [generatedRoadmapId, setGeneratedRoadmapId] = useState<number | null>(
     null,
   );
+  const [spkHistory, setSpkHistory] = useState<StudentSpkHistoryItem[]>([]);
 
   const [processing, setProcessing] = useState(false);
   const [loadingLatest, setLoadingLatest] = useState(false);
+  const [loadingSpkHistory, setLoadingSpkHistory] = useState(false);
   const [generatingRoadmap, setGeneratingRoadmap] = useState(false);
   const [message, setMessage] = useState("");
   const [autoMode, setAutoMode] = useState(false);
@@ -179,14 +338,16 @@ export default function SiswaRekomendasiPage() {
 
     async function loadLatestRecommendation() {
       setLoadingLatest(true);
+      setLoadingSpkHistory(true);
 
       try {
         const shouldAutoProcess =
           new URLSearchParams(window.location.search).get("auto") === "1";
 
-        const [latestResult, activeRoadmapResult] = await Promise.allSettled([
+        const [latestResult, activeRoadmapResult, historyResult] = await Promise.allSettled([
           getLatestSiswaSpk(),
           getActiveStudentRoadmap(),
+          getStudentSpkHistory(),
         ]);
 
         if (!active) return;
@@ -214,6 +375,11 @@ export default function SiswaRekomendasiPage() {
           setActiveRoadmapId(activeRoadmapResult.value.id);
           setGeneratedRoadmapId(activeRoadmapResult.value.id);
         }
+
+
+        if (historyResult.status === "fulfilled") {
+          setSpkHistory(historyResult.value);
+        }
       } catch {
         /**
          * Tidak perlu tampil error di awal.
@@ -222,6 +388,7 @@ export default function SiswaRekomendasiPage() {
       } finally {
         if (active) {
           setLoadingLatest(false);
+          setLoadingSpkHistory(false);
         }
       }
     }
@@ -283,6 +450,10 @@ export default function SiswaRekomendasiPage() {
     try {
       await selectStudentRoadmap(parsedRoadmapId);
 
+      void getStudentSpkHistory()
+        .then(setSpkHistory)
+        .catch(() => undefined);
+
       setGeneratedRoadmapId(parsedRoadmapId);
       setActiveRoadmapId(parsedRoadmapId);
       setMessage("Roadmap berhasil dibuat. Kamu akan diarahkan ke halaman roadmap.");
@@ -341,6 +512,10 @@ export default function SiswaRekomendasiPage() {
         rows[0];
 
       setSelectedRecommendation(topRecommendation);
+
+      void getStudentSpkHistory()
+        .then(setSpkHistory)
+        .catch(() => undefined);
 
       const successMessage =
         result.message ||
@@ -487,6 +662,11 @@ export default function SiswaRekomendasiPage() {
               onGenerateRoadmap={handleGenerateRoadmap}
             />
           </section>
+
+          <SpkGenerateHistory
+            items={spkHistory}
+            loading={loadingSpkHistory}
+          />
         </section>
       </main>
 

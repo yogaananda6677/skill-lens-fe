@@ -7,12 +7,14 @@ import { useAppAlert } from "../../../components/ui/AppAlertProvider";
 import { Icon } from "../../../components/ui/icons";
 import {
   getActiveStudentRoadmap,
+  getStudentRoadmapHistory,
   updateStudentRoadmapProgress,
 } from "../../../features/siswa/api";
 import type {
   CareerRoadmap,
   RoadmapDetail,
   RoadmapNote,
+  StudentRoadmapHistoryItem,
 } from "../../../features/siswa/types";
 
 type RoadmapStatus = "belum" | "proses" | "selesai";
@@ -265,6 +267,150 @@ function formatNoteDate(value?: string | null) {
   }).format(date);
 }
 
+function formatHistoryDate(value?: string | null) {
+  if (!value) return "Tanggal belum tersedia";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Tanggal belum tersedia";
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function roadmapHistoryStatusMeta(status: string) {
+  if (status === "aktif") {
+    return {
+      label: "Aktif",
+      badge: "bg-cyan-100 text-cyan-800 ring-cyan-200",
+      dot: "bg-cyan-500",
+    };
+  }
+
+  if (status === "selesai") {
+    return {
+      label: "Selesai",
+      badge: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+      dot: "bg-emerald-500",
+    };
+  }
+
+  return {
+    label: "Riwayat",
+    badge: "bg-slate-100 text-slate-600 ring-slate-200",
+    dot: "bg-slate-400",
+  };
+}
+
+function RoadmapHistoryPanel({
+  items,
+  loading,
+}: {
+  items: StudentRoadmapHistoryItem[];
+  loading: boolean;
+}) {
+  return (
+    <Panel className="border-sky-200 bg-[linear-gradient(180deg,#ffffff_0%,#f1f9ff_100%)]">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-sky-600">
+            History generate
+          </p>
+
+          <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950">
+            Riwayat roadmap siswa
+          </h2>
+
+          <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
+            Ini hanya catatan roadmap yang pernah dibuat. Item history sengaja
+            tidak bisa diklik agar tidak mengganti roadmap aktif secara tidak sengaja.
+          </p>
+        </div>
+
+        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-sky-50 text-sky-700 ring-1 ring-sky-100">
+          <Icon name="clock" className="h-5 w-5" />
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="mt-5 space-y-3">
+          {[1, 2, 3].map((item) => (
+            <div key={item} className="h-24 animate-pulse rounded-3xl bg-sky-100/80" />
+          ))}
+        </div>
+      ) : items.length ? (
+        <div className="mt-5 space-y-3">
+          {items.map((item, index) => {
+            const meta = roadmapHistoryStatusMeta(item.status);
+            const dateLabel = formatHistoryDate(item.startedAt ?? item.createdAt);
+
+            return (
+              <article
+                key={item.id}
+                aria-label={`History roadmap ${item.title}`}
+                className="relative overflow-hidden rounded-3xl border border-sky-100 bg-white/85 p-4 shadow-sm shadow-sky-950/5 ring-1 ring-white/70"
+              >
+                <div className="pointer-events-none absolute inset-y-4 left-0 w-1 rounded-r-full bg-gradient-to-b from-[#0a54c7] to-[#39d9ff]" />
+
+                <div className="flex items-start gap-3 pl-2">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[linear-gradient(135deg,#e0f2fe_0%,#bae6fd_100%)] text-[#0a54c7] ring-1 ring-sky-100">
+                    <span className="text-sm font-extrabold">{index + 1}</span>
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-extrabold ring-1 ${meta.badge}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
+                        {meta.label}
+                      </span>
+
+                      <span className="rounded-full bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-500 ring-1 ring-slate-100">
+                        Read-only
+                      </span>
+                    </div>
+
+                    <h3 className="mt-2 truncate text-base font-extrabold text-slate-950">
+                      {item.title}
+                    </h3>
+
+                    <p className="mt-1 text-xs font-semibold text-slate-500">
+                      {item.targetRole || item.category || "Target belum tersedia"} • {dateLabel}
+                    </p>
+
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <ProgressBar value={item.progress} compact />
+                      </div>
+
+                      <span className="text-xs font-extrabold text-sky-700">
+                        {item.progress}% selesai
+                      </span>
+                    </div>
+
+                    <p className="mt-2 text-xs font-semibold text-slate-400">
+                      {item.completedDetail}/{item.totalDetail} detail selesai
+                      {item.inProgressDetail ? ` • ${item.inProgressDetail} proses` : ""}
+                    </p>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="mt-5 rounded-3xl border border-dashed border-sky-200 bg-sky-50/70 p-5 text-sm font-semibold leading-6 text-sky-700">
+          Belum ada history generate roadmap. Setelah siswa membuat roadmap dari
+          halaman rekomendasi, riwayatnya akan muncul di sini.
+        </div>
+      )}
+    </Panel>
+  );
+}
+
 function GuidanceNotesCard({ notes }: { notes: RoadmapNote[] }) {
   return (
     <div className="mt-5 rounded-2xl bg-gradient-to-br from-cyan-50 to-sky-50 p-4 ring-1 ring-sky-100">
@@ -325,24 +471,41 @@ export default function RoadmapClient() {
     useAppAlert();
 
   const [roadmap, setRoadmap] = useState<CareerRoadmap | null>(null);
+  const [history, setHistory] = useState<StudentRoadmapHistoryItem[]>([]);
   const [activeDetailId, setActiveDetailId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadingHistory, setLoadingHistory] = useState(true);
   const [savingDetailId, setSavingDetailId] = useState<number | null>(null);
 
   async function refresh() {
     setLoading(true);
+    setLoadingHistory(true);
     setError("");
 
     try {
-      const active = await getActiveStudentRoadmap().catch(() => null);
+      const [activeResult, historyResult] = await Promise.allSettled([
+        getActiveStudentRoadmap(),
+        getStudentRoadmapHistory(),
+      ]);
 
-      setRoadmap(active);
+      if (activeResult.status === "fulfilled") {
+        const active = activeResult.value;
+        setRoadmap(active);
 
-      const allDetails = active?.steps.flatMap((step) => step.details) ?? [];
-      const recommendedDetail = getNextDetail(allDetails);
+        const allDetails = active?.steps.flatMap((step) => step.details) ?? [];
+        const recommendedDetail = getNextDetail(allDetails);
 
-      setActiveDetailId(recommendedDetail?.id ?? null);
+        setActiveDetailId(recommendedDetail?.id ?? null);
+      } else {
+        setRoadmap(null);
+      }
+
+      if (historyResult.status === "fulfilled") {
+        setHistory(historyResult.value);
+      } else {
+        setHistory([]);
+      }
     } catch (err) {
       const errMessage =
         err instanceof Error ? err.message : "Gagal memuat roadmap.";
@@ -351,6 +514,7 @@ export default function RoadmapClient() {
       showError("Gagal memuat roadmap", errMessage);
     } finally {
       setLoading(false);
+      setLoadingHistory(false);
     }
   }
 
@@ -493,7 +657,12 @@ export default function RoadmapClient() {
 
         <div className="mt-6">
           {loading && <LoadingRoadmapState />}
-          {!loading && !roadmap && <EmptyRoadmapState />}
+          {!loading && !roadmap && (
+            <div className="space-y-6">
+              <EmptyRoadmapState />
+              <RoadmapHistoryPanel items={history} loading={loadingHistory} />
+            </div>
+          )}
 
           {!loading && roadmap && (
             <>
@@ -575,6 +744,8 @@ export default function RoadmapClient() {
                       Fokus ke tugas berikutnya agar progress naik lebih cepat.
                     </p>
                   </BluePanel>
+
+                  <RoadmapHistoryPanel items={history} loading={loadingHistory} />
 
                   {nextDetail && (
                     <Panel className="border-sky-200 bg-[linear-gradient(180deg,#eff9ff_0%,#ffffff_100%)]">

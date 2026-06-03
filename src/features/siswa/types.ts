@@ -96,6 +96,44 @@ export type CareerRoadmap = {
   steps: RoadmapStep[];
 };
 
+export type StudentRoadmapHistoryItem = {
+  id: number;
+  roadmapId: number;
+  title: string;
+  targetRole?: string | null;
+  category?: string | null;
+  status: "aktif" | "selesai" | "dibatalkan" | string;
+  progress: number;
+  totalDetail: number;
+  completedDetail: number;
+  inProgressDetail: number;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  isActive: boolean;
+};
+
+
+export type StudentSpkHistoryItem = {
+  id: number;
+  runCode?: string | null;
+  tujuanKarir?: string | null;
+  jenisSekolah?: string | null;
+  jurusanSekolah?: string | null;
+  createdAt?: string | null;
+  selected?: {
+    id: number;
+    roadmapId: number;
+    title: string;
+    roadmapTitle?: string | null;
+    category?: string | null;
+    status?: string | null;
+    selectedAt?: string | null;
+  } | null;
+  recommendations: Recommendation[];
+};
+
 export type PublishedRoadmap = {
   id: number;
   title: string;
