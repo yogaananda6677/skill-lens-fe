@@ -318,13 +318,13 @@ export default function AdminSekolahPage() {
         "Data sekolah berhasil diajukan dan menunggu verifikasi.";
 
       setSchoolMessage(message);
-      setModal({ title: "Pengajuan terkirim", description: message });
       setSchoolForm(initialSchoolForm);
       setSchoolTouched(false);
 
+      // Jangan pindah halaman dan jangan buka FeedbackModal di sini.
+      // Komponen AdminSchoolDataSekolah sudah punya modal proses/sukses sendiri,
+      // sehingga tampilan pengajuan tidak bentrok atau hilang terlalu cepat.
       await loadSchoolStatus();
-
-      setActive("dashboard");
     } catch (err) {
       setSchoolError(
         err instanceof Error
@@ -547,11 +547,22 @@ export default function AdminSekolahPage() {
   function renderContent() {
     if (loadingStatus) {
       return (
-        <div className="flex justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-          <span className="ml-2 text-slate-600">
-            Memuat status sekolah...
-          </span>
+        <div className="relative overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-br from-white via-cyan-50/45 to-sky-50/70 p-8 text-center shadow-sm shadow-sky-100/60">
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(14,165,233,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(14,165,233,0.04)_1px,transparent_1px)] bg-[size:34px_34px]" />
+          <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-cyan-200/25 blur-3xl" />
+          <div className="pointer-events-none absolute -left-20 bottom-0 h-44 w-44 rounded-full bg-sky-200/20 blur-3xl" />
+
+          <div className="relative mx-auto grid h-14 w-14 place-items-center rounded-3xl border border-sky-100 bg-white text-sky-700 shadow-sm shadow-sky-100/60">
+            <div className="h-7 w-7 animate-spin rounded-full border-[3px] border-sky-200 border-t-sky-700" />
+          </div>
+
+          <h2 className="relative mt-5 text-xl font-black tracking-tight text-slate-950">
+            Memuat dashboard admin sekolah
+          </h2>
+
+          <p className="relative mt-2 text-sm font-medium leading-6 text-slate-600">
+            Mohon tunggu, sistem sedang mengambil status sekolah dan data awal.
+          </p>
         </div>
       );
     }
@@ -739,25 +750,25 @@ export default function AdminSekolahPage() {
 
   return (
     <AdminSchoolOnbordaProvider>
-    <DashboardShell
-      requiredRole="admin_sekolah"
-      activeKey={active}
-      navItems={adminSekolahNav}
-      title="Dashboard Admin Sekolah"
-      subtitle="Kelola data sekolah, guru, jurusan, import siswa, dan data siswa dalam satu panel."
-      onNavigate={(key) => setActive(key as AdminSchoolPageKey)}
-      rightSlot={<StartAdminSchoolOnbordaButton />}
-    >
-      {renderContent()}
+      <DashboardShell
+        requiredRole="admin_sekolah"
+        activeKey={active}
+        navItems={adminSekolahNav}
+        title="Dashboard Admin Sekolah"
+        subtitle="Kelola data sekolah, guru, jurusan, import siswa, dan data siswa dalam satu panel."
+        onNavigate={(key) => setActive(key as AdminSchoolPageKey)}
+        rightSlot={<StartAdminSchoolOnbordaButton />}
+      >
+        {renderContent()}
 
-      <FeedbackModal
-        open={!!modal}
-        type={modal?.type ?? "success"}
-        title={modal?.title ?? ""}
-        description={modal?.description}
-        onClose={() => setModal(null)}
-      />
-    </DashboardShell>
+        <FeedbackModal
+          open={!!modal}
+          type={modal?.type ?? "success"}
+          title={modal?.title ?? ""}
+          description={modal?.description}
+          onClose={() => setModal(null)}
+        />
+      </DashboardShell>
     </AdminSchoolOnbordaProvider>
   );
 }

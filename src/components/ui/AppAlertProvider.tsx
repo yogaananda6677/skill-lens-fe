@@ -46,6 +46,52 @@ function defaultAutoClose(type: AppAlertType): number | false {
   return false;
 }
 
+function normalizeText(value?: string) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function shouldHideAlert(type: AppAlertType, title?: string, description?: string) {
+  const normalizedTitle = normalizeText(title);
+  const fullText = normalizeText(`${title || ""} ${description || ""}`);
+
+  const hiddenSuccessTitles = [
+    "profil siswa berhasil disimpan.",
+    "profil berhasil disimpan.",
+    "profil berhasil disimpan",
+  ];
+
+  if (type === "success" && hiddenSuccessTitles.includes(normalizedTitle)) {
+    return true;
+  }
+
+  // Khusus pengajuan sekolah:
+  // Alert global disembunyikan karena halaman pengajuan sekolah sudah punya
+  // modal proses dan sukses sendiri di tengah layar.
+  if (type !== "error") {
+    const schoolSubmitKeywords = [
+      "pengajuan sekolah berhasil dikirim",
+      "pengajuan berhasil dikirim",
+      "pengajuan terkirim",
+      "menyimpan data sekolah",
+      "sedang mengirim data pengajuan",
+      "harap tunggu sedang mengirim data",
+      "fitur guru dan import siswa",
+      "akan aktif setelah sekolah disetujui",
+      "data sekolah akan diverifikasi",
+      "sedang mengirim data",
+    ];
+
+    if (schoolSubmitKeywords.some((keyword) => fullText.includes(keyword))) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function alertTone(type: AppAlertType) {
   if (type === "success") {
     return {
@@ -85,39 +131,32 @@ function alertTone(type: AppAlertType) {
 export function AppAlertProvider({ children }: { children: ReactNode }) {
   const [alert, setAlert] = useState<AppAlertState | null>(null);
 
+  const dismissAlert = useCallback(() => {
+    setAlert(null);
+  }, []);
+
   const showAlert = useCallback((payload: AppAlertPayload) => {
     const type = payload.type ?? "info";
     const title = payload.title ?? "";
 
-    const hiddenSuccessTitles = [
-      "Profil siswa berhasil disimpan.",
-      "Profil berhasil disimpan.",
-      "Profil berhasil disimpan",
-    ];
+    if (!title) return;
 
-    if (type === "success" && hiddenSuccessTitles.includes(title)) {
+    if (shouldHideAlert(type, title, payload.description)) {
       return;
     }
 
     setAlert({
       id: Date.now(),
       type,
-      title: payload.title,
+      title,
       description: payload.description,
       autoCloseMs: payload.autoCloseMs ?? defaultAutoClose(type),
     });
   }, []);
 
-  const dismissAlert = useCallback(() => {
-    setAlert(null);
-  }, []);
-
   useEffect(() => {
     function handleAlert(event: Event) {
       const customEvent = event as CustomEvent<AppAlertPayload>;
-
-      if (!customEvent.detail?.title) return;
-
       showAlert(customEvent.detail);
     }
 
@@ -191,15 +230,14 @@ export function AppAlertProvider({ children }: { children: ReactNode }) {
       {children}
 
       {isProcessing && alert && (
-        <div className="fixed inset-0 z-[200] grid place-items-center bg-slate-950/35 px-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[200] grid place-items-center bg-slate-900/35 px-4">
           <section
             role="status"
             aria-live="polite"
-            className="w-full max-w-xs rounded-3xl border border-white/70 bg-white/95 p-7 text-center shadow-2xl shadow-slate-950/20"
+            className="w-full max-w-sm rounded-[2rem] border border-sky-100 bg-white p-7 text-center shadow-2xl shadow-slate-950/20"
           >
-            {/* Spinner putih melingkar */}
-            <div className="mx-auto grid h-20 w-20 place-items-center rounded-full">
-              <div className="h-12 w-12 animate-spin rounded-full border-[3px] border-white border-t-transparent shadow-md ring-2 ring-white/30" />
+            <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-sky-50 text-sky-700 ring-1 ring-sky-100">
+              <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-sky-200 border-t-sky-700" />
             </div>
 
             <h2 className="mt-5 text-lg font-extrabold text-slate-950">
@@ -211,6 +249,10 @@ export function AppAlertProvider({ children }: { children: ReactNode }) {
                 {alert.description}
               </p>
             )}
+
+            <div className="mt-5 h-2 overflow-hidden rounded-full bg-sky-100">
+              <div className="h-full w-2/3 animate-[skilllensProcessingProgress_1.35s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-[#0b2450] via-sky-500 to-cyan-300" />
+            </div>
           </section>
         </div>
       )}
@@ -220,7 +262,7 @@ export function AppAlertProvider({ children }: { children: ReactNode }) {
           <section
             role={alert.type === "error" ? "alert" : "status"}
             aria-live={alert.type === "error" ? "assertive" : "polite"}
-            className={`skilllens-alert-toast pointer-events-auto relative overflow-hidden rounded-2xl border bg-white/95 p-4 shadow-xl shadow-slate-950/10 backdrop-blur-md ${tone.shell}`}
+            className={`skilllens-alert-toast pointer-events-auto relative overflow-hidden rounded-2xl border bg-white p-4 shadow-xl shadow-slate-950/10 ${tone.shell}`}
             style={progressStyle}
           >
             <div className={`absolute left-0 top-0 h-full w-1 ${tone.accent}`} />
@@ -229,7 +271,7 @@ export function AppAlertProvider({ children }: { children: ReactNode }) {
               <div
                 className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ring-1 ${tone.iconBox}`}
               >
-                <Icon name={tone.icon} className="h-4 w-4" />
+                <Icon name={tone.icon as any} className="h-4 w-4" />
               </div>
 
               <div className="min-w-0 flex-1 pt-0.5">
@@ -283,6 +325,18 @@ export function AppAlertProvider({ children }: { children: ReactNode }) {
           }
           to {
             width: 0%;
+          }
+        }
+
+        @keyframes skilllensProcessingProgress {
+          0% {
+            transform: translateX(-110%);
+          }
+          50% {
+            transform: translateX(25%);
+          }
+          100% {
+            transform: translateX(135%);
           }
         }
 

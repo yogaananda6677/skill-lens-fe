@@ -23,6 +23,21 @@ type AdminSchoolJurusanProps = {
   ) => void;
 };
 
+const cardShellClass =
+  "overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60";
+
+const headerClass =
+  "relative overflow-hidden border-b border-sky-100 bg-gradient-to-br from-white via-cyan-50/50 to-sky-50/70 px-6 py-6 text-slate-900";
+
+const inputClass =
+  "w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
+
+const primaryButtonClass =
+  "inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#0b2450] via-sky-600 to-cyan-500 px-5 py-2.5 text-sm font-extrabold text-white shadow-md shadow-sky-600/20 transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60";
+
+const secondaryButtonClass =
+  "inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40";
+
 function normalizeJurusanName(value: string) {
   return String(value || "").trim().replace(/\s+/g, " ").toUpperCase();
 }
@@ -43,22 +58,57 @@ function canDeleteJurusan(item: JurusanRow) {
   return item.can_delete ?? !isJurusanUsed(item);
 }
 
-function getUsageDetailText(item: JurusanRow) {
-  const usage = item.usage;
+function PencilIcon() {
+  return (
+    <svg
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
 
-  if (!usage || !usage.total) {
-    return "Jurusan ini belum dipakai.";
-  }
+function TrashIcon() {
+  return (
+    <svg
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 6h18" />
+      <path d="M8 6V4h8v2" />
+      <path d="M19 6l-1 14H6L5 6" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+    </svg>
+  );
+}
 
-  const parts = [];
-
-  if (usage.siswa) parts.push(`${usage.siswa} siswa`);
-  if (usage.mapel) parts.push(`${usage.mapel} mapel`);
-  if (usage.kurikulum) parts.push(`${usage.kurikulum} kurikulum`);
-
-  return parts.length
-    ? `Sudah dipakai oleh ${parts.join(", ")}.`
-    : "Jurusan ini sudah pernah dipakai.";
+function CheckIcon() {
+  return (
+    <svg
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
 }
 
 export function AdminSchoolJurusan({
@@ -200,199 +250,314 @@ export function AdminSchoolJurusan({
   }
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-blue-50/40 to-blue-100/20 p-[1px] shadow-md">
-      <div className="rounded-2xl bg-gradient-to-b from-blue-50/90 to-white p-6">
-        <div className="-mx-6 -mt-6 mb-6 rounded-t-2xl bg-gradient-to-r from-[#0a1a3a] to-[#0f2a5f] px-6 py-5">
-          <div className="flex items-center gap-2">
-            <div className="rounded-full bg-white/20 p-1.5 text-white">
-              <Icon name="graduation" className="h-4 w-4" />
-            </div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-blue-100">
+    <section className={cardShellClass}>
+      <div className="relative overflow-hidden border-b border-sky-100 bg-gradient-to-br from-white via-cyan-50/45 to-sky-50/70 px-6 py-7 text-slate-900">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(14,165,233,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(14,165,233,0.04)_1px,transparent_1px)] bg-[size:34px_34px]" />
+        <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-cyan-200/25 blur-3xl" />
+        <div className="pointer-events-none absolute -left-20 bottom-0 h-44 w-44 rounded-full bg-sky-200/20 blur-3xl" />
+
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-3xl">
+            <p className="inline-flex items-center gap-2 rounded-full border border-sky-100 bg-white/85 px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.18em] text-sky-700 shadow-sm">
+              <Icon name="graduation" className="h-3.5 w-3.5" />
               Data Jurusan
             </p>
+
+            <h3 className="mt-4 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
+              Kelola jurusan sekolah
+            </h3>
+
+            <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-600">
+              Jurusan digunakan saat import siswa, mapel, template nilai, dan
+              filter data siswa.
+            </p>
           </div>
-          <h2 className="mt-2 text-xl font-bold text-white">
-            Kelola jurusan sekolah
-          </h2>
-          <p className="mt-1 text-sm text-blue-100">
-            Jurusan digunakan saat import siswa, mapel, template nilai, dan filter data siswa.
-          </p>
+
+          <div className="rounded-2xl border border-sky-100 bg-gradient-to-r from-white via-cyan-50/80 to-sky-50 px-4 py-3 text-sm font-bold text-sky-700 shadow-sm">
+            {jurusanRows.length} Jurusan
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-6 p-5 md:p-6">
+        <div className="rounded-3xl border border-sky-100 bg-gradient-to-r from-sky-50 via-white to-blue-50 p-5 text-sm font-medium leading-6 text-slate-600 shadow-sm shadow-sky-100/50">
+          <div className="flex gap-3">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200/70">
+              <Icon name="info" className="h-5 w-5" />
+            </div>
+
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-sky-600">
+                Ketentuan Jurusan
+              </p>
+
+              <p className="mt-1">
+                {isSma ? (
+                  <>
+                    Untuk SMA, jurusan hanya boleh <b>IPA</b>, <b>IPS</b>, atau{" "}
+                    <b>BAHASA</b>. Jurusan yang sudah dipakai oleh siswa, mapel,
+                    atau kurikulum tidak bisa diedit dan tidak bisa dihapus.
+                  </>
+                ) : (
+                  <>
+                    Untuk SMK, nama jurusan mengikuti program keahlian sekolah,
+                    misalnya RPL, TKJ, TKRO, DKV, TPM, dan sejenisnya. Jurusan
+                    yang sudah dipakai tidak bisa diedit dan tidak bisa dihapus.
+                  </>
+                )}
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-medium leading-6 text-blue-700">
-          {isSma ? (
-            <>
-              Untuk SMA, jurusan hanya boleh <b>IPA</b>, <b>IPS</b>, atau <b>BAHASA</b>. Jurusan yang sudah pernah dipakai oleh siswa, mapel, atau kurikulum tidak bisa diedit dan tidak bisa dihapus.
-            </>
-          ) : (
-            <>
-              Untuk SMK, nama jurusan mengikuti program keahlian sekolah, misalnya RPL, TKJ, TKRO, DKV, TPM, dan sejenisnya. Jurusan yang sudah dipakai tidak bisa diedit dan tidak bisa dihapus.
-            </>
-          )}
-        </div>
+        <form
+          onSubmit={onSubmitJurusan}
+          className="rounded-3xl border border-sky-100 bg-white p-5 shadow-sm shadow-sky-100/60"
+        >
+          <div className="mb-4">
+            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-sky-600">
+              Tambah Jurusan
+            </p>
+            <h3 className="mt-1 text-lg font-black tracking-tight text-slate-900">
+              Buat data jurusan baru
+            </h3>
+          </div>
 
-        <form onSubmit={onSubmitJurusan} className="mt-2 flex flex-col gap-3 md:flex-row">
-          {isSma ? (
-            <select
-              value={jurusanName}
-              onChange={(event) => setJurusanName(event.target.value)}
-              className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
-              required
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            {/* input/select tetap */}
+            {isSma ? (
+              <select
+                value={jurusanName}
+                onChange={(event) => setJurusanName(event.target.value)}
+                className={inputClass}
+                required
+              >
+                <option value="">Pilih jurusan SMA</option>
+                {SMA_JURUSAN_OPTIONS.map((option) => (
+                  <option
+                    key={option}
+                    value={option}
+                    disabled={usedSmaOptions.has(option)}
+                  >
+                    {option} {usedSmaOptions.has(option) ? "(sudah ada)" : ""}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                value={jurusanName}
+                onChange={(event) =>
+                  setJurusanName(event.target.value.toUpperCase())
+                }
+                placeholder="Contoh: RPL, TKJ, TKRO, DKV"
+                className={inputClass}
+                required
+              />
+            )}
+
+            <button
+              type="submit"
+              disabled={
+                loadingJurusan ||
+                (isSma && (!formJurusanName || availableSmaOptions.length === 0))
+              }
+              className="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-gradient-to-r from-[#0b2450] via-sky-600 to-cyan-500 px-5 py-2.5 text-sm font-extrabold text-white shadow-md shadow-sky-600/20 transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <option value="">Pilih jurusan SMA</option>
-              {SMA_JURUSAN_OPTIONS.map((option) => (
-                <option key={option} value={option} disabled={usedSmaOptions.has(option)}>
-                  {option} {usedSmaOptions.has(option) ? "(sudah ada)" : ""}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <input
-              value={jurusanName}
-              onChange={(event) => setJurusanName(event.target.value.toUpperCase())}
-              placeholder="Contoh: RPL, TKJ, TKRO, DKV"
-              className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
-              required
-            />
-          )}
+              <Icon name="spark" className="h-4 w-4" />
+              {loadingJurusan ? "Menyimpan..." : "Tambah Jurusan"}
+            </button>
+          </div>
 
-          <button
-            type="submit"
-            disabled={loadingJurusan || (isSma && (!formJurusanName || availableSmaOptions.length === 0))}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <Icon name="spark" className="h-4 w-4" />
-            {loadingJurusan ? "Menyimpan..." : "Tambah Jurusan"}
-          </button>
+          {isSma && availableSmaOptions.length === 0 && (
+            <p className="mt-3 text-xs font-bold text-emerald-700">
+              Semua jurusan SMA yang diizinkan sudah tersedia.
+            </p>
+          )}
         </form>
 
-        {isSma && availableSmaOptions.length === 0 && (
-          <p className="mt-2 text-xs font-medium text-emerald-700">
-            Semua jurusan SMA yang diizinkan sudah tersedia.
-          </p>
-        )}
+        {/* Daftar jurusan */}
+        <section className="overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60">
+          <div className="flex flex-col gap-3 border-b border-sky-100 bg-gradient-to-r from-sky-50 via-white to-blue-50 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-sky-600">
+                Daftar Jurusan
+              </p>
+              <h3 className="mt-1 text-lg font-black tracking-tight text-slate-900">
+                Jurusan tersedia
+              </h3>
+            </div>
 
-        <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white/50">
-          <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-blue-200 bg-gradient-to-r from-blue-100 via-blue-50 to-blue-100 text-xs font-semibold uppercase tracking-wider text-blue-800">
-              <tr>
-                <th className="px-5 py-3">Nama Jurusan</th>
-                <th className="px-5 py-3 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 bg-white/50">
-              {jurusanRows.length ? (
-                jurusanRows.map((item) => {
-                  const used = isJurusanUsed(item);
-                  const editable = canEditJurusan(item);
-                  const deletable = canDeleteJurusan(item);
-                  const isEditing = editingId === Number(item.id);
-                  const loadingThis = loadingActionId === Number(item.id);
+            <span className="inline-flex items-center justify-center rounded-2xl bg-sky-600 px-4 py-2 text-sm font-bold text-white shadow-md shadow-sky-600/20">
+              {jurusanRows.length} Data
+            </span>
+          </div>
 
-                  return (
-                    <tr key={item.id} className="transition hover:bg-slate-50/80">
-                      <td className="px-5 py-3 font-semibold text-slate-800">
-                        {isEditing ? (
-                          isSma ? (
-                            <select
-                              value={editingName}
-                              onChange={(event) => setEditingName(event.target.value)}
-                              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
-                            >
-                              {SMA_JURUSAN_OPTIONS.map((option) => {
-                                const alreadyUsedByOther = jurusanRows.some(
-                                  (row) => Number(row.id) !== Number(item.id) && normalizeJurusanName(row.nama) === option,
-                                );
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-gradient-to-r from-sky-100 via-white to-blue-100 text-xs font-black uppercase tracking-[0.14em] text-sky-800">
+                <tr>
+                  <th className="px-5 py-4">Nama Jurusan</th>
+                  <th className="px-5 py-4">Status Penggunaan</th>
+                  <th className="px-5 py-4 text-right">Aksi</th>
+                </tr>
+              </thead>
 
-                                return (
-                                  <option key={option} value={option} disabled={alreadyUsedByOther}>
-                                    {option} {alreadyUsedByOther ? "(sudah ada)" : ""}
-                                  </option>
-                                );
-                              })}
-                            </select>
+              <tbody className="divide-y divide-slate-100">
+                {jurusanRows.length ? (
+                  jurusanRows.map((item) => {
+                    const used = isJurusanUsed(item);
+                    const editable = canEditJurusan(item);
+                    const deletable = canDeleteJurusan(item);
+                    const isEditing = editingId === Number(item.id);
+                    const loadingThis = loadingActionId === Number(item.id);
+
+                    return (
+                      <tr key={item.id} className="transition hover:bg-sky-50/50">
+                        <td className="px-5 py-4">
+                          {isEditing ? (
+                            isSma ? (
+                              <select
+                                value={editingName}
+                                onChange={(event) =>
+                                  setEditingName(event.target.value)
+                                }
+                                className={inputClass}
+                              >
+                                {SMA_JURUSAN_OPTIONS.map((option) => {
+                                  const alreadyUsedByOther = jurusanRows.some(
+                                    (row) =>
+                                      Number(row.id) !== Number(item.id) &&
+                                      normalizeJurusanName(row.nama) === option,
+                                  );
+
+                                  return (
+                                    <option
+                                      key={option}
+                                      value={option}
+                                      disabled={alreadyUsedByOther}
+                                    >
+                                      {option}{" "}
+                                      {alreadyUsedByOther ? "(sudah ada)" : ""}
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                            ) : (
+                              <input
+                                value={editingName}
+                                onChange={(event) =>
+                                  setEditingName(event.target.value.toUpperCase())
+                                }
+                                className={inputClass}
+                              />
+                            )
                           ) : (
-                            <input
-                              value={editingName}
-                              onChange={(event) => setEditingName(event.target.value.toUpperCase())}
-                              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
-                            />
-                          )
-                        ) : (
-                          item.nama
-                        )}
-                      </td>
-
-                      <td className="px-5 py-3 text-right">
-                        {isEditing ? (
-                          <div className="inline-flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => saveEdit(item)}
-                              disabled={loadingThis}
-                              className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:opacity-50"
-                            >
-                              Simpan
-                            </button>
-                            <button
-                              type="button"
-                              onClick={cancelEdit}
-                              disabled={loadingThis}
-                              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
-                            >
-                              Batal
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-end gap-2">
-                            {used && (
-                              <div className="max-w-md rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-left text-xs font-medium leading-5 text-amber-700">
-                                Jurusan ini tidak bisa diedit atau dihapus karena sudah pernah dipakai.
-                                <span className="mt-0.5 block text-amber-600">
-                                  {getUsageDetailText(item)}
-                                </span>
+                            <div className="flex items-center gap-3">
+                              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sm font-black text-sky-700 ring-1 ring-sky-200/70">
+                                {normalizeJurusanName(item.nama).slice(0, 2)}
                               </div>
-                            )}
 
+                              <div>
+                                <p className="font-black text-slate-900">
+                                  {item.nama}
+                                </p>
+                                <p className="text-xs font-medium text-slate-500">
+                                  Program jurusan sekolah
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </td>
+
+                        <td className="px-5 py-4">
+                          {used ? (
+                            <span className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-amber-700 ring-1 ring-amber-200">
+                              Sudah Dipakai
+                            </span>
+                          ) : (
+                            <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-200">
+                              Belum Dipakai
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="px-5 py-4 text-right">
+                          {isEditing ? (
+                            <div className="inline-flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => saveEdit(item)}
+                                disabled={loadingThis}
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-sky-100 bg-sky-50 text-sky-700 transition hover:-translate-y-0.5 hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-40"
+                                title="Simpan jurusan"
+                              >
+                                <CheckIcon />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={cancelEdit}
+                                disabled={loadingThis}
+                                className={secondaryButtonClass}
+                              >
+                                Batal
+                              </button>
+                            </div>
+                          ) : (
                             <div className="inline-flex gap-2">
                               <button
                                 type="button"
                                 onClick={() => startEdit(item)}
                                 disabled={!editable || loadingThis}
-                                title={!editable ? "Jurusan sudah dipakai dan tidak bisa diedit." : "Edit jurusan"}
-                                className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                title={
+                                  !editable
+                                    ? "Jurusan sudah dipakai dan tidak bisa diedit."
+                                    : "Edit jurusan"
+                                }
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-sky-100 bg-sky-50 text-sky-700 transition hover:-translate-y-0.5 hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-40"
                               >
-                                Edit
+                                <PencilIcon />
                               </button>
+
                               <button
                                 type="button"
                                 onClick={() => deleteJurusan(item)}
                                 disabled={!deletable || loadingThis}
-                                title={!deletable ? "Jurusan sudah dipakai dan tidak bisa dihapus." : "Hapus jurusan"}
-                                className="rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                title={
+                                  !deletable
+                                    ? "Jurusan sudah dipakai dan tidak bisa dihapus."
+                                    : "Hapus jurusan"
+                                }
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-100 bg-rose-50 text-rose-600 transition hover:-translate-y-0.5 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-40"
                               >
-                                Hapus
+                                <TrashIcon />
                               </button>
                             </div>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={2} className="px-5 py-12 text-center text-slate-500">
-                    Belum ada jurusan.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={3} className="px-5 py-14 text-center">
+                      <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200/70">
+                        <Icon name="graduation" className="h-5 w-5" />
+                      </div>
+                      <p className="mt-4 text-sm font-semibold text-slate-700">
+                        Belum ada jurusan.
+                      </p>
+                      <p className="mt-1 text-xs font-medium text-slate-500">
+                        Tambahkan jurusan pertama melalui form di atas.
+                      </p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
-
-      <div className="absolute bottom-0 left-0 h-0.5 w-full rounded-b-xl bg-gradient-to-r from-blue-400 to-cyan-400 opacity-70" />
-    </div>
+    </section>
   );
 }

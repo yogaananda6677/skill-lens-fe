@@ -151,15 +151,15 @@ function NavItem({
     "group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl px-3 py-3 text-left outline-none transition-all duration-300 ease-out",
     "focus-visible:ring-2 focus-visible:ring-cyan-200/80",
     active
-      ? "bg-white text-[#12213b] shadow-[0_14px_34px_rgba(0,0,0,0.18)]"
-      : "text-slate-300 hover:-translate-y-0.5 hover:bg-white/10 hover:text-white hover:shadow-lg hover:shadow-slate-950/10",
+      ? "bg-slate-100 text-slate-900 shadow-[0_14px_34px_rgba(0,0,0,0.08)]"
+      : "text-slate-500 hover:-translate-y-0.5 hover:bg-slate-50 hover:text-slate-900 hover:shadow-md",
   ].join(" ");
 
   const content = (
     <>
       <span
         className={`absolute bottom-3 left-0 top-3 w-1 rounded-r-full transition-all duration-300 ${
-          active ? "bg-cyan-400 opacity-100" : "bg-transparent opacity-0"
+          active ? "bg-cyan-500 opacity-100" : "bg-transparent opacity-0"
         }`}
       />
 
@@ -167,7 +167,7 @@ function NavItem({
         className={`absolute inset-0 opacity-0 transition-opacity duration-300 ${
           active
             ? "bg-gradient-to-r from-cyan-50/80 via-white to-white opacity-100"
-            : "group-hover:bg-gradient-to-r group-hover:from-white/10 group-hover:to-transparent group-hover:opacity-100"
+            : "group-hover:bg-gradient-to-r group-hover:from-slate-100 group-hover:to-transparent group-hover:opacity-100"
         }`}
       />
 
@@ -175,7 +175,7 @@ function NavItem({
         className={`relative z-10 grid h-10 w-10 shrink-0 place-items-center rounded-2xl transition-all duration-300 ${
           active
             ? "bg-sky-600 text-white shadow-md shadow-sky-600/20"
-            : "bg-white/10 text-slate-300 group-hover:bg-cyan-400/20 group-hover:text-cyan-100"
+            : "bg-slate-100 text-slate-500 group-hover:bg-sky-100 group-hover:text-sky-700"
         }`}
       >
         <Icon name={icon as any} className="h-[18px] w-[18px]" />
@@ -187,7 +187,7 @@ function NavItem({
         {item.description && (
           <span
             className={`mt-0.5 block truncate text-xs font-medium transition-colors ${
-              active ? "text-sky-700/70" : "text-slate-400 group-hover:text-slate-300"
+              active ? "text-slate-600" : "text-slate-400 group-hover:text-slate-600"
             }`}
           >
             {item.description}
@@ -198,7 +198,7 @@ function NavItem({
       {item.badge ? (
         <span
           className={`relative z-10 rounded-full px-2 py-0.5 text-[10px] font-black transition-colors ${
-            active ? "bg-sky-100 text-sky-700" : "bg-white/10 text-cyan-100"
+            active ? "bg-sky-100 text-sky-700" : "bg-slate-100 text-slate-600"
           }`}
         >
           {item.badge}
@@ -209,7 +209,7 @@ function NavItem({
           className={`relative z-10 h-4 w-4 transition-all duration-300 ${
             active
               ? "translate-x-0 text-sky-500"
-              : "text-slate-500 group-hover:translate-x-0.5 group-hover:text-slate-200"
+              : "text-slate-400 group-hover:translate-x-0.5 group-hover:text-slate-600"
           }`}
         />
       )}
@@ -342,18 +342,18 @@ export function DashboardShell({
   }
 
   const sidebar = (
-    <aside className="flex h-full min-h-screen w-full flex-col bg-[#12213b] text-white">
-      {/* Logo dan nama - TANPA HREF, hanya tampilan statis */}
-      <div className="border-b border-white/10 px-5 py-5">
+    <aside className="flex h-full min-h-screen w-full flex-col bg-white text-slate-800 shadow-lg">
+      {/* Logo dan nama */}
+      <div className="border-b border-slate-200 px-5 py-5">
         <div className="flex items-center gap-3 rounded-2xl p-2">
-          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white text-sky-700 shadow-md shadow-slate-950/10">
+          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-600 text-white shadow-md">
             <Icon name="spark" className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <p className="truncate text-base font-black tracking-tight text-white">
+            <p className="truncate text-base font-black tracking-tight text-slate-800">
               SkillLens
             </p>
-            <p className="truncate text-[11px] font-black uppercase tracking-[0.18em] text-cyan-200/80">
+            <p className="truncate text-[11px] font-black uppercase tracking-[0.18em] text-sky-600">
               {roleLabel(storedUser?.role)} panel
             </p>
           </div>
@@ -362,16 +362,16 @@ export function DashboardShell({
 
       {/* Profil pengguna */}
       <div className="px-5 pt-5">
-        <div className="rounded-3xl border border-white/10 bg-white/[0.07] p-4 shadow-lg shadow-slate-950/10 backdrop-blur-sm transition duration-300 hover:bg-white/[0.09]">
+        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 shadow-sm transition duration-300 hover:bg-slate-100">
           <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-cyan-100 text-sm font-black text-sky-800 shadow-sm shadow-cyan-950/10">
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-100 text-sm font-black text-sky-800 shadow-sm">
               {initials(displayName)}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-white">
+              <p className="truncate text-sm font-bold text-slate-800">
                 {displayName}
               </p>
-              <p className="truncate text-xs font-medium text-slate-300">
+              <p className="truncate text-xs font-medium text-slate-500">
                 {displayLabel}
               </p>
             </div>
@@ -392,11 +392,11 @@ export function DashboardShell({
       </nav>
 
       {/* Tombol logout */}
-      <div className="border-t border-white/10 p-4">
+      <div className="border-t border-slate-200 p-4">
         <button
           type="button"
           onClick={() => setLogoutOpen(true)}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-white transition duration-300 hover:-translate-y-0.5 hover:bg-white/10 hover:shadow-lg hover:shadow-slate-950/10"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition duration-300 hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow-md"
         >
           <Icon name="logout" className="h-4 w-4" />
           Keluar
@@ -417,23 +417,23 @@ export function DashboardShell({
         )}
 
         <div className="hidden lg:block">
-          <div className="sticky top-0 h-screen overflow-y-auto bg-[#12213b] shadow-2xl shadow-slate-950/10">
+          <div className="sticky top-0 h-screen overflow-y-auto bg-white shadow-lg">
             {sidebar}
           </div>
         </div>
 
         <div className="lg:hidden">
-          <header className="sticky top-0 z-40 flex items-center justify-between border-b border-white/10 bg-[#12213b] px-4 py-3 shadow-lg shadow-slate-950/10">
+          <header className="sticky top-0 z-40 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 shadow-md">
             <button
               type="button"
               onClick={() => setOpen(true)}
-              className="grid h-11 w-11 place-items-center rounded-2xl bg-white/10 text-cyan-100 transition hover:bg-white/15"
+              className="grid h-11 w-11 place-items-center rounded-2xl bg-slate-100 text-slate-600 transition hover:bg-slate-200"
               aria-label="Buka menu"
             >
               <Icon name="menu" className="h-5 w-5" />
             </button>
-            <div className="flex items-center gap-2 text-base font-black text-white">
-              <span className="grid h-9 w-9 place-items-center rounded-xl bg-white text-sky-700 shadow-sm">
+            <div className="flex items-center gap-2 text-base font-black text-slate-800">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-sky-600 text-white shadow-sm">
                 <Icon name="spark" className="h-4 w-4" />
               </span>
               SkillLens
@@ -441,7 +441,7 @@ export function DashboardShell({
             <button
               type="button"
               onClick={() => setLogoutOpen(true)}
-              className="grid h-11 w-11 place-items-center rounded-2xl bg-rose-500/20 text-rose-100 transition hover:bg-rose-500/30"
+              className="grid h-11 w-11 place-items-center rounded-2xl bg-rose-50 text-rose-600 transition hover:bg-rose-100"
               aria-label="Keluar"
             >
               <Icon name="logout" className="h-4 w-4" />

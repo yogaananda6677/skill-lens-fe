@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
+
 import type { JurusanRow, SiswaRow } from "../types";
+
 import { Icon } from "../../../components/ui/icons";
 
 type KelasTingkat = "10" | "11" | "12";
@@ -128,7 +130,6 @@ function downloadExcel(
               <th>Kelas</th>
               <th>Jurusan</th>
               <th>Username</th>
-              <th>Password Awal</th>
               <th>Status</th>
             </tr>
           </thead>
@@ -163,6 +164,22 @@ function downloadExcel(
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+function StudentAvatar({ name }: { name: string }) {
+  const initials =
+    name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((word) => word[0]?.toUpperCase())
+      .join("") || "SW";
+
+  return (
+    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sm font-black text-sky-700 ring-1 ring-sky-200/70">
+      {initials}
+    </div>
+  );
 }
 
 export function AdminSchoolDataSiswa({
@@ -229,7 +246,8 @@ export function AdminSchoolDataSiswa({
   }, [kelasFilter, jurusanFilterAktif, siswaRows]);
 
   const hasRows = filteredRows.length > 0;
-  const totalPages = Math.max(1, Math.ceil(siswaTotal / siswaLimit));
+  const safeLimit = siswaLimit > 0 ? siswaLimit : 10;
+  const totalPages = Math.max(1, Math.ceil(siswaTotal / safeLimit));
 
   function handleJurusanChange(value: string) {
     setSiswaJurusanFilter(value);
@@ -254,35 +272,53 @@ export function AdminSchoolDataSiswa({
   }
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-blue-50/40 to-blue-100/20 p-[1px] shadow-md">
-      <div className="rounded-2xl bg-gradient-to-b from-blue-50/90 to-white p-6">
-        <div className="-mx-6 -mt-6 mb-6 rounded-t-2xl bg-gradient-to-r from-[#0a1a3a] to-[#0f2a5f] px-6 py-5">
-          <div className="flex items-center gap-2">
-            <div className="rounded-full bg-white/20 p-1.5 text-white">
-              <Icon name="profile" className="h-4 w-4" />
-            </div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-blue-100">
+    <section className="overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60">
+      <div className="relative overflow-hidden border-b border-sky-100 bg-gradient-to-br from-white via-cyan-50/45 to-sky-50/70 px-6 py-7 text-slate-900">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(14,165,233,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(14,165,233,0.04)_1px,transparent_1px)] bg-[size:34px_34px]" />
+        <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-cyan-200/25 blur-3xl" />
+        <div className="pointer-events-none absolute -left-20 bottom-0 h-44 w-44 rounded-full bg-sky-200/20 blur-3xl" />
+
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-3xl">
+            <p className="inline-flex items-center gap-2 rounded-full border border-sky-100 bg-white/85 px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.18em] text-sky-700 shadow-sm">
+              <Icon name="profile" className="h-3.5 w-3.5" />
               Data Siswa
             </p>
-          </div>
-          <h2 className="mt-2 text-xl font-bold text-white">Kelola data siswa</h2>
-          <p className="mt-1 text-sm text-blue-100">
-            Lihat dan export data siswa berdasarkan nama, NISN, username, password awal, kelas, dan jurusan.
-          </p>
-        </div>
 
-        <div className="mb-5 grid gap-3 xl:grid-cols-[1.3fr_0.8fr_0.8fr_auto]">
-          <input
-            value={siswaSearch}
-            onChange={(event) => handleSearchChange(event.target.value)}
-            placeholder="Cari nama, NISN, username..."
-            className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-50"
-          />
+            <h3 className="mt-4 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
+              Kelola Data Siswa
+            </h3>
+
+            <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-600">
+              Lihat dan export data siswa berdasarkan nama, NISN, username, kelas, dan jurusan.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-sky-100 bg-gradient-to-r from-white via-cyan-50/80 to-sky-50/80 px-4 py-3 text-sm font-bold text-sky-700 shadow-sm">
+            Total {siswaTotal} data
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-5 p-5 md:p-6">
+        <div className="grid gap-3 xl:grid-cols-[1.3fr_0.8fr_0.8fr_auto]">
+          <div className="relative">
+            <Icon
+              name="search"
+              className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+            />
+            <input
+              value={siswaSearch}
+              onChange={(event) => handleSearchChange(event.target.value)}
+              placeholder="Cari nama, NISN, username..."
+              className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-11 pr-4 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+            />
+          </div>
 
           <select
             value={siswaJurusanFilter}
             onChange={(event) => handleJurusanChange(event.target.value)}
-            className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-50"
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
           >
             <option value="semua">Semua jurusan</option>
             {jurusanRows.map((jurusan) => (
@@ -296,7 +332,7 @@ export function AdminSchoolDataSiswa({
             value={kelasFilter}
             onChange={(event) => handleKelasChange(event.target.value)}
             disabled={!jurusanFilterAktif}
-            className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
           >
             <option value="semua">
               {jurusanFilterAktif ? "Semua kelas" : "Pilih jurusan dulu"}
@@ -312,52 +348,63 @@ export function AdminSchoolDataSiswa({
             type="button"
             disabled={!hasRows}
             onClick={handleExport}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-5 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-sky-600/20 transition hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Icon name="download" className="h-4 w-4" />
             Export Excel
           </button>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/50">
+        <div className="overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/50">
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
-              <thead className="border-b border-blue-200 bg-gradient-to-r from-blue-100 via-blue-50 to-blue-100 text-xs font-semibold uppercase tracking-wider text-blue-800">
+              <thead className="bg-gradient-to-r from-sky-100 via-white to-blue-100 text-xs font-black uppercase tracking-[0.14em] text-sky-800">
                 <tr>
-                  <th className="px-5 py-3">Siswa</th>
-                  <th className="px-5 py-3">NISN</th>
-                  <th className="px-5 py-3">Kelas</th>
-                  <th className="px-5 py-3">Jurusan</th>
-                  <th className="px-5 py-3">Username</th>
-                  <th className="px-5 py-3">Password Awal</th>
-                  <th className="px-5 py-3">Status</th>
+                  <th className="px-5 py-4">Siswa</th>
+                  <th className="px-5 py-4">NISN</th>
+                  <th className="px-5 py-4">Kelas</th>
+                  <th className="px-5 py-4">Jurusan</th>
+                  <th className="px-5 py-4">Username</th>
+                  <th className="px-5 py-4">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 bg-white/50">
+
+              <tbody className="divide-y divide-slate-100">
                 {hasRows ? (
                   filteredRows.map((siswa) => (
-                    <tr key={siswa.id} className="transition hover:bg-slate-50/80">
-                      <td className="px-5 py-3">
-                        <p className="font-semibold text-slate-800">{siswa.nama}</p>
-                        <p className="mt-0.5 text-xs text-slate-400">
-                          {siswa.status || "Aktif"}
-                        </p>
+                    <tr key={siswa.id} className="transition hover:bg-sky-50/50">
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <StudentAvatar name={siswa.nama} />
+                          <div>
+                            <p className="font-bold text-slate-900">
+                              {siswa.nama}
+                            </p>
+                            <p className="mt-0.5 text-xs font-medium text-slate-500">
+                              {siswa.status || "Aktif"}
+                            </p>
+                          </div>
+                        </div>
                       </td>
-                      <td className="px-5 py-3 text-slate-600">{siswa.nisn}</td>
-                      <td className="px-5 py-3 text-slate-600">
+
+                      <td className="px-5 py-4 font-medium text-slate-600">
+                        {siswa.nisn}
+                      </td>
+
+                      <td className="px-5 py-4 font-medium text-slate-600">
                         {siswa.kelas || "-"}
                       </td>
-                      <td className="px-5 py-3 text-slate-600">
+
+                      <td className="px-5 py-4 font-medium text-slate-600">
                         {siswa.jurusan || "-"}
                       </td>
-                      <td className="px-5 py-3 text-slate-600">
+
+                      <td className="px-5 py-4 font-medium text-slate-600">
                         {siswa.username || "-"}
                       </td>
-                      <td className="px-5 py-3 text-slate-600">
-                        {siswa.password_awal || siswa.nisn || "-"}
-                      </td>
-                      <td className="px-5 py-3">
-                        <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">
+
+                      <td className="px-5 py-4">
+                        <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700 ring-1 ring-emerald-200">
                           {siswa.status || "Aktif"}
                         </span>
                       </td>
@@ -365,8 +412,16 @@ export function AdminSchoolDataSiswa({
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={7} className="px-5 py-12 text-center text-slate-500">
-                      Belum ada data siswa sesuai filter.
+                    <td colSpan={7} className="px-5 py-14 text-center">
+                      <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200/70">
+                        <Icon name="profile" className="h-5 w-5" />
+                      </div>
+                      <p className="mt-4 text-sm font-semibold text-slate-700">
+                        Belum ada data siswa sesuai filter.
+                      </p>
+                      <p className="mt-1 text-xs font-medium text-slate-500">
+                        Ubah pencarian, jurusan, atau filter kelas untuk melihat data.
+                      </p>
                     </td>
                   </tr>
                 )}
@@ -375,7 +430,7 @@ export function AdminSchoolDataSiswa({
           </div>
         </div>
 
-        <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-3 border-t border-sky-100 pt-5 md:flex-row md:items-center md:justify-between">
           <div className="text-sm font-medium text-slate-500">
             <p>Total {siswaTotal} data</p>
             {jurusanFilterAktif && (
@@ -388,7 +443,7 @@ export function AdminSchoolDataSiswa({
             )}
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               disabled={siswaPage <= 1}
@@ -397,13 +452,15 @@ export function AdminSchoolDataSiswa({
                 setSiswaPage(next);
                 loadSiswa(next);
               }}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+              className="inline-flex w-[104px] items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Sebelumnya
             </button>
-            <span className="rounded-xl bg-blue-100 px-4 py-2 text-sm font-medium text-blue-700">
+
+            <span className="inline-flex w-[72px] justify-center rounded-xl bg-sky-50 px-3 py-2 text-sm font-bold text-sky-700 ring-1 ring-sky-100">
               {siswaPage} / {totalPages}
             </span>
+
             <button
               type="button"
               disabled={siswaPage >= totalPages}
@@ -412,14 +469,13 @@ export function AdminSchoolDataSiswa({
                 setSiswaPage(next);
                 loadSiswa(next);
               }}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+              className="inline-flex w-[104px] items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Berikutnya
             </button>
           </div>
         </div>
       </div>
-      <div className="absolute bottom-0 left-0 h-0.5 w-full rounded-b-xl bg-gradient-to-r from-blue-400 to-cyan-400 opacity-70" />
-    </div>
+    </section>
   );
 }

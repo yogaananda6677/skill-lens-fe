@@ -112,17 +112,18 @@ export default function AdminSchoolPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     getAdminSchools()
       .then((data) => {
         setSchools(data as unknown as SchoolRow[]);
-        setLoading(false);
+        setError("");
       })
       .catch((err) => {
         console.error(err);
         setError(err instanceof Error ? err.message : "Gagal memuat data sekolah.");
-        setLoading(false);
 
         setSchools([
           {
@@ -153,7 +154,8 @@ export default function AdminSchoolPage() {
             status: "pending",
           },
         ]);
-      });
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const verifiedCount = useMemo(
@@ -180,22 +182,36 @@ export default function AdminSchoolPage() {
     );
   }, [schools, searchQuery]);
 
-  const handleEdit = (school: SchoolRow) => {
-    alert(`Edit sekolah: ${school.name}`);
-  };
+  const totalPages = Math.ceil(filteredSchools.length / itemsPerPage);
+  const paginatedSchools = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredSchools.slice(start, start + itemsPerPage);
+  }, [filteredSchools, currentPage, itemsPerPage]);
 
-  const handleDelete = async (school: SchoolRow) => {
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  function goToPage(page: number) {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages || 1)));
+  }
+
+  function handleEdit(school: SchoolRow) {
+    alert(`Edit sekolah: ${school.name}`);
+  }
+
+  async function handleDelete(school: SchoolRow) {
     if (!confirm(`Hapus sekolah ${school.name}?`)) return;
 
     try {
       await deleteSchool(Number(school.id));
-      setSchools((prev) => prev.filter((s) => s.id !== school.id));
+      setSchools((prev) => prev.filter((item) => item.id !== school.id));
       alert("Sekolah berhasil dihapus");
     } catch (err) {
       console.error(err);
       alert(err instanceof Error ? err.message : "Gagal menghapus sekolah");
     }
-  };
+  }
 
   return (
     <DashboardShell
@@ -283,7 +299,7 @@ export default function AdminSchoolPage() {
                   <th className="px-5 py-4">Nama Sekolah</th>
                   <th className="px-5 py-4">NPSN</th>
                   <th className="px-5 py-4">Alamat</th>
-                  <th className="px-5 py-4">No HP</th>
+                  <th className="px-5 py-4">No Telepon</th>
                   <th className="px-5 py-4">Jenis</th>
                   <th className="px-5 py-4">Status</th>
                   <th className="px-5 py-4 text-center">Aksi</th>
@@ -313,85 +329,117 @@ export default function AdminSchoolPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredSchools.map((school, idx) => (
-                    <tr
-                      key={school.id}
-                      className="group transition duration-150 hover:bg-sky-50/50"
-                    >
-                      <td className="px-5 py-4 text-sm font-bold text-slate-500">
-                        {idx + 1}
-                      </td>
+                  paginatedSchools.map((school, idx) => {
+                    const globalIdx = (currentPage - 1) * itemsPerPage + idx + 1;
 
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sm font-black text-sky-700 ring-1 ring-sky-200/70">
-                            {school.name.slice(0, 2).toUpperCase()}
+                    return (
+                      <tr key={school.id} className="group transition duration-150 hover:bg-sky-50/50">
+                        <td className="px-5 py-4 text-sm font-bold text-slate-500">
+                          {globalIdx}
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sm font-black text-sky-700 ring-1 ring-sky-200/70">
+                              {school.name.slice(0, 2).toUpperCase()}
+                            </div>
+
+                            <div className="min-w-0">
+                              <p className="truncate font-bold text-slate-900">
+                                {school.name}
+                              </p>
+                              <p className="text-xs font-medium text-slate-500">
+                                {school.level}
+                              </p>
+                            </div>
                           </div>
+                        </td>
 
-                          <div className="min-w-0">
-                            <p className="truncate font-bold text-slate-900">
-                              {school.name}
-                            </p>
-                            <p className="text-xs font-medium text-slate-500">
-                              {school.level}
-                            </p>
+                        <td className="px-5 py-4 text-sm font-medium text-slate-600">
+                          {school.npsn}
+                        </td>
+
+                        <td className="px-5 py-4 text-sm font-medium text-slate-600">
+                          <span title={school.address}>
+                            {school.address.length > 45
+                              ? school.address.slice(0, 45) + "..."
+                              : school.address}
+                          </span>
+                        </td>
+
+                        <td className="px-5 py-4 text-sm font-medium text-slate-600">
+                          {school.phone || "-"}
+                        </td>
+
+                        <td className="px-5 py-4 text-sm font-bold text-slate-700">
+                          {school.level}
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <StatusBadge status={school.status} />
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <div className="flex justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleEdit(school)}
+                              className="grid h-9 w-9 place-items-center rounded-xl border border-sky-100 bg-sky-50 text-sky-700 transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-100 hover:shadow-sm"
+                              title="Edit sekolah"
+                              aria-label="Edit sekolah"
+                            >
+                              <EditIcon />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(school)}
+                              className="grid h-9 w-9 place-items-center rounded-xl border border-rose-100 bg-rose-50 text-rose-600 transition hover:-translate-y-0.5 hover:border-rose-200 hover:bg-rose-100 hover:shadow-sm"
+                              title="Hapus sekolah"
+                              aria-label="Hapus sekolah"
+                            >
+                              <TrashIcon />
+                            </button>
                           </div>
-                        </div>
-                      </td>
-
-                      <td className="px-5 py-4 text-sm font-medium text-slate-600">
-                        {school.npsn}
-                      </td>
-
-                      <td className="px-5 py-4 text-sm font-medium text-slate-600">
-                        <span title={school.address}>
-                          {school.address.length > 45
-                            ? school.address.slice(0, 45) + "..."
-                            : school.address}
-                        </span>
-                      </td>
-
-                      <td className="px-5 py-4 text-sm font-medium text-slate-600">
-                        {school.phone || "-"}
-                      </td>
-
-                      <td className="px-5 py-4 text-sm font-bold text-slate-700">
-                        {school.level}
-                      </td>
-
-                      <td className="px-5 py-4">
-                        <StatusBadge status={school.status} />
-                      </td>
-
-                      <td className="px-5 py-4">
-                        <div className="flex justify-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleEdit(school)}
-                            className="grid h-9 w-9 place-items-center rounded-xl border border-sky-100 bg-sky-50 text-sky-700 transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-100 hover:shadow-sm"
-                            title="Edit sekolah"
-                            aria-label="Edit sekolah"
-                          >
-                            <EditIcon />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(school)}
-                            className="grid h-9 w-9 place-items-center rounded-xl border border-rose-100 bg-rose-50 text-rose-600 transition hover:-translate-y-0.5 hover:border-rose-200 hover:bg-rose-100 hover:shadow-sm"
-                            title="Hapus sekolah"
-                            aria-label="Hapus sekolah"
-                          >
-                            <TrashIcon />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
           </div>
+
+          {!loading && filteredSchools.length > itemsPerPage && (
+            <div className="flex flex-col items-center gap-3 border-t border-sky-100 px-5 py-4 sm:flex-row sm:justify-between">
+              <div className="text-xs font-medium text-slate-500 sm:text-sm">
+                Menampilkan {(currentPage - 1) * itemsPerPage + 1}–
+                {Math.min(currentPage * itemsPerPage, filteredSchools.length)} dari {filteredSchools.length} sekolah
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="inline-flex w-[106px] items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Sebelumnya
+                </button>
+
+                <span className="inline-flex min-w-[76px] justify-center rounded-xl bg-sky-50 px-3 py-2 text-sm font-bold text-sky-700 ring-1 ring-sky-100">
+                  {currentPage} / {totalPages}
+                </span>
+
+                <button
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="inline-flex w-[106px] items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Berikutnya
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       </div>
     </DashboardShell>

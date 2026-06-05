@@ -54,17 +54,20 @@ const emptyPassword: PasswordOtpForm = {
   confirm_password: "",
 };
 
-const primaryGradient =
-  "bg-[linear-gradient(135deg,#08224f_0%,#0a54c7_58%,#39d9ff_100%)]";
+const shellCardClass =
+  "overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60";
+
+const sectionHeaderClass =
+  "border-b border-sky-100 bg-gradient-to-r from-sky-50 via-white to-blue-50 px-5 py-5";
 
 const primaryButtonClass =
-  "inline-flex items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#08224f_0%,#0a54c7_58%,#39d9ff_100%)] px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-sky-700/20 transition hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-sky-600/20 transition hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50";
 
 const secondaryButtonClass =
-  "inline-flex items-center justify-center rounded-2xl border border-sky-200 bg-sky-50 px-5 py-3 text-sm font-extrabold text-sky-700 transition hover:-translate-y-0.5 hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-2xl border border-sky-100 bg-sky-50 px-5 py-3 text-sm font-extrabold text-sky-700 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50";
 
 const inputClass =
-  "w-full rounded-2xl border border-sky-100 bg-sky-50/60 px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition placeholder:text-slate-400 hover:border-sky-200 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100";
+  "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition placeholder:text-slate-400 hover:border-sky-200 focus:border-sky-300 focus:bg-white focus:ring-4 focus:ring-sky-50";
 
 function roleLabel(role?: string) {
   if (role === "admin") return "Admin Platform";
@@ -88,6 +91,57 @@ function initials(name: string) {
 
 function cleanPhone(value: string) {
   return value.replace(/[^\d+]/g, "");
+}
+
+function InfoItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-sky-100 bg-white px-4 py-3 shadow-sm shadow-sky-100/40">
+      <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
+        {label}
+      </p>
+      <p className="mt-1 break-words text-sm font-bold text-slate-800">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function PasswordInput({
+  label,
+  value,
+  visible,
+  onToggle,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  visible: boolean;
+  onToggle: () => void;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-sm font-bold text-slate-700">
+        {label}
+      </span>
+      <div className="relative">
+        <input
+          type={visible ? "text" : "password"}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className={`${inputClass} pr-12`}
+        />
+        <button
+          type="button"
+          onClick={onToggle}
+          className="absolute right-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-xl text-slate-400 transition hover:bg-sky-50 hover:text-sky-700"
+          aria-label={visible ? "Sembunyikan password" : "Tampilkan password"}
+        >
+          <Icon name={visible ? "eyeOff" : "eye"} className="h-4 w-4" />
+        </button>
+      </div>
+    </label>
+  );
 }
 
 export function UserProfilePanel({
@@ -378,7 +432,7 @@ export function UserProfilePanel({
 
   if (loading) {
     return (
-      <div className="grid min-h-[360px] place-items-center rounded-[2rem] border border-sky-100 bg-white shadow-xl shadow-sky-950/5">
+      <div className="grid min-h-[360px] place-items-center rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60">
         <div className="text-center">
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-sky-600 border-t-transparent" />
           <p className="mt-3 text-sm font-semibold text-slate-500">
@@ -391,88 +445,62 @@ export function UserProfilePanel({
 
   return (
     <section className="space-y-6">
-      {showHeader && (
-        <div
-          className={`relative overflow-hidden rounded-[2rem] p-6 text-white shadow-xl shadow-sky-700/20 ${primaryGradient}`}
-        >
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:42px_42px] opacity-35" />
-          <div className="absolute -right-16 -top-16 h-44 w-44 rounded-full bg-cyan-200/25 blur-3xl" />
-
-          <div className="relative">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-100">
-              Profil Pengguna
+      <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
+        <aside className={shellCardClass}>
+          <div className={sectionHeaderClass}>
+            <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-sky-600">
+              Kartu Profil
             </p>
-
-            <h1 className="mt-2 text-3xl font-extrabold">{title}</h1>
-
-            <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-sky-100/85">
-              {subtitle}
+            <h2 className="mt-1 text-xl font-black tracking-tight text-slate-900">
+              Informasi Akun
+            </h2>
+            <p className="mt-1 text-sm font-medium text-slate-500">
+              Ringkasan identitas pengguna yang sedang aktif.
             </p>
           </div>
-        </div>
-      )}
 
-      <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
-        <aside className="overflow-hidden rounded-[2rem] border border-sky-100 bg-white shadow-xl shadow-sky-950/5">
-          <div className="bg-[linear-gradient(180deg,#dff4ff_0%,#eef9ff_48%,#ffffff_100%)] p-6">
-            <div className="grid h-20 w-20 place-items-center rounded-3xl bg-[linear-gradient(135deg,#08224f_0%,#0a54c7_58%,#39d9ff_100%)] text-2xl font-extrabold text-white shadow-lg shadow-sky-700/25">
-              {initials(user?.nama || "User")}
-            </div>
-
-            <h2 className="mt-5 text-2xl font-extrabold text-slate-950">
-              {user?.nama || "Pengguna"}
-            </h2>
-
-            <p className="mt-1 text-sm font-bold text-sky-700">
-              {roleLabel(user?.role)}
-            </p>
-
-            <div className="mt-6 space-y-3 text-sm">
-              <div className="rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-sky-100">
-                <p className="text-xs font-bold uppercase text-slate-400">
-                  Email
-                </p>
-                <p className="mt-1 break-words font-semibold text-slate-800">
-                  {user?.email || "-"}
-                </p>
+          <div className="bg-gradient-to-b from-white via-sky-50/40 to-white p-5">
+            <div className="rounded-3xl border border-sky-100 bg-white p-5 shadow-sm shadow-sky-100/50">
+              <div className="grid h-20 w-20 place-items-center rounded-3xl bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 text-2xl font-black text-white shadow-lg shadow-sky-600/20">
+                {initials(user?.nama || "User")}
               </div>
 
-              <div className="rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-sky-100">
-                <p className="text-xs font-bold uppercase text-slate-400">
-                  Username
-                </p>
-                <p className="mt-1 break-words font-semibold text-slate-800">
-                  @{user?.username || "-"}
-                </p>
-              </div>
+              <h2 className="mt-5 text-2xl font-black tracking-tight text-slate-950">
+                {user?.nama || "Pengguna"}
+              </h2>
 
-              <div className="rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-sky-100">
-                <p className="text-xs font-bold uppercase text-slate-400">
-                  Nomor HP
-                </p>
-                <p className="mt-1 font-semibold text-slate-800">
-                  {user?.no_hp || "Belum diisi"}
-                </p>
+              <p className="mt-1 inline-flex rounded-full bg-gradient-to-r from-white via-cyan-50/80 to-sky-50 px-3 py-1 text-xs font-black uppercase tracking-wide text-sky-700 ring-1 ring-sky-100">
+                {roleLabel(user?.role)}
+              </p>
+
+              <div className="mt-6 space-y-3 text-sm">
+                <InfoItem label="Email" value={user?.email || "-"} />
+                <InfoItem label="Username" value={`@${user?.username || "-"}`} />
+                <InfoItem label="Nomor HP" value={user?.no_hp || "Belum diisi"} />
               </div>
             </div>
           </div>
         </aside>
 
         <div className="space-y-6">
-          <form
-            onSubmit={submitProfile}
-            className="overflow-hidden rounded-[2rem] border border-sky-100 bg-white shadow-xl shadow-sky-950/5"
-          >
-            <div className="border-b border-sky-100 bg-[linear-gradient(135deg,#dbeafe_0%,#bfdbfe_45%,#7dd3fc_100%)] px-6 py-5">
-              <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#08224f]">
-                Data Diri
-              </p>
-              <h3 className="mt-1 text-xl font-extrabold text-slate-950">
-                Ubah Profil
-              </h3>
+          <form onSubmit={submitProfile} className={shellCardClass}>
+            <div className={sectionHeaderClass}>
+              <div className="flex items-center gap-2">
+                <div className="grid h-9 w-9 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200/70">
+                  <Icon name="profile" className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-sky-600">
+                    Data Diri
+                  </p>
+                  <h3 className="text-xl font-black tracking-tight text-slate-900">
+                    Ubah Profil
+                  </h3>
+                </div>
+              </div>
             </div>
 
-            <div className="p-6">
+            <div className="p-5 md:p-6">
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="block">
                   <span className="mb-1.5 block text-sm font-bold text-slate-700">
@@ -480,9 +508,7 @@ export function UserProfilePanel({
                   </span>
                   <input
                     value={profileForm.nama}
-                    onChange={(event) =>
-                      updateProfile("nama", event.target.value)
-                    }
+                    onChange={(event) => updateProfile("nama", event.target.value)}
                     className={inputClass}
                   />
                 </label>
@@ -493,9 +519,7 @@ export function UserProfilePanel({
                   </span>
                   <input
                     value={profileForm.username}
-                    onChange={(event) =>
-                      updateProfile("username", event.target.value)
-                    }
+                    onChange={(event) => updateProfile("username", event.target.value)}
                     className={inputClass}
                   />
                 </label>
@@ -507,9 +531,7 @@ export function UserProfilePanel({
                   <input
                     type="email"
                     value={profileForm.email}
-                    onChange={(event) =>
-                      updateProfile("email", event.target.value)
-                    }
+                    onChange={(event) => updateProfile("email", event.target.value)}
                     className={inputClass}
                   />
                 </label>
@@ -520,68 +542,47 @@ export function UserProfilePanel({
                   </span>
                   <input
                     value={profileForm.no_hp}
-                    onChange={(event) =>
-                      updateProfile("no_hp", event.target.value)
-                    }
+                    onChange={(event) => updateProfile("no_hp", event.target.value)}
                     className={inputClass}
                   />
                 </label>
               </div>
 
               <div className="mt-6 flex justify-end">
-                <button
-                  type="submit"
-                  disabled={savingProfile}
-                  className={primaryButtonClass}
-                >
+                <button type="submit" disabled={savingProfile} className={primaryButtonClass}>
+                  <Icon name="check" className="h-4 w-4" />
                   {savingProfile ? "Menyimpan..." : "Simpan Profil"}
                 </button>
               </div>
             </div>
           </form>
 
-          <form
-            onSubmit={submitPassword}
-            className="overflow-hidden rounded-[2rem] border border-sky-100 bg-white shadow-xl shadow-sky-950/5"
-          >
-            <div className="border-b border-sky-100 bg-[linear-gradient(135deg,#dbeafe_0%,#bfdbfe_45%,#7dd3fc_100%)] px-6 py-5">
-              <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#08224f]">
-                Keamanan OTP
-              </p>
-              <h3 className="mt-1 text-xl font-extrabold text-slate-950">
-                Ubah Password dengan OTP
-              </h3>
+          <form onSubmit={submitPassword} className={shellCardClass}>
+            <div className={sectionHeaderClass}>
+              <div className="flex items-center gap-2">
+                <div className="grid h-9 w-9 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200/70">
+                  <Icon name="lock" className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-sky-600">
+                    Keamanan OTP
+                  </p>
+                  <h3 className="text-xl font-black tracking-tight text-slate-900">
+                    Ubah Password
+                  </h3>
+                </div>
+              </div>
             </div>
 
-            <div className="p-6">
+            <div className="p-5 md:p-6">
               <div className="grid gap-4">
-                <label className="block">
-                  <span className="mb-1.5 block text-sm font-bold text-slate-700">
-                    Password lama
-                  </span>
-                  <div className="relative">
-                    <input
-                      type={showCurrentPassword ? "text" : "password"}
-                      value={passwordForm.current_password}
-                      onChange={(event) =>
-                        updatePassword("current_password", event.target.value)
-                      }
-                      className={`${inputClass} pr-12`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowCurrentPassword((current) => !current)
-                      }
-                      className="absolute right-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-xl text-slate-400 transition hover:bg-sky-50 hover:text-sky-700"
-                    >
-                      <Icon
-                        name={showCurrentPassword ? "eyeOff" : "eye"}
-                        className="h-4 w-4"
-                      />
-                    </button>
-                  </div>
-                </label>
+                <PasswordInput
+                  label="Password lama"
+                  value={passwordForm.current_password}
+                  visible={showCurrentPassword}
+                  onToggle={() => setShowCurrentPassword((current) => !current)}
+                  onChange={(value) => updatePassword("current_password", value)}
+                />
 
                 <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
                   <label className="block">
@@ -590,89 +591,40 @@ export function UserProfilePanel({
                     </span>
                     <input
                       value={passwordForm.otp}
-                      onChange={(event) =>
-                        updatePassword("otp", event.target.value)
-                      }
+                      onChange={(event) => updatePassword("otp", event.target.value)}
                       placeholder="6 digit"
-                      className={`${inputClass} font-bold tracking-[0.3em] placeholder:tracking-normal`}
+                      className={`${inputClass} font-black tracking-[0.3em] placeholder:tracking-normal`}
                     />
                   </label>
 
-                  <button
-                    type="button"
-                    disabled={sendingOtp}
-                    onClick={requestOtp}
-                    className={secondaryButtonClass}
-                  >
+                  <button type="button" disabled={sendingOtp} onClick={requestOtp} className={secondaryButtonClass}>
+                    <Icon name="mail" className="h-4 w-4" />
                     {sendingOtp ? "Mengirim OTP..." : "Kirim OTP"}
                   </button>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
-                  <label className="block">
-                    <span className="mb-1.5 block text-sm font-bold text-slate-700">
-                      Password baru
-                    </span>
-                    <div className="relative">
-                      <input
-                        type={showNewPassword ? "text" : "password"}
-                        value={passwordForm.new_password}
-                        onChange={(event) =>
-                          updatePassword("new_password", event.target.value)
-                        }
-                        className={`${inputClass} pr-12`}
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setShowNewPassword((current) => !current)
-                        }
-                        className="absolute right-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-xl text-slate-400 transition hover:bg-sky-50 hover:text-sky-700"
-                      >
-                        <Icon
-                          name={showNewPassword ? "eyeOff" : "eye"}
-                          className="h-4 w-4"
-                        />
-                      </button>
-                    </div>
-                  </label>
+                  <PasswordInput
+                    label="Password baru"
+                    value={passwordForm.new_password}
+                    visible={showNewPassword}
+                    onToggle={() => setShowNewPassword((current) => !current)}
+                    onChange={(value) => updatePassword("new_password", value)}
+                  />
 
-                  <label className="block">
-                    <span className="mb-1.5 block text-sm font-bold text-slate-700">
-                      Konfirmasi password baru
-                    </span>
-                    <div className="relative">
-                      <input
-                        type={showConfirmPassword ? "text" : "password"}
-                        value={passwordForm.confirm_password}
-                        onChange={(event) =>
-                          updatePassword("confirm_password", event.target.value)
-                        }
-                        className={`${inputClass} pr-12`}
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setShowConfirmPassword((current) => !current)
-                        }
-                        className="absolute right-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-xl text-slate-400 transition hover:bg-sky-50 hover:text-sky-700"
-                      >
-                        <Icon
-                          name={showConfirmPassword ? "eyeOff" : "eye"}
-                          className="h-4 w-4"
-                        />
-                      </button>
-                    </div>
-                  </label>
+                  <PasswordInput
+                    label="Konfirmasi password baru"
+                    value={passwordForm.confirm_password}
+                    visible={showConfirmPassword}
+                    onToggle={() => setShowConfirmPassword((current) => !current)}
+                    onChange={(value) => updatePassword("confirm_password", value)}
+                  />
                 </div>
               </div>
 
               <div className="mt-6 flex justify-end">
-                <button
-                  type="submit"
-                  disabled={savingPassword}
-                  className={primaryButtonClass}
-                >
+                <button type="submit" disabled={savingPassword} className={primaryButtonClass}>
+                  <Icon name="lock" className="h-4 w-4" />
                   {savingPassword ? "Mengubah..." : "Ubah Password"}
                 </button>
               </div>

@@ -1,10 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import { adminNav as navItems } from "@/config/navigation";
-import { approveSchool, getSchoolVerifications, type VerificationRow } from "@/features/admin/api";
+import {
+  approveSchool,
+  getSchoolVerifications,
+  type VerificationRow,
+} from "@/features/admin/api";
 import { Icon } from "@/components/ui/icons";
 
 type VerificationId = VerificationRow["id"];
@@ -37,7 +40,7 @@ function StatCard({
   icon: string;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-sky-100 bg-gradient-to-br from-white via-sky-50/70 to-blue-50/70 p-5 shadow-[0_14px_35px_rgba(15,23,42,0.07)] transition duration-300 hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_18px_45px_rgba(15,23,42,0.11)]">
+    <div className="group relative overflow-hidden rounded-2xl border border-sky-100 bg-gradient-to-br from-white via-sky-50/70 to-blue-50/70 p-5 shadow-[0_14px_35px_rgba(15,23,42,0.07)] transition duration-300 hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_18px_45px_rgba(15,23,42,0.11)]">
       <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#0b2450] via-sky-500 to-cyan-300" />
 
       <div className="flex items-start justify-between gap-4">
@@ -45,11 +48,9 @@ function StatCard({
           <p className="text-[11px] font-extrabold uppercase tracking-[0.17em] text-sky-700">
             {title}
           </p>
-
           <p className="mt-2 text-2xl font-black tracking-tight text-slate-950">
             {value}
           </p>
-
           <p className="mt-1 text-xs font-medium leading-5 text-slate-500">
             {desc}
           </p>
@@ -94,6 +95,9 @@ export default function AdminVerifikasiPage() {
   const [selectedSchool, setSelectedSchool] = useState<VerificationRow | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const itemsPerPage = 10;
 
   async function refresh() {
     try {
@@ -114,12 +118,12 @@ export default function AdminVerifikasiPage() {
 
   const approvedCount = useMemo(
     () => rows.filter((item) => item.status === "approved").length,
-    [rows]
+    [rows],
   );
 
   const pendingCount = useMemo(
     () => rows.filter((item) => item.status !== "approved").length,
-    [rows]
+    [rows],
   );
 
   const filteredRows = useMemo(() => {
@@ -144,7 +148,22 @@ export default function AdminVerifikasiPage() {
     });
   }, [rows, searchQuery]);
 
-  const handleApprove = async (id: VerificationId, schoolName: string) => {
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / itemsPerPage));
+
+  const paginatedRows = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredRows.slice(start, start + itemsPerPage);
+  }, [filteredRows, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  function goToPage(page: number) {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  }
+
+  async function handleApprove(id: VerificationId, schoolName: string) {
     if (processingId !== null) return;
 
     setProcessingId(id);
@@ -152,7 +171,7 @@ export default function AdminVerifikasiPage() {
     setMessage("");
 
     try {
-      await approveSchool(id as never);
+      await approveSchool(Number(id) as never);
       setMessage(`Sekolah "${schoolName}" berhasil diverifikasi.`);
       await refresh();
       setShowModal(false);
@@ -162,17 +181,17 @@ export default function AdminVerifikasiPage() {
     } finally {
       setProcessingId(null);
     }
-  };
+  }
 
-  const openDetailModal = (school: VerificationRow) => {
+  function openDetailModal(school: VerificationRow) {
     setSelectedSchool(school);
     setShowModal(true);
-  };
+  }
 
-  const closeModal = () => {
+  function closeModal() {
     setShowModal(false);
     setSelectedSchool(null);
-  };
+  }
 
   const selectedPhone = selectedSchool ? getOptionalValue(selectedSchool, "phone") : null;
   const selectedEmail = selectedSchool ? getOptionalValue(selectedSchool, "email") : null;
@@ -197,14 +216,12 @@ export default function AdminVerifikasiPage() {
             desc="Data sekolah dari endpoint admin"
             icon="school"
           />
-
           <StatCard
             title="Menunggu"
             value={loading ? "..." : pendingCount}
             desc="Pengajuan perlu diverifikasi"
             icon="clock"
           />
-
           <StatCard
             title="Terverifikasi"
             value={loading ? "..." : approvedCount}
@@ -214,152 +231,181 @@ export default function AdminVerifikasiPage() {
         </div>
 
         {message && (
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 shadow-sm">
             {message}
           </div>
         )}
 
         {error && (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 shadow-sm">
             {error}
           </div>
         )}
 
         <section className="overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60">
-          <div className="flex flex-col gap-4 border-b border-sky-100 bg-gradient-to-r from-sky-50 via-white to-blue-50 px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-sky-600">
-                Antrean Verifikasi
-              </p>
+            <div className="flex flex-col gap-4 border-b border-sky-100 bg-gradient-to-r from-sky-50 via-white to-blue-50 px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-sky-600">
+                  Antrean Verifikasi
+                </p>
+                <h2 className="mt-1 text-xl font-black tracking-tight text-slate-900">
+                  Data Pengajuan Sekolah
+                </h2>
+                <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-slate-500">
+                  Setiap baris diambil dari tabel sekolah lewat NestJS. Tombol detail
+                  dipakai untuk meninjau data sebelum sekolah diverifikasi.
+                </p>
+              </div>
 
-              <h2 className="mt-1 text-xl font-black tracking-tight text-slate-900">
-                Data Pengajuan Sekolah
-              </h2>
-
-              <p className="mt-1 text-sm font-medium text-slate-500">
-                Setiap baris diambil dari tabel sekolah lewat NestJS. Tombol verifikasi mengirim PUT ke backend.
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <Icon name="search" className="h-4 w-4 text-slate-400" />
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <Icon name="search" className="h-4 w-4 text-slate-400" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Cari sekolah..."
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-9 pr-4 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100 sm:w-64"
+                  />
                 </div>
 
-                <input
-                  type="text"
-                  placeholder="Cari sekolah..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-9 pr-4 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100 sm:w-64"
-                />
+                <span className="inline-flex items-center justify-center rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-sky-600/20">
+                  {filteredRows.length} Data
+                </span>
               </div>
             </div>
-          </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-gradient-to-r from-sky-100 via-white to-blue-100 text-xs font-black uppercase tracking-[0.14em] text-sky-800">
-                <tr>
-                  <th className="px-5 py-4">No</th>
-                  <th className="px-5 py-4">Nama Sekolah</th>
-                  <th className="px-5 py-4">Alamat</th>
-                  <th className="px-5 py-4">Kota</th>
-                  <th className="px-5 py-4">Jenjang</th>
-                  <th className="px-5 py-4">Status</th>
-                  <th className="px-5 py-4 text-center">Aksi</th>
-                </tr>
-              </thead>
-
-              <tbody className="divide-y divide-slate-100">
-                {loading ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-gradient-to-r from-sky-100 via-white to-blue-100 text-xs font-black uppercase tracking-[0.14em] text-sky-800">
                   <tr>
-                    <td colSpan={7} className="px-5 py-12 text-center text-sm font-semibold text-slate-500">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="h-6 w-6 animate-spin rounded-full border-2 border-sky-600 border-t-transparent" />
-                        Memuat data verifikasi...
-                      </div>
-                    </td>
+                    <th className="px-5 py-4">No</th>
+                    <th className="px-5 py-4">Nama Sekolah</th>
+                    <th className="px-5 py-4">Alamat</th>
+                    <th className="px-5 py-4">Kota</th>
+                    <th className="px-5 py-4">Jenjang</th>
+                    <th className="px-5 py-4">Status</th>
+                    <th className="px-5 py-4 text-center">Aksi</th>
                   </tr>
-                ) : filteredRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-5 py-14 text-center">
-                      <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-sky-100 text-sky-700">
-                        <Icon name="verify" className="h-5 w-5" />
-                      </div>
+                </thead>
 
-                      <p className="mt-4 text-sm font-semibold text-slate-700">
-                        {searchQuery ? "Tidak ada pengajuan yang cocok." : "Tidak ada sekolah yang menunggu verifikasi."}
-                      </p>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredRows.map((item, idx) => (
-                    <tr
-                      key={String(item.id)}
-                      className="group transition duration-150 hover:bg-sky-50/50"
-                    >
-                      <td className="px-5 py-4 text-sm font-bold text-slate-500">
-                        {idx + 1}
-                      </td>
-
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sm font-black text-sky-700 ring-1 ring-sky-200/70">
-                            {item.school.slice(0, 2).toUpperCase()}
-                          </div>
-
-                          <div className="min-w-0">
-                            <p className="truncate font-bold text-slate-900">
-                              {item.school}
-                            </p>
-                            <p className="text-xs font-medium text-slate-500">
-                              {item.level}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="px-5 py-4 text-sm font-medium text-slate-600">
-                        <span title={item.address}>
-                          {item.address.length > 45
-                            ? item.address.slice(0, 45) + "..."
-                            : item.address}
-                        </span>
-                      </td>
-
-                      <td className="px-5 py-4 text-sm font-medium text-slate-600">
-                        {item.city}
-                      </td>
-
-                      <td className="px-5 py-4 text-sm font-bold text-slate-700">
-                        {item.level}
-                      </td>
-
-                      <td className="px-5 py-4">
-                        <StatusBadge status={item.status} />
-                      </td>
-
-                      <td className="px-5 py-4">
-                        <div className="flex justify-center">
-                          <button
-                            type="button"
-                            onClick={() => openDetailModal(item)}
-                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-xs font-bold text-sky-700 transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-100 hover:shadow-sm"
-                            title="Lihat detail sekolah"
-                          >
-                            <DetailIcon />
-                            Detail
-                          </button>
+                <tbody className="divide-y divide-slate-100">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={7} className="px-5 py-12 text-center text-sm font-semibold text-slate-500">
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="h-6 w-6 animate-spin rounded-full border-2 border-sky-600 border-t-transparent" />
+                          Memuat data verifikasi...
                         </div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ) : filteredRows.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-5 py-14 text-center">
+                        <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200/70">
+                          <Icon name="verify" className="h-5 w-5" />
+                        </div>
+                        <p className="mt-4 text-sm font-semibold text-slate-700">
+                          {searchQuery
+                            ? "Tidak ada pengajuan yang cocok."
+                            : "Tidak ada sekolah yang menunggu verifikasi."}
+                        </p>
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedRows.map((item, idx) => {
+                      const globalIdx = (currentPage - 1) * itemsPerPage + idx + 1;
+
+                      return (
+                        <tr key={String(item.id)} className="group transition hover:bg-sky-50/50">
+                          <td className="px-5 py-4 text-sm font-bold text-slate-500">
+                            {globalIdx}
+                          </td>
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sm font-black text-sky-700 ring-1 ring-sky-200/70">
+                                {item.school.slice(0, 2).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="truncate font-bold text-slate-900">
+                                  {item.school}
+                                </p>
+                                <p className="text-xs font-medium text-slate-500">
+                                  {item.level}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-5 py-4 text-sm font-medium text-slate-600">
+                            <span title={item.address}>
+                              {item.address.length > 45
+                                ? item.address.slice(0, 45) + "..."
+                                : item.address}
+                            </span>
+                          </td>
+                          <td className="px-5 py-4 text-sm font-medium text-slate-600">
+                            {item.city}
+                          </td>
+                          <td className="px-5 py-4 text-sm font-bold text-slate-700">
+                            {item.level}
+                          </td>
+                          <td className="px-5 py-4">
+                            <StatusBadge status={item.status} />
+                          </td>
+                          <td className="px-5 py-4">
+                            <div className="flex justify-center">
+                              <button
+                                type="button"
+                                onClick={() => openDetailModal(item)}
+                                className="inline-flex items-center justify-center gap-2 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-xs font-bold text-sky-700 transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-100 hover:shadow-sm"
+                              >
+                                <DetailIcon />
+                                Detail
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {!loading && filteredRows.length > itemsPerPage && (
+              <div className="flex flex-col items-center gap-3 border-t border-sky-100 px-5 py-4 sm:flex-row sm:justify-between">
+                <div className="text-xs font-medium text-slate-500 sm:text-sm">
+                  Menampilkan {(currentPage - 1) * itemsPerPage + 1}–
+                  {Math.min(currentPage * itemsPerPage, filteredRows.length)} dari {filteredRows.length} pengajuan
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="inline-flex w-[104px] items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Sebelumnya
+                  </button>
+
+                  <span className="inline-flex w-[72px] justify-center rounded-xl bg-sky-50 px-3 py-2 text-sm font-bold text-sky-700 ring-1 ring-sky-100">
+                    {currentPage} / {totalPages}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="inline-flex w-[104px] items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Berikutnya
+                  </button>
+                </div>
+              </div>
+            )}
         </section>
       </div>
 
@@ -368,7 +414,6 @@ export default function AdminVerifikasiPage() {
           <div className="w-full max-w-2xl overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-2xl shadow-slate-950/20">
             <div className="relative overflow-hidden bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-6 py-5 text-white">
               <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:32px_32px]" />
-
               <div className="relative flex items-start justify-between gap-4">
                 <div>
                   <h2 className="text-xl font-black tracking-tight">Detail Sekolah</h2>
@@ -376,7 +421,6 @@ export default function AdminVerifikasiPage() {
                     Lengkapi verifikasi jika data sekolah sudah sesuai.
                   </p>
                 </div>
-
                 <button
                   type="button"
                   onClick={closeModal}
@@ -391,27 +435,45 @@ export default function AdminVerifikasiPage() {
             <div className="space-y-4 p-6">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                  <label className="block text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500">Nama Sekolah</label>
-                  <p className="mt-2 text-sm font-bold text-slate-900">{selectedSchool.school}</p>
+                  <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">
+                    Nama Sekolah
+                  </label>
+                  <p className="mt-2 text-sm font-bold text-slate-900">
+                    {selectedSchool.school}
+                  </p>
                 </div>
 
                 <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                  <label className="block text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500">Jenjang</label>
-                  <p className="mt-2 text-sm font-bold text-slate-900">{selectedSchool.level}</p>
+                  <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">
+                    Jenjang
+                  </label>
+                  <p className="mt-2 text-sm font-bold text-slate-900">
+                    {selectedSchool.level}
+                  </p>
                 </div>
 
                 <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100 sm:col-span-2">
-                  <label className="block text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500">Alamat</label>
-                  <p className="mt-2 text-sm font-medium leading-6 text-slate-700">{selectedSchool.address}</p>
+                  <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">
+                    Alamat
+                  </label>
+                  <p className="mt-2 text-sm font-medium leading-6 text-slate-700">
+                    {selectedSchool.address}
+                  </p>
                 </div>
 
                 <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                  <label className="block text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500">Kota</label>
-                  <p className="mt-2 text-sm font-bold text-slate-900">{selectedSchool.city}</p>
+                  <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">
+                    Kota
+                  </label>
+                  <p className="mt-2 text-sm font-bold text-slate-900">
+                    {selectedSchool.city}
+                  </p>
                 </div>
 
                 <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                  <label className="block text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500">Status</label>
+                  <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">
+                    Status
+                  </label>
                   <p className="mt-2">
                     <StatusBadge status={selectedSchool.status} />
                   </p>
@@ -419,22 +481,34 @@ export default function AdminVerifikasiPage() {
 
                 {selectedPhone && (
                   <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                    <label className="block text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500">No. Telepon</label>
-                    <p className="mt-2 text-sm font-bold text-slate-900">{selectedPhone}</p>
+                    <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">
+                      No. Telepon
+                    </label>
+                    <p className="mt-2 text-sm font-bold text-slate-900">
+                      {selectedPhone}
+                    </p>
                   </div>
                 )}
 
                 {selectedEmail && (
                   <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                    <label className="block text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500">Email</label>
-                    <p className="mt-2 text-sm font-bold text-slate-900">{selectedEmail}</p>
+                    <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">
+                      Email
+                    </label>
+                    <p className="mt-2 text-sm font-bold text-slate-900">
+                      {selectedEmail}
+                    </p>
                   </div>
                 )}
 
                 {selectedNpsn && (
                   <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                    <label className="block text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500">NPSN</label>
-                    <p className="mt-2 text-sm font-bold text-slate-900">{selectedNpsn}</p>
+                    <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">
+                      NPSN
+                    </label>
+                    <p className="mt-2 text-sm font-bold text-slate-900">
+                      {selectedNpsn}
+                    </p>
                   </div>
                 )}
               </div>
@@ -443,7 +517,7 @@ export default function AdminVerifikasiPage() {
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+                  className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
                 >
                   Kembali
                 </button>
@@ -456,7 +530,9 @@ export default function AdminVerifikasiPage() {
                     className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-sky-600/20 transition hover:-translate-y-0.5 disabled:opacity-60"
                   >
                     <Icon name="verify" className="h-4 w-4" />
-                    {processingId === selectedSchool.id ? "Memverifikasi..." : "Verifikasi Sekolah"}
+                    {processingId === selectedSchool.id
+                      ? "Memverifikasi..."
+                      : "Verifikasi Sekolah"}
                   </button>
                 )}
               </div>

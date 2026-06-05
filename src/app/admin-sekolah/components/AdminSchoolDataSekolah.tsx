@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type FormEvent } from "react";
 import type { FieldErrors, SchoolForm, AdminSchoolStatus } from "../types";
-import { Field, StatusMessage } from "./AdminSchoolShared";
+import { Field } from "./AdminSchoolShared";
 import { Icon } from "../../../components/ui/icons";
 
 type SchoolDirectoryItem = {
@@ -35,11 +35,6 @@ type SchoolLookupData = {
 const SCHOOL_TYPE_OPTIONS = [
   "SMA",
   "SMK",
-  "MA",
-  "MAK",
-  "PAKET C",
-  "PKBM",
-  "SKB",
 ];
 
 function cleanText(value: unknown) {
@@ -245,57 +240,72 @@ function SubmitProcessOverlay({
   state,
   title,
   description,
+  onClose,
 }: {
   state: Exclude<SubmitOverlayState, "idle">;
   title: string;
   description: string;
+  onClose: () => void;
 }) {
   const isSuccess = state === "success";
 
   return (
-    <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-900/30 px-4 py-6">
-      <div className="w-full max-w-sm overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-2xl shadow-slate-950/20">
-        <div className="relative overflow-hidden bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-6 py-5 text-white">
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:32px_32px]" />
-          <div className="relative flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white/15 text-white ring-1 ring-white/20">
-              {isSuccess ? (
-                <Icon name="check" className="h-5 w-5" />
-              ) : (
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/35 border-t-white" />
-              )}
-            </div>
-            <div>
-              <h3 className="text-base font-black tracking-tight">{title}</h3>
-              <p className="mt-1 text-xs font-medium text-sky-100/90">
-                {description}
+    <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-900/35 px-4 py-6">
+      <div className="w-full max-w-md overflow-hidden rounded-[2rem] border border-sky-100 bg-white shadow-2xl shadow-slate-950/20">
+        <div className="relative p-7">
+          {isSuccess && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="absolute right-5 top-5 grid h-10 w-10 place-items-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
+              aria-label="Tutup pesan berhasil"
+            >
+              <Icon name="x" className="h-4 w-4" />
+            </button>
+          )}
+
+          <div className="grid h-14 w-14 place-items-center rounded-2xl bg-sky-50 text-sky-700 ring-1 ring-sky-100">
+            {isSuccess ? (
+              <Icon name="check" className="h-6 w-6" />
+            ) : (
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-sky-200 border-t-sky-700" />
+            )}
+          </div>
+
+          <h3 className="mt-4 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
+            {title}
+          </h3>
+
+          <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-600">
+            {description}
+          </p>
+
+          {!isSuccess ? (
+            <div className="mt-6">
+              <div className="h-2 overflow-hidden rounded-full bg-sky-100">
+                <div className="h-full w-2/3 animate-[schoolSubmitProgress_1.35s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-[#0b2450] via-sky-500 to-cyan-300" />
+              </div>
+              <p className="mt-3 text-center text-xs font-semibold text-slate-500">
+                Mohon tunggu, data sedang dikirim ke server.
               </p>
             </div>
-          </div>
-        </div>
-
-        <div className="px-6 py-5">
-          <div className="h-2 overflow-hidden rounded-full bg-sky-100">
-            <div
-              className={`h-full rounded-full bg-gradient-to-r from-[#0b2450] via-sky-500 to-cyan-300 ${
-                isSuccess ? "w-full" : "w-2/3 animate-[schoolSubmitProgress_1.3s_ease-in-out_infinite]"
-              }`}
-            />
-          </div>
-
-          <p className="mt-4 text-center text-xs font-semibold leading-5 text-slate-500">
-            {isSuccess
-              ? "Tampilan akan diperbarui sebentar lagi."
-              : "Mohon tunggu sampai proses selesai. Jangan menutup halaman ini."}
-          </p>
+          ) : (
+            <button
+              type="button"
+              onClick={onClose}
+              className="mt-7 inline-flex w-full items-center justify-center rounded-2xl bg-[#07142f] px-5 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-slate-950/10 transition hover:-translate-y-0.5 hover:bg-[#0b2450]"
+            >
+              Mengerti
+            </button>
+          )}
         </div>
       </div>
 
       <style jsx global>{`
         @keyframes schoolSubmitProgress {
-          0% { transform: translateX(-100%); }
-          50% { transform: translateX(20%); }
-          100% { transform: translateX(130%); }
+          0% { transform: translateX(-110%); }
+          50% { transform: translateX(25%); }
+          100% { transform: translateX(135%); }
         }
       `}</style>
     </div>
@@ -341,6 +351,8 @@ export function AdminSchoolDataSekolah({
     "Harap tunggu, sedang mengirim data...",
   );
   const [submitLocalError, setSubmitLocalError] = useState("");
+
+  void schoolMessage;
 
   // ... (normalizedDirectory dan useMemo lainnya tetap sama, tidak diubah)
 
@@ -510,6 +522,7 @@ export function AdminSchoolDataSekolah({
         state={submitOverlay}
         title={submitOverlayTitle}
         description={submitOverlayDescription}
+        onClose={() => setSubmitOverlay("idle")}
       />
     ) : null;
 
@@ -538,17 +551,17 @@ export function AdminSchoolDataSekolah({
         await result;
       }
 
-      const minimumLoadingTime = 1400;
+      const minimumLoadingTime = 2800;
       const elapsed = Date.now() - startedAt;
       if (elapsed < minimumLoadingTime) {
         await wait(minimumLoadingTime - elapsed);
       }
 
-      setSubmitOverlayTitle("Pengajuan berhasil dikirim");
-      setSubmitOverlayDescription("Data sekolah akan diverifikasi oleh superadmin.");
+      setSubmitOverlayTitle("Pengajuan terkirim");
+      setSubmitOverlayDescription(
+        "Pengajuan sekolah berhasil dikirim. Fitur guru dan import siswa akan aktif setelah sekolah disetujui.",
+      );
       setSubmitOverlay("success");
-
-      await wait(1200);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Gagal mengirim data sekolah.";
@@ -556,30 +569,28 @@ export function AdminSchoolDataSekolah({
       setSubmitOverlay("idle");
     } finally {
       setSubmitting(false);
-      setSubmitOverlay("idle");
     }
   };
 
-  // Render conditional untuk status sekolah (approved / pending) tetap sama persis seperti sebelumnya
   if (schoolStatus?.school_status === "approved") {
     return (
       <>
         {submitProcessOverlay}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-blue-50/40 to-blue-100/20 p-[1px] shadow-md">
         <div className="rounded-2xl bg-gradient-to-b from-blue-50/90 to-white p-6">
-          <div className="-mx-6 -mt-6 mb-6 rounded-t-2xl bg-gradient-to-r from-[#0a1a3a] to-[#0f2a5f] px-6 py-5">
+          <div className="-mx-6 -mt-6 mb-6 rounded-t-2xl border-b border-sky-100 bg-gradient-to-br from-white via-cyan-50/50 to-sky-50/70 px-6 py-5">
             <div className="flex items-center gap-2">
-              <div className="rounded-full bg-white/20 p-1.5 text-white">
+              <div className="rounded-full bg-sky-100 p-1.5 text-sky-700 ring-1 ring-sky-200/70">
                 <Icon name="school" className="h-4 w-4" />
               </div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-blue-100">
+              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-sky-700">
                 Data Sekolah
               </p>
             </div>
-            <h2 className="mt-2 text-xl font-bold text-white">
+            <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">
               Sekolah sudah diverifikasi
             </h2>
-            <p className="mt-1 text-sm text-blue-100">
+            <p className="mt-1 text-sm font-medium leading-6 text-slate-600">
               Data sekolah sudah disetujui. Pengajuan baru tidak diperlukan.
             </p>
           </div>
@@ -601,7 +612,7 @@ export function AdminSchoolDataSekolah({
             Kembali ke dashboard
           </button>
         </div>
-        <div className="absolute bottom-0 left-0 h-0.5 w-full rounded-b-xl bg-gradient-to-r from-blue-400 to-cyan-400 opacity-70" />
+        <div className="absolute bottom-0 left-0 h-0.5 w-full rounded-b-xl bg-gradient-to-r from-sky-400 to-cyan-300 opacity-70" />
         </div>
       </>
     );
@@ -613,19 +624,19 @@ export function AdminSchoolDataSekolah({
         {submitProcessOverlay}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-blue-50/40 to-blue-100/20 p-[1px] shadow-md">
         <div className="rounded-2xl bg-gradient-to-b from-blue-50/90 to-white p-6">
-          <div className="-mx-6 -mt-6 mb-6 rounded-t-2xl bg-gradient-to-r from-[#0a1a3a] to-[#0f2a5f] px-6 py-5">
+          <div className="-mx-6 -mt-6 mb-6 rounded-t-2xl border-b border-sky-100 bg-gradient-to-br from-white via-cyan-50/50 to-sky-50/70 px-6 py-5">
             <div className="flex items-center gap-2">
-              <div className="rounded-full bg-white/20 p-1.5 text-white">
+              <div className="rounded-full bg-sky-100 p-1.5 text-sky-700 ring-1 ring-sky-200/70">
                 <Icon name="school" className="h-4 w-4" />
               </div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-blue-100">
+              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-sky-700">
                 Data Sekolah
               </p>
             </div>
-            <h2 className="mt-2 text-xl font-bold text-white">
+            <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">
               Pengajuan sedang diverifikasi
             </h2>
-            <p className="mt-1 text-sm text-blue-100">
+            <p className="mt-1 text-sm font-medium leading-6 text-slate-600">
               Data sekolah sudah dikirim dan sedang menunggu persetujuan superadmin.
             </p>
           </div>
@@ -646,7 +657,7 @@ export function AdminSchoolDataSekolah({
             Kembali ke dashboard
           </button>
         </div>
-        <div className="absolute bottom-0 left-0 h-0.5 w-full rounded-b-xl bg-gradient-to-r from-blue-400 to-cyan-400 opacity-70" />
+        <div className="absolute bottom-0 left-0 h-0.5 w-full rounded-b-xl bg-gradient-to-r from-sky-400 to-cyan-300 opacity-70" />
         </div>
       </>
     );
@@ -658,31 +669,26 @@ export function AdminSchoolDataSekolah({
       {submitProcessOverlay}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-blue-50/40 to-blue-100/20 p-[1px] shadow-md">
       <div className="rounded-2xl bg-gradient-to-b from-blue-50/90 to-white p-6">
-        <div className="-mx-6 -mt-6 mb-6 rounded-t-2xl bg-gradient-to-r from-[#0a1a3a] to-[#0f2a5f] px-6 py-5">
+        <div className="-mx-6 -mt-6 mb-6 rounded-t-2xl border-b border-sky-100 bg-gradient-to-br from-white via-cyan-50/50 to-sky-50/70 px-6 py-5">
           <div className="flex items-center gap-2">
-            <div className="rounded-full bg-white/20 p-1.5 text-white">
+            <div className="rounded-full bg-sky-100 p-1.5 text-sky-700 ring-1 ring-sky-200/70">
               <Icon name="school" className="h-4 w-4" />
             </div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-blue-100">
+            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-sky-700">
               Pengajuan Sekolah
             </p>
           </div>
-          <h2 className="mt-2 text-xl font-bold text-white">Ajukan data sekolah</h2>
-          <p className="mt-1 text-sm text-blue-100">
+          <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">Ajukan data sekolah</h2>
+          <p className="mt-1 text-sm font-medium leading-6 text-slate-600">
             Pilih sekolah atau masukkan NPSN. Data sekolah akan diambil otomatis,
             lalu masih bisa kamu koreksi jika ada data yang kosong.
           </p>
         </div>
 
-        {schoolStatus?.message ? (
-          <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700">
-            {schoolStatus.message}
-          </div>
-        ) : null}
 
         <form onSubmit={handleFormSubmit} className="space-y-5">
           {hasDirectoryOptions && (
-            <div className="rounded-2xl border border-blue-100 bg-white/80 p-4">
+            <div className="rounded-2xl border border-sky-100 bg-white/80 p-4">
               <div className="mb-4">
                 <p className="text-sm font-bold text-slate-800">
                   Pilih sekolah dari daftar
@@ -701,7 +707,7 @@ export function AdminSchoolDataSekolah({
                   <select
                     value={selectedProvince}
                     onChange={(e) => handleProvinceChange(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                   >
                     <option value="">Pilih provinsi</option>
                     {provinceOptions.map((province) => (
@@ -720,7 +726,7 @@ export function AdminSchoolDataSekolah({
                     value={selectedCity}
                     onChange={(e) => handleCityChange(e.target.value)}
                     disabled={!selectedProvince}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-50 disabled:bg-slate-100 disabled:text-slate-400"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:bg-slate-100 disabled:text-slate-400"
                   >
                     <option value="">Pilih kabupaten/kota</option>
                     {cityOptions.map((city) => (
@@ -739,7 +745,7 @@ export function AdminSchoolDataSekolah({
                     value={selectedDistrict}
                     onChange={(e) => handleDistrictChange(e.target.value)}
                     disabled={!selectedCity}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-50 disabled:bg-slate-100 disabled:text-slate-400"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:bg-slate-100 disabled:text-slate-400"
                   >
                     <option value="">Pilih kecamatan</option>
                     {districtOptions.map((district) => (
@@ -758,7 +764,7 @@ export function AdminSchoolDataSekolah({
                     value={selectedSchoolNpsn}
                     onChange={(e) => handleDirectorySchoolChange(e.target.value)}
                     disabled={!selectedDistrict}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-50 disabled:bg-slate-100 disabled:text-slate-400"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:bg-slate-100 disabled:text-slate-400"
                   >
                     <option value="">Pilih sekolah</option>
                     {filteredSchoolOptions.map((school) => (
@@ -772,7 +778,7 @@ export function AdminSchoolDataSekolah({
             </div>
           )}
 
-          <div className="rounded-2xl border border-blue-100 bg-white/80 p-4">
+          <div className="rounded-2xl border border-sky-100 bg-white/80 p-4">
             <div className="mb-4">
               <p className="text-sm font-bold text-slate-800">
                 Cari otomatis berdasarkan NPSN
@@ -791,7 +797,7 @@ export function AdminSchoolDataSekolah({
                   value={schoolForm.npsn}
                   placeholder="Contoh: 20500435"
                   onChange={(e) => updateNpsn(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none placeholder:text-slate-400 focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
                 />
                 {schoolTouched && schoolErrors.npsn && (
                   <p className="mt-1 text-xs text-rose-600">{schoolErrors.npsn}</p>
@@ -808,7 +814,7 @@ export function AdminSchoolDataSekolah({
               </button>
             </div>
             {lookupMessage && (
-              <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm font-medium text-blue-700">
+              <div className="mt-3 rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm font-medium text-sky-700">
                 {lookupMessage}
               </div>
             )}
@@ -834,7 +840,7 @@ export function AdminSchoolDataSekolah({
               <select
                 value={schoolForm.jenis_sekolah}
                 onChange={(e) => onUpdate("jenis_sekolah", e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
               >
                 <option value="">Pilih jenis sekolah</option>
                 {SCHOOL_TYPE_OPTIONS.map((type) => (
@@ -874,7 +880,7 @@ export function AdminSchoolDataSekolah({
                 placeholder="Contoh: Jl. Pendidikan No. 1, Desa/Kelurahan, Kecamatan, Kabupaten/Kota, Provinsi"
                 onChange={(e) => onUpdate("alamat", e.target.value)}
                 rows={3}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none placeholder:text-slate-400 focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
               />
               {schoolTouched && schoolErrors.alamat && (
                 <p className="mt-1 text-xs text-rose-600">{schoolErrors.alamat}</p>
@@ -888,13 +894,17 @@ export function AdminSchoolDataSekolah({
             </div>
           ) : null}
 
-          <StatusMessage message={schoolMessage} error={schoolError} />
+          {schoolError ? (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+              {schoolError}
+            </div>
+          ) : null}
 
           <div className="flex flex-wrap gap-3 pt-2">
             <button
               type="submit"
               disabled={loadingSchool || lookupLoading || submitting}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:shadow-md disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-5 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-sky-600/20 transition hover:-translate-y-0.5 disabled:opacity-60"
             >
               <Icon name="spark" className="h-4 w-4" />
               {submitting ? "Mengirim..." : "Ajukan Sekolah"}
@@ -903,14 +913,14 @@ export function AdminSchoolDataSekolah({
               type="button"
               onClick={onBack}
               disabled={loadingSchool || lookupLoading || submitting}
-              className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+              className="rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
             >
               Kembali
             </button>
           </div>
         </form>
       </div>
-        <div className="absolute bottom-0 left-0 h-0.5 w-full rounded-b-xl bg-gradient-to-r from-blue-400 to-cyan-400 opacity-70" />
+        <div className="absolute bottom-0 left-0 h-0.5 w-full rounded-b-xl bg-gradient-to-r from-sky-400 to-cyan-300 opacity-70" />
       </div>
     </>
   );
