@@ -254,7 +254,7 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
                   className="flex items-center gap-3 rounded-2xl bg-white/[0.08] px-4 py-3 text-sm font-bold text-sky-100/80 transition hover:bg-white/[0.14] hover:text-white"
                 >
                   <Icon name="settings" className="h-4 w-4" />
-                  Profil
+                  akun
                 </Link>
 
                 <button
