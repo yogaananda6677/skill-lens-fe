@@ -146,6 +146,7 @@ export type GuidanceCase = {
   schedule: string;
   recommendation: string;
   lastNote: string;
+  latestNoteAt?: string | null;
   progress: number;
 };
 

@@ -13,8 +13,8 @@ export default function GuruNilaiPage() {
         requiredRole="guru"
         activeKey="nilai"
         navItems={guruNav}
-        title="Kelola Nilai Siswa"
-        subtitle="Format data nilai dibuat seperti admin sekolah: filter jurusan, kelas, semester, dan mapel sebagai kolom."
+        title="Lihat Nilai Siswa"
+        subtitle="Guru BK dapat melihat nilai siswa dengan format seperti admin sekolah. Data nilai bersifat read-only."
         rightSlot={<StartGuruOnbordaButton />}
       >
         <GuruDataNilai />

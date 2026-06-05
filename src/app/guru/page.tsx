@@ -8,6 +8,7 @@ import { Icon } from "../../components/ui/icons";
 import { guruNav } from "../../config/navigation";
 import { getGuidanceCases, type GuidanceCase } from "../../features/guru/api";
 import { notifyAppAlert } from "../../lib/app-alert-events";
+import { getStoredUser } from "../../lib/auth";
 import { GuruOnbordaProvider } from "./components/GuruOnbordaProvider";
 import { StartGuruOnbordaButton } from "./components/StartGuruOnbordaButton";
 
@@ -27,6 +28,23 @@ export default function GuruDashboardPage() {
   const [cases, setCases] = useState<GuidanceCase[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [mustChangePassword, setMustChangePassword] = useState(false);
+
+
+  useEffect(() => {
+    const user = getStoredUser();
+    const needsChange = Boolean(user?.must_change_password);
+    setMustChangePassword(needsChange);
+
+    if (needsChange) {
+      notifyAppAlert({
+        type: "warning",
+        title: "Password masih default",
+        description: "Disarankan segera mengganti password melalui menu Profil agar akun lebih aman.",
+        autoCloseMs: 6500,
+      });
+    }
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -83,13 +101,19 @@ export default function GuruDashboardPage() {
           </div>
         )}
 
+        {mustChangePassword && (
+          <div className="mb-6 rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-800 ring-1 ring-amber-100">
+            Akun masih memakai password awal. Silakan buka menu Profil untuk mengganti password agar akun lebih aman.
+          </div>
+        )}
+
         <section className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-xl shadow-slate-900/5">
           <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
             <div>
               <p className="text-sm font-extrabold uppercase tracking-[0.2em] text-sky-700">Ringkasan Guru BK</p>
               <h2 className="mt-2 text-2xl font-extrabold text-slate-950">Pantau aktivitas siswa secara cepat</h2>
               <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-slate-500">
-                Gunakan menu terpisah di sidebar untuk masuk ke Progress Siswa, Kelola Nilai, Catatan Bimbingan, dan Profil.
+                Gunakan menu terpisah di sidebar untuk masuk ke Progress Siswa, Lihat Nilai, Riwayat Chat, dan Profil.
               </p>
             </div>
 
@@ -100,7 +124,7 @@ export default function GuruDashboardPage() {
               </Link>
               <Link href="/guru/nilai" className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-slate-800">
                 <Icon name="chart" className="h-4 w-4" />
-                Kelola Nilai
+                Lihat Nilai
               </Link>
             </div>
           </div>
@@ -121,6 +145,29 @@ export default function GuruDashboardPage() {
                 <p className="mt-1 text-3xl font-extrabold text-slate-950">{loading ? "..." : value}</p>
               </div>
             ))}
+          </div>
+        </section>
+
+
+        <section className="mt-6 rounded-[2rem] border border-sky-100 bg-gradient-to-br from-white via-sky-50/60 to-cyan-50/50 p-6 shadow-xl shadow-slate-900/5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-extrabold uppercase tracking-[0.2em] text-sky-700">Notifikasi Siswa</p>
+              <h3 className="mt-2 text-xl font-extrabold text-slate-950">Catatan dan progress terbaru</h3>
+            </div>
+            <Link href="/guru/bimbingan" className="text-sm font-extrabold text-sky-700 hover:text-sky-900">Lihat riwayat chat →</Link>
+          </div>
+          <div className="mt-5 grid gap-3 lg:grid-cols-3">
+            {recentCases.length ? recentCases.slice(0, 3).map((item) => (
+              <Link key={`notif-${item.id}`} href={`/guru/siswa/${item.studentId}/progress`} className="rounded-3xl border border-white bg-white/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                <p className="text-sm font-extrabold text-slate-950">{item.studentName}</p>
+                <p className="mt-1 text-xs font-bold text-slate-500">{item.className || "-"} • {item.jurusan || "-"}</p>
+                <p className="mt-3 text-sm font-semibold text-sky-700">{statusLabel(item)}</p>
+                <p className="mt-2 line-clamp-2 text-xs font-medium leading-5 text-slate-500">{item.lastNote || "Belum ada catatan terbaru."}</p>
+              </Link>
+            )) : (
+              <div className="rounded-3xl bg-white/80 p-5 text-sm font-bold text-slate-500 ring-1 ring-slate-100">Belum ada notifikasi siswa.</div>
+            )}
           </div>
         </section>
 

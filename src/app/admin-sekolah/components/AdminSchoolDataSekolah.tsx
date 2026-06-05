@@ -663,6 +663,7 @@ export function AdminSchoolDataSekolah({
     );
   }
 
+
   // Form pengajuan
   return (
     <>
@@ -685,6 +686,13 @@ export function AdminSchoolDataSekolah({
           </p>
         </div>
 
+
+        {schoolStatus?.school_status === "rejected" && (
+          <div className="mb-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">
+            <p className="font-extrabold">Pengajuan sebelumnya ditolak</p>
+            <p className="mt-1">{schoolStatus.rejection_reason || schoolStatus.message || "Silakan perbaiki data sekolah lalu ajukan ulang."}</p>
+          </div>
+        )}
 
         <form onSubmit={handleFormSubmit} className="space-y-5">
           {hasDirectoryOptions && (
@@ -865,9 +873,7 @@ export function AdminSchoolDataSekolah({
             <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
               <p className="text-sm font-bold text-slate-700">Informasi pengisian</p>
               <p className="mt-2 text-xs leading-5 text-slate-500">
-                Nomor telepon bisa kosong karena tidak semua data sekolah menyediakan
-                nomor aktif. Alamat tetap boleh diedit kalau hasil dari API kurang
-                lengkap.
+                Nomor telepon bisa kosong karena tidak semua data sekolah menyediakan nomor aktif. Alamat tetap boleh diedit jika data yang terisi belum lengkap.
               </p>
             </div>
 

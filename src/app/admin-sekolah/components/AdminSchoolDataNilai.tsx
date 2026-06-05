@@ -91,6 +91,31 @@ function getDisplayKelas(jenisSekolah: string | undefined, semester: string, sis
   return siswa.kelas || "-";
 }
 
+function getStudentJurusanValue(siswa: SiswaRow) {
+  return normalizeKey(
+    (siswa as any).jurusan ??
+      (siswa as any).nama_jurusan ??
+      (siswa as any).jurusan_nama ??
+      (siswa as any).namaJurusan ??
+      ""
+  );
+}
+
+function getStudentKelasValue(siswa: SiswaRow, jenisSekolah: string | undefined, semester: string) {
+  return normalizeKey(
+    getDisplayKelas(jenisSekolah, semester, siswa) ||
+      (siswa as any).kelas ||
+      (siswa as any).nama_kelas ||
+      (siswa as any).kelas_nama ||
+      ""
+  );
+}
+
+function isAllFilter(value: unknown) {
+  const key = normalizeKey(value);
+  return !key || key === "semua" || key === "all" || key === "semua jurusan" || key === "semua kelas";
+}
+
 function formatScore(value: number | null | undefined) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
     return "-";
@@ -252,6 +277,18 @@ export function AdminSchoolDataNilai({
     }
   }, [jurusanFilterAktif]);
 
+  const selectedJurusanName = useMemo(() => {
+    if (selectedJurusan === "semua") return "";
+    const found = jurusanRows.find(
+      (jurusan) =>
+        String(jurusan.id) === String(selectedJurusan) ||
+        String(jurusan.id_jurusan ?? "") === String(selectedJurusan) ||
+        normalizeKey(jurusan.nama) === normalizeKey(selectedJurusan) ||
+        normalizeKey(jurusan.nama_jurusan) === normalizeKey(selectedJurusan)
+    );
+    return String(found?.nama ?? found?.nama_jurusan ?? selectedJurusan);
+  }, [jurusanRows, selectedJurusan]);
+
   const filteredSiswa = useMemo(() => {
     const keyword = normalizeText(searchTerm);
     const semesterNumber = Number(selectedSemester);
@@ -264,16 +301,26 @@ export function AdminSchoolDataNilai({
 
       if (!nilaiSemester.length) return false;
 
+      const studentJurusanKey = getStudentJurusanValue(siswa);
+      const selectedJurusanKey = normalizeKey(selectedJurusanName || selectedJurusan);
+      const nilaiJurusanKeys = nilaiSemester
+        .map((item) => normalizeKey(item.id_jurusan))
+        .filter(Boolean);
+
       const matchJurusan =
         !jurusanFilterAktif ||
-        selectedJurusan === "semua" ||
-        String(siswa.id_jurusan ?? "") === selectedJurusan;
+        isAllFilter(selectedJurusan) ||
+        String(siswa.id_jurusan ?? "") === String(selectedJurusan) ||
+        studentJurusanKey === selectedJurusanKey ||
+        normalizeKey(siswa.jurusan).includes(selectedJurusanKey) ||
+        nilaiJurusanKeys.includes(normalizeKey(selectedJurusan));
 
       const matchKeyword =
         !keyword ||
         normalizeText(siswa.nama).includes(keyword) ||
         normalizeText(siswa.nisn).includes(keyword) ||
         normalizeText(siswa.kelas).includes(keyword) ||
+        normalizeText(getDisplayKelas(jenisSekolah, selectedSemester, siswa)).includes(keyword) ||
         normalizeText(siswa.jurusan).includes(keyword);
 
       return matchJurusan && matchKeyword;
@@ -284,6 +331,7 @@ export function AdminSchoolDataNilai({
     nilaiBySiswa,
     searchTerm,
     selectedJurusan,
+    selectedJurusanName,
     selectedSemester,
   ]);
 
@@ -447,13 +495,13 @@ export function AdminSchoolDataNilai({
             >
               <option value="semua">
                 {jurusanFilterAktif
-                  ? "Semua Jurusan"
+                  ? "Semua jurusan"
                   : "Semester 1 dan 2 SMA tidak memakai jurusan"}
               </option>
               {jurusanFilterAktif &&
                 jurusanRows.map((jurusan) => (
-                  <option key={jurusan.id} value={String(jurusan.id)}>
-                    {jurusan.nama}
+                  <option key={jurusan.id ?? jurusan.id_jurusan ?? jurusan.nama} value={String(jurusan.id ?? jurusan.id_jurusan ?? jurusan.nama)}>
+                    {jurusan.nama || jurusan.nama_jurusan}
                   </option>
                 ))}
             </select>

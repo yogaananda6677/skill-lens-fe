@@ -186,9 +186,11 @@ export default function GuruStudentProgressDetailPage() {
         errorMessage: false,
       });
 
+      const currentScrollY = window.scrollY;
       setNoteText((current) => ({ ...current, [step.id]: "" }));
       notifyAppAlert({ type: "success", title: "Catatan tersimpan", description: "Catatan bimbingan berhasil ditambahkan.", autoCloseMs: 2200 });
       await loadRoadmap();
+      window.requestAnimationFrame(() => window.scrollTo({ top: currentScrollY, behavior: "auto" }));
     } catch (err) {
       const message = err instanceof Error ? err.message : "Gagal menyimpan catatan.";
       setError(message);

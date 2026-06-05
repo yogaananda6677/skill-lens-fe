@@ -5,6 +5,7 @@ import { DashboardShell } from "@/components/layout/DashboardShell";
 import { adminNav as navItems } from "@/config/navigation";
 import { getAdminSchools, deleteSchool } from "@/features/admin/api";
 import { Icon } from "@/components/ui/icons";
+import { notifyAppAlert } from "@/lib/app-alert-events";
 
 type SchoolRow = {
   id: string;
@@ -197,7 +198,11 @@ export default function AdminSchoolPage() {
   }
 
   function handleEdit(school: SchoolRow) {
-    alert(`Edit sekolah: ${school.name}`);
+    notifyAppAlert({
+      type: "info",
+      title: "Edit sekolah",
+      description: `Pengubahan data ${school.name} dilakukan melalui proses verifikasi/admin sekolah agar data tetap konsisten.`,
+    });
   }
 
   async function handleDelete(school: SchoolRow) {
@@ -206,10 +211,10 @@ export default function AdminSchoolPage() {
     try {
       await deleteSchool(Number(school.id));
       setSchools((prev) => prev.filter((item) => item.id !== school.id));
-      alert("Sekolah berhasil dihapus");
+      notifyAppAlert({ type: "success", title: "Sekolah dihapus", description: "Data sekolah berhasil dihapus." });
     } catch (err) {
       console.error(err);
-      alert(err instanceof Error ? err.message : "Gagal menghapus sekolah");
+      notifyAppAlert({ type: "error", title: "Gagal menghapus sekolah", description: err instanceof Error ? err.message : "Gagal menghapus sekolah" });
     }
   }
 

@@ -189,7 +189,7 @@ function SpkGenerateHistory({
           </h2>
 
           <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-500">
-            Bagian ini hanya menampilkan catatan hasil SPK dan pilihan roadmap yang pernah dibuat. Semua kartu bersifat read-only dan tidak bisa diklik.
+            Bagian ini menampilkan catatan hasil SPK dan pilihan roadmap yang pernah dibuat.
           </p>
         </div>
 

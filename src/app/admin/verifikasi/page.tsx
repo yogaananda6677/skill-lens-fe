@@ -5,6 +5,7 @@ import { DashboardShell } from "@/components/layout/DashboardShell";
 import { adminNav as navItems } from "@/config/navigation";
 import {
   approveSchool,
+  rejectSchool,
   getSchoolVerifications,
   type VerificationRow,
 } from "@/features/admin/api";
@@ -14,16 +15,19 @@ type VerificationId = VerificationRow["id"];
 
 function StatusBadge({ status }: { status: string }) {
   const isVerified = status === "approved";
+  const isRejected = status === "rejected";
 
   return (
     <span
       className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-wide ring-1 ${
         isVerified
           ? "bg-emerald-100 text-emerald-700 ring-emerald-200"
-          : "bg-amber-100 text-amber-700 ring-amber-200"
+          : isRejected
+            ? "bg-rose-100 text-rose-700 ring-rose-200"
+            : "bg-amber-100 text-amber-700 ring-amber-200"
       }`}
     >
-      {isVerified ? "Terverifikasi" : "Menunggu"}
+      {isVerified ? "Terverifikasi" : isRejected ? "Ditolak" : "Menunggu"}
     </span>
   );
 }
@@ -95,6 +99,7 @@ export default function AdminVerifikasiPage() {
   const [selectedSchool, setSelectedSchool] = useState<VerificationRow | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [rejectReason, setRejectReason] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
   const itemsPerPage = 10;
@@ -122,7 +127,12 @@ export default function AdminVerifikasiPage() {
   );
 
   const pendingCount = useMemo(
-    () => rows.filter((item) => item.status !== "approved").length,
+    () => rows.filter((item) => item.status === "pending").length,
+    [rows],
+  );
+
+  const rejectedCount = useMemo(
+    () => rows.filter((item) => item.status === "rejected").length,
     [rows],
   );
 
@@ -183,8 +193,37 @@ export default function AdminVerifikasiPage() {
     }
   }
 
+
+
+  async function handleReject(id: VerificationId, schoolName: string) {
+    if (processingId !== null) return;
+    const reason = rejectReason.trim();
+    if (!reason) {
+      setError("Alasan penolakan wajib diisi.");
+      return;
+    }
+
+    setProcessingId(id);
+    setError("");
+    setMessage("");
+
+    try {
+      await rejectSchool(Number(id), reason);
+      setMessage(`Pengajuan sekolah "${schoolName}" berhasil ditolak.`);
+      await refresh();
+      setShowModal(false);
+      setSelectedSchool(null);
+      setRejectReason("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal menolak sekolah");
+    } finally {
+      setProcessingId(null);
+    }
+  }
+
   function openDetailModal(school: VerificationRow) {
     setSelectedSchool(school);
+    setRejectReason("");
     setShowModal(true);
   }
 
@@ -209,7 +248,7 @@ export default function AdminVerifikasiPage() {
       schoolName="Platform SkillLens"
     >
       <div className="space-y-6">
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard
             title="Total Pengajuan"
             value={loading ? "..." : rows.length}
@@ -227,6 +266,12 @@ export default function AdminVerifikasiPage() {
             value={loading ? "..." : approvedCount}
             desc="Sekolah sudah disetujui"
             icon="verify"
+          />
+          <StatCard
+            title="Ditolak"
+            value={loading ? "..." : rejectedCount}
+            desc="Pengajuan dikembalikan dengan alasan"
+            icon="x"
           />
         </div>
 
@@ -513,7 +558,26 @@ export default function AdminVerifikasiPage() {
                 )}
               </div>
 
-              <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
+              {selectedSchool.status !== "approved" && (
+                <label className="block rounded-2xl bg-rose-50 p-4 ring-1 ring-rose-100">
+                  <span className="block text-xs font-extrabold uppercase tracking-wide text-rose-700">Alasan penolakan</span>
+                  <textarea
+                    value={rejectReason}
+                    onChange={(event) => setRejectReason(event.target.value)}
+                    placeholder="Tuliskan alasan jika pengajuan perlu ditolak..."
+                    className="mt-2 min-h-24 w-full rounded-xl border border-rose-100 bg-white px-3 py-2 text-sm font-semibold outline-none focus:border-rose-300 focus:ring-4 focus:ring-rose-50"
+                  />
+                </label>
+              )}
+
+              {selectedSchool.rejection_reason && (
+                <div className="rounded-2xl bg-rose-50 p-4 text-sm font-semibold text-rose-700 ring-1 ring-rose-100">
+                  <p className="font-extrabold">Alasan penolakan sebelumnya</p>
+                  <p className="mt-1">{selectedSchool.rejection_reason}</p>
+                </div>
+              )}
+
+              <div className="flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-5">
                 <button
                   type="button"
                   onClick={closeModal}
@@ -521,6 +585,18 @@ export default function AdminVerifikasiPage() {
                 >
                   Kembali
                 </button>
+
+                {selectedSchool.status !== "approved" && (
+                  <button
+                    type="button"
+                    onClick={() => handleReject(selectedSchool.id, selectedSchool.school)}
+                    disabled={processingId === selectedSchool.id}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-rose-600 px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-rose-600/20 transition hover:-translate-y-0.5 disabled:opacity-60"
+                  >
+                    <Icon name="x" className="h-4 w-4" />
+                    {processingId === selectedSchool.id ? "Memproses..." : "Tolak Pengajuan"}
+                  </button>
+                )}
 
                 {selectedSchool.status !== "approved" && (
                   <button

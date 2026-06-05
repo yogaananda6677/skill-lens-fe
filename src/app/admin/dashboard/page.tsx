@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import { adminNav as navItems } from "@/config/navigation";
 import { Icon } from "@/components/ui/icons";
-import { getAdminDashboard, type AdminDashboardResponse } from "@/features/admin/api";
+import { getAdminDashboard, updateRoadmapStepLimit, type AdminDashboardResponse } from "@/features/admin/api";
 
 type Metric = {
   label: string;
@@ -44,6 +44,9 @@ export default function AdminDashboardPage() {
   const [data, setData] = useState<AdminDashboardResponse | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [stepLimit, setStepLimit] = useState(4);
+  const [savingStepLimit, setSavingStepLimit] = useState(false);
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     setLoading(true);
@@ -51,6 +54,7 @@ export default function AdminDashboardPage() {
     getAdminDashboard()
       .then((result) => {
         setData(result);
+        setStepLimit(Number(result.stats.roadmapStepLimit ?? 4));
         setError("");
       })
       .catch((err) => {
@@ -89,7 +93,33 @@ export default function AdminDashboardPage() {
     [data, loading]
   );
 
-  const activities = data?.activities ?? [];
+  const activities = useMemo(
+    () => [
+      {
+        title: "Verifikasi sekolah",
+        text: `${loading ? "..." : data?.stats.pendingSchools ?? 0} sekolah menunggu verifikasi.`,
+      },
+    ],
+    [data?.stats.pendingSchools, loading],
+  );
+
+  async function handleSaveStepLimit() {
+    setSavingStepLimit(true);
+    setNotice("");
+    setError("");
+
+    try {
+      const result = await updateRoadmapStepLimit(stepLimit);
+      const saved = Number(result.data?.roadmap_step_limit ?? stepLimit);
+      setStepLimit(saved);
+      setData((current) => current ? { ...current, stats: { ...current.stats, roadmapStepLimit: saved } } : current);
+      setNotice(result.message || "Jumlah tahap roadmap berhasil diperbarui.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal memperbarui jumlah tahap roadmap");
+    } finally {
+      setSavingStepLimit(false);
+    }
+  }
 
   return (
     <DashboardShell
@@ -109,25 +139,77 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
+        {notice && (
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 shadow-sm">
+            {notice}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
           {metrics.map((item) => (
             <MetricCard key={item.label} item={item} />
           ))}
         </div>
 
+
+        <section className="rounded-3xl border border-sky-100 bg-white p-6 shadow-sm shadow-sky-100/60">
+          <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+              <p className="text-sm font-extrabold uppercase tracking-[0.2em] text-sky-700">Roadmap Pembelajaran</p>
+              <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">Rekomendasi SPK tetap 3 pilihan terbaik</h2>
+              <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-slate-500">
+                Siswa tetap menerima 3 rekomendasi utama. Admin platform mengatur jumlah tahap roadmap yang diberikan kepada siswa saat mereka membuat roadmap dari rekomendasi terpilih.
+              </p>
+            </div>
+
+            <div className="w-full rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-cyan-50 p-4 shadow-sm xl:w-[390px]">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-sky-700">Pengaturan Tahap</p>
+                  <p className="mt-1 text-sm font-bold text-slate-900">Jumlah tahap untuk siswa</p>
+                </div>
+                <div className="rounded-2xl bg-sky-100 px-4 py-2 text-sm font-extrabold text-sky-700 ring-1 ring-sky-200">
+                  3 rekomendasi
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
+                <input
+                  type="number"
+                  min={1}
+                  max={12}
+                  value={stepLimit}
+                  onChange={(event) => setStepLimit(Math.min(12, Math.max(1, Number(event.target.value || 1))))}
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                />
+                <button
+                  type="button"
+                  disabled={savingStepLimit}
+                  onClick={handleSaveStepLimit}
+                  className="rounded-2xl bg-gradient-to-r from-[#0b2450] to-sky-600 px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-sky-600/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {savingStepLimit ? "Menyimpan..." : "Simpan"}
+                </button>
+              </div>
+              <p className="mt-3 text-xs font-medium leading-5 text-slate-500">
+                Batas 1-12 tahap. Perubahan berlaku untuk roadmap baru yang dibuat siswa setelah pengaturan disimpan.
+              </p>
+            </div>
+          </div>
+        </section>
+
         <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
           <section className="overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60">
             <div className="flex flex-col gap-4 border-b border-sky-100 bg-gradient-to-r from-sky-50 via-white to-blue-50 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-sky-600">
-                  Kinerja Sistem
+                  Ringkasan Platform
                 </p>
                 <h2 className="mt-1 text-xl font-black tracking-tight text-slate-900">
-                  Data langsung dari backend
+                  Pantauan data utama
                 </h2>
                 <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-slate-500">
-                  Ringkasan ini membaca tabel sekolah, user guru, dan siswa melalui NestJS
-                  sehingga tidak lagi memakai data dummy.
+                  Ringkasan sekolah, guru, dan siswa ditampilkan untuk membantu admin memantau kondisi platform secara cepat.
                 </p>
               </div>
 
@@ -147,7 +229,7 @@ export default function AdminDashboardPage() {
                     <Icon name="chart" className="h-5 w-5" />
                   </div>
                   <h3 className="text-sm font-black text-slate-900">
-                    Integrasi dashboard aktif
+                    Ringkasan platform siap dipantau
                   </h3>
                 </div>
               </div>
@@ -163,10 +245,10 @@ export default function AdminDashboardPage() {
                   </div>
                   <div>
                     <h3 className="text-sm font-black text-slate-900">
-                      Aktivitas Terbaru
+                      Verifikasi Sekolah
                     </h3>
                     <p className="text-xs font-medium text-slate-500">
-                      Timeline sistem
+                      Daftar pengajuan sekolah
                     </p>
                   </div>
                 </div>
@@ -183,7 +265,7 @@ export default function AdminDashboardPage() {
                       <Icon name="clock" className="h-5 w-5" />
                     </div>
                     <p className="mt-4 text-sm font-semibold text-slate-700">
-                      Belum ada aktivitas terbaru.
+                      Belum ada pengajuan sekolah terbaru.
                     </p>
                   </div>
                 </div>
@@ -221,8 +303,7 @@ export default function AdminDashboardPage() {
                 </h3>
               </div>
               <p className="mt-3 text-xs font-medium leading-6 text-slate-600">
-                Modul ini dipakai untuk memantau verifikasi sekolah dan ringkasan data pengguna.
-                Data akan mengikuti endpoint backend yang sudah aktif.
+                Modul ini dipakai untuk memantau verifikasi sekolah, akun pengguna, dan pengaturan roadmap pembelajaran.
               </p>
             </section>
           </aside>

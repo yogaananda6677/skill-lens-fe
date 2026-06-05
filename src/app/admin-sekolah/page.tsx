@@ -201,11 +201,22 @@ export default function AdminSekolahPage() {
   async function loadSiswa(page = siswaPage) {
     if (!isSchoolApproved) return;
 
+    const selectedJurusan = jurusanRows.find(
+      (jurusan) =>
+        String(jurusan.id) === String(siswaJurusanFilter) ||
+        String(jurusan.id_jurusan ?? "") === String(siswaJurusanFilter) ||
+        String(jurusan.nama ?? "").trim().toLowerCase() === String(siswaJurusanFilter).trim().toLowerCase()
+    );
+
+    const selectedJurusanName = String(selectedJurusan?.nama ?? selectedJurusan?.nama_jurusan ?? siswaJurusanFilter);
+    const selectedJurusanId = String(selectedJurusan?.id ?? selectedJurusan?.id_jurusan ?? "");
+
     const params = new URLSearchParams({
       page: String(page),
       limit: String(siswaLimit),
       keyword: siswaSearch.trim(),
-      id_jurusan: siswaJurusanFilter === "semua" ? "" : siswaJurusanFilter,
+      id_jurusan: siswaJurusanFilter === "semua" ? "" : selectedJurusanId,
+      jurusan: siswaJurusanFilter === "semua" ? "" : selectedJurusanName,
     });
 
     try {

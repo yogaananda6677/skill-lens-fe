@@ -63,7 +63,7 @@ export const guruNav = [
   },
   {
     key: "nilai",
-    label: "Kelola Nilai",
+    label: "Lihat Nilai",
     description: "Nilai siswa",
     href: "/guru/nilai",
     icon: "chart",
@@ -71,8 +71,8 @@ export const guruNav = [
   },
   {
     key: "bimbingan",
-    label: "Catatan Bimbingan",
-    description: "Tindak lanjut",
+    label: "Riwayat Chat",
+    description: "Chat bimbingan",
     href: "/guru/bimbingan",
     icon: "guidance",
     roles: ["guru"],

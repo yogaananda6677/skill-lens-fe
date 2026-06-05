@@ -407,7 +407,7 @@ export function DashboardShell({
 
   return (
     <>
-      <main className="relative min-h-screen bg-gradient-to-br from-slate-50 via-white to-sky-50/40 text-slate-950 lg:grid lg:grid-cols-[292px_1fr]">
+      <main className="relative min-h-screen bg-gradient-to-br from-slate-50 via-white to-sky-50/40 text-slate-950 lg:grid lg:grid-cols-[276px_1fr]">
         <div className="pointer-events-none fixed inset-0 bg-[repeating-linear-gradient(45deg,_rgba(14,116,144,0.018)_0px,_rgba(14,116,144,0.018)_1px,_transparent_1px,_transparent_24px)]" />
 
         {routeSwitching && (
@@ -464,7 +464,7 @@ export function DashboardShell({
         </div>
 
         <section className="min-w-0">
-          <div className="w-full px-5 py-5 lg:px-6">
+          <div className="mx-auto w-full max-w-[1760px] px-5 py-5 lg:px-8">
             <header className="relative mb-6 overflow-hidden rounded-[1.6rem] border border-sky-100 bg-[#0f2d5a] text-white shadow-xl shadow-sky-950/10">
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-sky-400/20 via-transparent to-cyan-300/10" />
               <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.055)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.055)_1px,transparent_1px)] bg-[size:34px_34px]" />

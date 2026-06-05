@@ -76,6 +76,7 @@ export type GuidanceCase = {
   selectedRoadmapTitle?: string | null;
   hasActiveRoadmap?: boolean;
   lastNote: string;
+  latestNoteAt?: string | null;
   progress: number;
 };
 

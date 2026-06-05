@@ -29,6 +29,15 @@ function normalizeText(value: unknown) {
   return String(value ?? "").trim().toLowerCase();
 }
 
+function normalizeKey(value: unknown) {
+  return normalizeText(value).replace(/[._-]+/g, " " ).replace(/\s+/g, " " ).trim();
+}
+
+function isAllFilter(value: unknown) {
+  const text = normalizeKey(value);
+  return !text || text === "semua" || text === "all" || text === "semua jurusan" || text === "semua kelas";
+}
+
 function getKelasTingkat(value: unknown): KelasTingkat | null {
   const text = String(value ?? "").trim().toLowerCase();
 
@@ -215,10 +224,14 @@ export function AdminSchoolDataSiswa({
     if (!jurusanFilterAktif) return "Semua Jurusan";
 
     const found = jurusanRows.find(
-      (jurusan) => String(jurusan.id) === String(siswaJurusanFilter)
+      (jurusan) =>
+        String(jurusan.id) === String(siswaJurusanFilter) ||
+        String(jurusan.id_jurusan ?? "") === String(siswaJurusanFilter) ||
+        normalizeKey(jurusan.nama) === normalizeKey(siswaJurusanFilter) ||
+        normalizeKey(jurusan.nama_jurusan) === normalizeKey(siswaJurusanFilter)
     );
 
-    return found?.nama || "Jurusan terpilih";
+    return found?.nama || found?.nama_jurusan || siswaJurusanFilter || "Jurusan terpilih";
   }, [jurusanFilterAktif, jurusanRows, siswaJurusanFilter]);
 
   const kelasOptions = useMemo(() => {
@@ -226,24 +239,38 @@ export function AdminSchoolDataSiswa({
 
     const available = new Set<KelasTingkat>();
 
-    siswaRows.forEach((siswa) => {
-      const tingkat = getKelasTingkat(siswa.kelas);
+    siswaRows
+      .filter((siswa) => {
+        if (!jurusanFilterAktif) return true;
+        const byId = String(siswa.id_jurusan ?? "") === String(siswaJurusanFilter);
+        const byName = normalizeKey(siswa.jurusan) === normalizeKey(selectedJurusanName);
+        return byId || byName;
+      })
+      .forEach((siswa) => {
+        const tingkat = getKelasTingkat(siswa.kelas);
 
-      if (tingkat) {
-        available.add(tingkat);
-      }
-    });
+        if (tingkat) {
+          available.add(tingkat);
+        }
+      });
 
     return KELAS_TINGKAT_OPTIONS.filter((kelas) => available.has(kelas.value));
-  }, [jurusanFilterAktif, siswaRows]);
+  }, [jurusanFilterAktif, selectedJurusanName, siswaJurusanFilter, siswaRows]);
 
   const filteredRows = useMemo(() => {
-    if (!jurusanFilterAktif || kelasFilter === "semua") return siswaRows;
+    return siswaRows.filter((siswa) => {
+      const matchJurusan =
+        !jurusanFilterAktif ||
+        isAllFilter(siswaJurusanFilter) ||
+        String(siswa.id_jurusan ?? "") === String(siswaJurusanFilter) ||
+        normalizeKey(siswa.jurusan) === normalizeKey(selectedJurusanName);
 
-    return siswaRows.filter(
-      (siswa) => getKelasTingkat(siswa.kelas) === kelasFilter
-    );
-  }, [kelasFilter, jurusanFilterAktif, siswaRows]);
+      const matchKelas =
+        kelasFilter === "semua" || getKelasTingkat(siswa.kelas) === kelasFilter;
+
+      return matchJurusan && matchKelas;
+    });
+  }, [kelasFilter, jurusanFilterAktif, selectedJurusanName, siswaJurusanFilter, siswaRows]);
 
   const hasRows = filteredRows.length > 0;
   const safeLimit = siswaLimit > 0 ? siswaLimit : 10;
@@ -322,8 +349,8 @@ export function AdminSchoolDataSiswa({
           >
             <option value="semua">Semua jurusan</option>
             {jurusanRows.map((jurusan) => (
-              <option key={jurusan.id} value={String(jurusan.id)}>
-                {jurusan.nama}
+              <option key={jurusan.id ?? jurusan.id_jurusan ?? jurusan.nama} value={String(jurusan.nama || jurusan.nama_jurusan || jurusan.id || jurusan.id_jurusan)}>
+                {jurusan.nama || jurusan.nama_jurusan}
               </option>
             ))}
           </select>

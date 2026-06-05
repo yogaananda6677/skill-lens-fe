@@ -306,6 +306,25 @@ function roadmapHistoryStatusMeta(status: string) {
   };
 }
 
+function getHelpfulReferenceUrl(roadmap: CareerRoadmap | null, detail: RoadmapDetail | null) {
+  const rawUrl = detail?.referenceLink?.trim();
+
+  if (rawUrl && /^https?:\/\//i.test(rawUrl)) {
+    return rawUrl;
+  }
+
+  const query = [
+    detail?.title,
+    roadmap?.targetRole || roadmap?.headline,
+    "panduan belajar",
+    "contoh langkah",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+}
+
 function RoadmapHistoryPanel({
   items,
   loading,
@@ -326,8 +345,7 @@ function RoadmapHistoryPanel({
           </h2>
 
           <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
-            Ini hanya catatan roadmap yang pernah dibuat. Item history sengaja
-            tidak bisa diklik agar tidak mengganti roadmap aktif secara tidak sengaja.
+            Ini adalah catatan roadmap yang pernah dibuat siswa.
           </p>
         </div>
 
@@ -368,9 +386,6 @@ function RoadmapHistoryPanel({
                         {meta.label}
                       </span>
 
-                      <span className="rounded-full bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-500 ring-1 ring-slate-100">
-                        Read-only
-                      </span>
                     </div>
 
                     <h3 className="mt-2 truncate text-base font-extrabold text-slate-950">
@@ -807,17 +822,15 @@ export default function RoadmapClient() {
                           "Tidak ada deskripsi tambahan."}
                       </p>
 
-                      {activeDetail.referenceLink && (
-                        <a
-                          href={activeDetail.referenceLink}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mt-4 inline-flex items-center gap-2 rounded-full bg-sky-50 px-4 py-2 text-sm font-bold text-sky-700 ring-1 ring-sky-100 transition hover:bg-sky-100"
-                        >
-                          <Icon name="book" className="h-4 w-4" />
-                          Buka referensi
-                        </a>
-                      )}
+                      <a
+                        href={getHelpfulReferenceUrl(roadmap, activeDetail)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-4 inline-flex items-center gap-2 rounded-full bg-sky-50 px-4 py-2 text-sm font-bold text-sky-700 ring-1 ring-sky-100 transition hover:bg-sky-100"
+                      >
+                        <Icon name="book" className="h-4 w-4" />
+                        Cari referensi belajar
+                      </a>
 
                       {activeGuidanceNotes.length ? (
                         <GuidanceNotesCard notes={activeGuidanceNotes} />

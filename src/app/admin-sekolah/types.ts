@@ -10,7 +10,8 @@ export type AdminSchoolPageKey =
 
 export type AdminSchoolStatus = {
   has_school: boolean;
-  school_status: "none" | "pending" | "approved";
+  school_status: "none" | "pending" | "approved" | "rejected";
+  rejection_reason?: string | null;
   id_sekolah: number | null;
   nama_sekolah: string | null;
   jenis_sekolah?: string | null;

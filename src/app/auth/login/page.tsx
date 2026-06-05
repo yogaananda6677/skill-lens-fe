@@ -8,6 +8,7 @@ import { PublicNavbar } from "../../../components/layout/PublicNavbar";
 import { PreparingOverlay } from "../../../components/ui/PreparingOverlay";
 import { Icon } from "../../../components/ui/icons";
 import { apiFetch } from "../../../lib/axios";
+import { notifyAppAlert } from "../../../lib/app-alert-events";
 import {
   persistAuth,
   redirectPathByRole,
@@ -130,13 +131,13 @@ export default function LoginPage() {
       persistAuth(result.token, result.user, remember);
       setPreparing(true);
 
-      if (
-        result.user?.must_change_password &&
-        result.user.role !== "superadmin"
-      ) {
-        setPreparingText("Menyiapkan halaman ganti password...");
-        router.replace("/auth/force-change-password");
-        return;
+      if (result.user?.must_change_password && result.user.role !== "superadmin") {
+        notifyAppAlert({
+          type: "warning",
+          title: "Password masih default",
+          description: "Demi keamanan, segera buka menu Profil untuk mengganti password awal akun Anda.",
+          autoCloseMs: 5200,
+        });
       }
 
       setPreparingText(`Menyiapkan dashboard ${result.user.role}...`);
@@ -210,8 +211,8 @@ export default function LoginPage() {
               <div className="mt-8 rounded-2xl border border-cyan-200/15 bg-cyan-300/10 p-4">
                 <p className="text-sm font-medium leading-6 text-cyan-50">
                   Setelah login, sistem akan membuka dashboard sesuai akun yang
-                  digunakan. Jika password masih default, sistem akan mengarahkan pengguna untuk
-                  mengganti password terlebih dahulu.
+                  digunakan. Jika password masih default, sistem akan memberi peringatan agar pengguna
+                  mengganti password melalui menu Profil.
                 </p>
               </div>
             </div>

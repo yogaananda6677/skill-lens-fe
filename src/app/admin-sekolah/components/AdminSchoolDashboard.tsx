@@ -70,7 +70,9 @@ export function AdminSchoolDashboard({
     ? "Terverifikasi"
     : schoolStatus?.school_status === "pending"
       ? "Menunggu verifikasi"
-      : "Belum diajukan";
+      : schoolStatus?.school_status === "rejected"
+        ? "Ditolak"
+        : "Belum diajukan";
 
   const statusBadgeClass =
     "border-sky-100 bg-gradient-to-r from-white via-cyan-50/70 to-sky-50/70 shadow-sm";
@@ -79,7 +81,9 @@ export function AdminSchoolDashboard({
     ? "text-sky-700"
     : schoolStatus?.school_status === "pending"
       ? "text-amber-700"
-      : "text-slate-600";
+      : schoolStatus?.school_status === "rejected"
+        ? "text-rose-700"
+        : "text-slate-600";
 
   return (
     <section className="overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60">

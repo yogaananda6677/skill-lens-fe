@@ -458,9 +458,6 @@ function GoalStep({
         })}
       </div>
 
-      <div className="mt-5 rounded-3xl border border-sky-100 bg-[linear-gradient(180deg,#ffffff_0%,#eef8ff_100%)] p-4 text-sm font-semibold leading-6 text-slate-500 shadow-sm shadow-sky-950/5 ring-1 ring-sky-50">
-        Setelah kamu klik <span className="font-bold text-slate-800">Simpan Profil</span>, data akan tersimpan dulu. Setelah itu lanjut ke halaman rekomendasi untuk memproses SPK dengan animasi tunggu.
-      </div>
     </div>
   );
 }

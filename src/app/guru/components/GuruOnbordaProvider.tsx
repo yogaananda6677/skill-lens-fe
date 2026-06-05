@@ -35,7 +35,7 @@ const guruSteps = [
       {
         icon: <Icon name="chart" className="h-5 w-5" />,
         title: "Akses dan kelola nilai murid",
-        content: <p>Bagian Kelola Nilai memungkinkan Guru BK memilih siswa, melihat kategori nilai akademik, serta mengimport nilai Excel jika diperlukan.</p>,
+        content: <p>Bagian Lihat Nilai memungkinkan Guru BK memilih siswa, melihat kategori nilai akademik, serta melihat nilai akademik siswa. Import dan perubahan nilai dilakukan oleh Admin Sekolah.</p>,
         selector: "#nilai",
         side: "top" as const,
         showControls: true,

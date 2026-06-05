@@ -145,7 +145,7 @@ export function AdminSchoolMataPelajaran({
       const keyword = searchTerm.trim().toLowerCase();
 
       filtered = filtered.filter((item) =>
-        item.nama_mapel.toLowerCase().includes(keyword)
+        String(item.nama_mapel || '').toLowerCase().includes(keyword)
       );
     }
 
@@ -160,7 +160,7 @@ export function AdminSchoolMataPelajaran({
 
       if (jurusanA !== jurusanB) return jurusanA.localeCompare(jurusanB);
 
-      return a.nama_mapel.localeCompare(b.nama_mapel);
+      return String(a.nama_mapel || '').localeCompare(String(b.nama_mapel || ''));
     });
   }, [mapelList, filterSemester, filterJurusan, searchTerm, jurusanRows]);
 
@@ -214,7 +214,7 @@ export function AdminSchoolMataPelajaran({
 
       const mapped: MataPelajaran[] = (result.data || []).map((item: any) => ({
         id_mapel: item.id_mapel,
-        nama_mapel: item.nama_mapel,
+        nama_mapel: item.nama_mapel ?? item.nama ?? item.nama_mata_pelajaran ?? item.mapel ?? '',
         tipe_mapel: item.tipe_mapel === "jurusan" ? "jurusan" : "umum",
         id_jurusan: item.id_jurusan ?? null,
         semester: item.semester ? Number(item.semester) : null,
@@ -306,7 +306,7 @@ export function AdminSchoolMataPelajaran({
     setEditingId(item.id_mapel);
 
     setFormData({
-      nama_mapel: item.nama_mapel,
+      nama_mapel: item.nama_mapel ?? item.nama ?? item.nama_mata_pelajaran ?? item.mapel ?? '',
       semester: item.semester ? String(item.semester) : "",
       id_jurusan: item.id_jurusan ? String(item.id_jurusan) : "",
     });
@@ -676,7 +676,7 @@ export function AdminSchoolMataPelajaran({
                               className="transition hover:bg-sky-50/50"
                             >
                               <td className="whitespace-nowrap px-5 py-4 font-bold text-slate-900">
-                                {item.nama_mapel}
+                                {item.nama_mapel || '-'}
 
                                 {isDefault && (
                                   <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-600 ring-1 ring-slate-200">
