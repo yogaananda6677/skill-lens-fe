@@ -45,7 +45,7 @@ export function clearAuth() {
 }
 
 export function redirectPathByRole(role?: string | null) {
-  if (role === "superadmin") return "/superadmin/admin";
+  if (role === "superadmin") return "/superadmin";
   if (role === "admin") return "/admin/dashboard";
   if (role === "admin_sekolah") return "/admin-sekolah";
   if (role === "guru") return "/guru";

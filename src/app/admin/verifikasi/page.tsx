@@ -1,20 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import { adminNav as navItems } from "@/config/navigation";
 import { approveSchool, getSchoolVerifications, type VerificationRow } from "@/features/admin/api";
 import { Icon } from "@/components/ui/icons";
 
+type VerificationId = VerificationRow["id"];
+
 function StatusBadge({ status }: { status: string }) {
   const isVerified = status === "approved";
+
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
+      className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-wide ring-1 ${
         isVerified
-          ? "bg-green-100 text-green-700 ring-1 ring-green-200"
-          : "bg-amber-100 text-amber-700 ring-1 ring-amber-200"
+          ? "bg-emerald-100 text-emerald-700 ring-emerald-200"
+          : "bg-amber-100 text-amber-700 ring-amber-200"
       }`}
     >
       {isVerified ? "Terverifikasi" : "Menunggu"}
@@ -22,14 +25,75 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function StatCard({
+  title,
+  value,
+  desc,
+  icon,
+}: {
+  title: string;
+  value: string | number;
+  desc: string;
+  icon: string;
+}) {
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-sky-100 bg-gradient-to-br from-white via-sky-50/70 to-blue-50/70 p-5 shadow-[0_14px_35px_rgba(15,23,42,0.07)] transition duration-300 hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_18px_45px_rgba(15,23,42,0.11)]">
+      <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#0b2450] via-sky-500 to-cyan-300" />
+
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.17em] text-sky-700">
+            {title}
+          </p>
+
+          <p className="mt-2 text-2xl font-black tracking-tight text-slate-950">
+            {value}
+          </p>
+
+          <p className="mt-1 text-xs font-medium leading-5 text-slate-500">
+            {desc}
+          </p>
+        </div>
+
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200/70">
+          <Icon name={icon as any} className="h-5 w-5" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailIcon() {
+  return (
+    <svg
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function getOptionalValue(row: VerificationRow, key: string) {
+  const value = (row as unknown as Record<string, unknown>)[key];
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
 export default function AdminVerifikasiPage() {
   const [rows, setRows] = useState<VerificationRow[]>([]);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
-  const [processingId, setProcessingId] = useState<number | null>(null);
+  const [processingId, setProcessingId] = useState<VerificationId | null>(null);
   const [selectedSchool, setSelectedSchool] = useState<VerificationRow | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   async function refresh() {
     try {
@@ -48,16 +112,50 @@ export default function AdminVerifikasiPage() {
     refresh();
   }, []);
 
-  const handleApprove = async (id: number, schoolName: string) => {
+  const approvedCount = useMemo(
+    () => rows.filter((item) => item.status === "approved").length,
+    [rows]
+  );
+
+  const pendingCount = useMemo(
+    () => rows.filter((item) => item.status !== "approved").length,
+    [rows]
+  );
+
+  const filteredRows = useMemo(() => {
+    if (!searchQuery.trim()) return rows;
+
+    const query = searchQuery.toLowerCase();
+
+    return rows.filter((item) => {
+      const school = item.school?.toLowerCase() ?? "";
+      const address = item.address?.toLowerCase() ?? "";
+      const city = item.city?.toLowerCase() ?? "";
+      const level = item.level?.toLowerCase() ?? "";
+      const status = item.status?.toLowerCase() ?? "";
+
+      return (
+        school.includes(query) ||
+        address.includes(query) ||
+        city.includes(query) ||
+        level.includes(query) ||
+        status.includes(query)
+      );
+    });
+  }, [rows, searchQuery]);
+
+  const handleApprove = async (id: VerificationId, schoolName: string) => {
     if (processingId !== null) return;
+
     setProcessingId(id);
     setError("");
     setMessage("");
+
     try {
-      await approveSchool(id);
+      await approveSchool(id as never);
       setMessage(`Sekolah "${schoolName}" berhasil diverifikasi.`);
       await refresh();
-      setShowModal(false); // tutup modal setelah berhasil
+      setShowModal(false);
       setSelectedSchool(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal menyetujui sekolah");
@@ -76,6 +174,10 @@ export default function AdminVerifikasiPage() {
     setSelectedSchool(null);
   };
 
+  const selectedPhone = selectedSchool ? getOptionalValue(selectedSchool, "phone") : null;
+  const selectedEmail = selectedSchool ? getOptionalValue(selectedSchool, "email") : null;
+  const selectedNpsn = selectedSchool ? getOptionalValue(selectedSchool, "npsn") : null;
+
   return (
     <DashboardShell
       requiredRole={["admin", "superadmin"]}
@@ -88,97 +190,167 @@ export default function AdminVerifikasiPage() {
       schoolName="Platform SkillLens"
     >
       <div className="space-y-6">
-        {/* Header Card */}
-        <div className="rounded-xl bg-gradient-to-br from-white via-blue-50/50 to-blue-100/30 p-5 shadow-md border border-blue-100/60">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="rounded-full bg-blue-100 p-1.5 text-blue-600">
-                  <Icon name="verify" className="h-4 w-4" />
-                </div>
-                <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">Antrean Verifikasi</p>
-              </div>
-              <h2 className="mt-2 text-2xl font-bold text-slate-800">Data dari endpoint admin</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Setiap baris diambil dari tabel sekolah lewat NestJS. Tombol setujui mengirim PUT ke backend.
-              </p>
-            </div>
-            <Link
-              href="/admin/dashboard"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2 text-sm font-medium text-white shadow-md transition hover:shadow-lg"
-            >
-              <Icon name="chevronRight" className="h-4 w-4" />
-              Kembali dashboard
-            </Link>
-          </div>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          <StatCard
+            title="Total Pengajuan"
+            value={loading ? "..." : rows.length}
+            desc="Data sekolah dari endpoint admin"
+            icon="school"
+          />
+
+          <StatCard
+            title="Menunggu"
+            value={loading ? "..." : pendingCount}
+            desc="Pengajuan perlu diverifikasi"
+            icon="clock"
+          />
+
+          <StatCard
+            title="Terverifikasi"
+            value={loading ? "..." : approvedCount}
+            desc="Sekolah sudah disetujui"
+            icon="verify"
+          />
         </div>
 
-        {/* Pesan sukses/error */}
         {message && (
-          <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-700">
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
             {message}
           </div>
         )}
+
         {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
             {error}
           </div>
         )}
 
-        {/* Tabel Verifikasi Sekolah */}
-        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-white via-blue-50/40 to-blue-100/20 p-[1px] shadow-md">
-          <div className="overflow-x-auto rounded-xl bg-white">
+        <section className="overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60">
+          <div className="flex flex-col gap-4 border-b border-sky-100 bg-gradient-to-r from-sky-50 via-white to-blue-50 px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-sky-600">
+                Antrean Verifikasi
+              </p>
+
+              <h2 className="mt-1 text-xl font-black tracking-tight text-slate-900">
+                Data Pengajuan Sekolah
+              </h2>
+
+              <p className="mt-1 text-sm font-medium text-slate-500">
+                Setiap baris diambil dari tabel sekolah lewat NestJS. Tombol verifikasi mengirim PUT ke backend.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="relative">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <Icon name="search" className="h-4 w-4 text-slate-400" />
+                </div>
+
+                <input
+                  type="text"
+                  placeholder="Cari sekolah..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-9 pr-4 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100 sm:w-64"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
             <table className="w-full text-left">
-              <thead className="bg-gradient-to-r from-blue-100 via-blue-50 to-blue-100 text-xs font-semibold uppercase tracking-wider text-blue-800 border-b border-blue-200">
+              <thead className="bg-gradient-to-r from-sky-100 via-white to-blue-100 text-xs font-black uppercase tracking-[0.14em] text-sky-800">
                 <tr>
-                  <th className="px-5 py-3">No</th>
-                  <th className="px-5 py-3">Nama Sekolah</th>
-                  <th className="px-5 py-3">Alamat</th>
-                  <th className="px-5 py-3">Kota</th>
-                  <th className="px-5 py-3">Jenjang</th>
-                  <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3 text-center">Aksi</th>
+                  <th className="px-5 py-4">No</th>
+                  <th className="px-5 py-4">Nama Sekolah</th>
+                  <th className="px-5 py-4">Alamat</th>
+                  <th className="px-5 py-4">Kota</th>
+                  <th className="px-5 py-4">Jenjang</th>
+                  <th className="px-5 py-4">Status</th>
+                  <th className="px-5 py-4 text-center">Aksi</th>
                 </tr>
               </thead>
+
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-5 py-12 text-center text-sm text-slate-500">
-                      <div className="flex justify-center">
-                        <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
-                        <span className="ml-2">Memuat data...</span>
+                    <td colSpan={7} className="px-5 py-12 text-center text-sm font-semibold text-slate-500">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="h-6 w-6 animate-spin rounded-full border-2 border-sky-600 border-t-transparent" />
+                        Memuat data verifikasi...
                       </div>
                     </td>
                   </tr>
-                ) : rows.length === 0 ? (
+                ) : filteredRows.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-5 py-12 text-center text-sm text-slate-500">
-                      <Icon name="verify" className="mx-auto h-10 w-10 text-slate-300" />
-                      <p className="mt-2">Tidak ada sekolah yang menunggu verifikasi.</p>
+                    <td colSpan={7} className="px-5 py-14 text-center">
+                      <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-sky-100 text-sky-700">
+                        <Icon name="verify" className="h-5 w-5" />
+                      </div>
+
+                      <p className="mt-4 text-sm font-semibold text-slate-700">
+                        {searchQuery ? "Tidak ada pengajuan yang cocok." : "Tidak ada sekolah yang menunggu verifikasi."}
+                      </p>
                     </td>
                   </tr>
                 ) : (
-                  rows.map((item, idx) => (
-                    <tr key={item.id} className="group hover:bg-slate-50/80 transition duration-150">
-                      <td className="px-5 py-4 text-sm font-medium text-slate-500">{idx + 1}</td>
+                  filteredRows.map((item, idx) => (
+                    <tr
+                      key={String(item.id)}
+                      className="group transition duration-150 hover:bg-sky-50/50"
+                    >
+                      <td className="px-5 py-4 text-sm font-bold text-slate-500">
+                        {idx + 1}
+                      </td>
+
                       <td className="px-5 py-4">
-                        <p className="font-semibold text-slate-800">{item.school}</p>
+                        <div className="flex items-center gap-3">
+                          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sm font-black text-sky-700 ring-1 ring-sky-200/70">
+                            {item.school.slice(0, 2).toUpperCase()}
+                          </div>
+
+                          <div className="min-w-0">
+                            <p className="truncate font-bold text-slate-900">
+                              {item.school}
+                            </p>
+                            <p className="text-xs font-medium text-slate-500">
+                              {item.level}
+                            </p>
+                          </div>
+                        </div>
                       </td>
-                      <td className="px-5 py-4 text-sm text-slate-600">
-                        {item.address.length > 45 ? item.address.slice(0, 45) + "..." : item.address}
+
+                      <td className="px-5 py-4 text-sm font-medium text-slate-600">
+                        <span title={item.address}>
+                          {item.address.length > 45
+                            ? item.address.slice(0, 45) + "..."
+                            : item.address}
+                        </span>
                       </td>
-                      <td className="px-5 py-4 text-sm text-slate-600">{item.city}</td>
-                      <td className="px-5 py-4 text-sm text-slate-600">{item.level}</td>
+
+                      <td className="px-5 py-4 text-sm font-medium text-slate-600">
+                        {item.city}
+                      </td>
+
+                      <td className="px-5 py-4 text-sm font-bold text-slate-700">
+                        {item.level}
+                      </td>
+
                       <td className="px-5 py-4">
                         <StatusBadge status={item.status} />
                       </td>
+
                       <td className="px-5 py-4">
                         <div className="flex justify-center">
                           <button
+                            type="button"
                             onClick={() => openDetailModal(item)}
-                            className="rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:from-blue-600 hover:to-blue-700 hover:shadow focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-xs font-bold text-sky-700 transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-100 hover:shadow-sm"
+                            title="Lihat detail sekolah"
                           >
-                            Show Data
+                            <DetailIcon />
+                            Detail
                           </button>
                         </div>
                       </td>
@@ -188,92 +360,106 @@ export default function AdminVerifikasiPage() {
               </tbody>
             </table>
           </div>
-          <div className="absolute bottom-0 left-0 h-0.5 w-full bg-gradient-to-r from-blue-400 to-cyan-400 opacity-70 rounded-b-xl" />
-        </div>
+        </section>
       </div>
 
-      {/* Modal Detail Sekolah */}
       {showModal && selectedSchool && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white shadow-2xl">
-            <div className="flex items-start justify-between border-b border-slate-200 p-5">
-              <div>
-                <h2 className="text-xl font-semibold text-slate-950">Detail Sekolah</h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  Lengkapi verifikasi jika data sudah sesuai.
-                </p>
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/30 p-4">
+          <div className="w-full max-w-2xl overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-2xl shadow-slate-950/20">
+            <div className="relative overflow-hidden bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-6 py-5 text-white">
+              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:32px_32px]" />
+
+              <div className="relative flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-black tracking-tight">Detail Sekolah</h2>
+                  <p className="mt-1 text-sm font-medium text-sky-100/90">
+                    Lengkapi verifikasi jika data sekolah sudah sesuai.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="grid h-9 w-9 place-items-center rounded-2xl bg-white/10 text-white transition hover:bg-white/20"
+                  aria-label="Tutup modal"
+                >
+                  <Icon name="x" className="h-4 w-4" />
+                </button>
               </div>
-              <button
-                onClick={closeModal}
-                className="rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-200"
-              >
-                Tutup
-              </button>
             </div>
 
-            <div className="space-y-4 p-5">
+            <div className="space-y-4 p-6">
               <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-xs font-medium text-slate-500">Nama Sekolah</label>
-                  <p className="mt-1 text-sm font-medium text-slate-800">{selectedSchool.school}</p>
+                <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+                  <label className="block text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500">Nama Sekolah</label>
+                  <p className="mt-2 text-sm font-bold text-slate-900">{selectedSchool.school}</p>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500">Jenjang</label>
-                  <p className="mt-1 text-sm text-slate-700">{selectedSchool.level}</p>
+
+                <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+                  <label className="block text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500">Jenjang</label>
+                  <p className="mt-2 text-sm font-bold text-slate-900">{selectedSchool.level}</p>
                 </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-medium text-slate-500">Alamat</label>
-                  <p className="mt-1 text-sm text-slate-700">{selectedSchool.address}</p>
+
+                <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100 sm:col-span-2">
+                  <label className="block text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500">Alamat</label>
+                  <p className="mt-2 text-sm font-medium leading-6 text-slate-700">{selectedSchool.address}</p>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500">Kota</label>
-                  <p className="mt-1 text-sm text-slate-700">{selectedSchool.city}</p>
+
+                <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+                  <label className="block text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500">Kota</label>
+                  <p className="mt-2 text-sm font-bold text-slate-900">{selectedSchool.city}</p>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500">Status</label>
-                  <p className="mt-1">
+
+                <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+                  <label className="block text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500">Status</label>
+                  <p className="mt-2">
                     <StatusBadge status={selectedSchool.status} />
                   </p>
                 </div>
-                {/* Tambahkan field lain jika ada (NPSN, No HP, Email) */}
-                {/* Contoh jika ada property phone, email, npsn */}
-                {(selectedSchool as any).phone && (
-                  <div>
-                    <label className="block text-xs font-medium text-slate-500">No. Telepon</label>
-                    <p className="mt-1 text-sm text-slate-700">{(selectedSchool as any).phone}</p>
+
+                {selectedPhone && (
+                  <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+                    <label className="block text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500">No. Telepon</label>
+                    <p className="mt-2 text-sm font-bold text-slate-900">{selectedPhone}</p>
                   </div>
                 )}
-                {(selectedSchool as any).email && (
-                  <div>
-                    <label className="block text-xs font-medium text-slate-500">Email</label>
-                    <p className="mt-1 text-sm text-slate-700">{(selectedSchool as any).email}</p>
+
+                {selectedEmail && (
+                  <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+                    <label className="block text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500">Email</label>
+                    <p className="mt-2 text-sm font-bold text-slate-900">{selectedEmail}</p>
                   </div>
                 )}
-                {(selectedSchool as any).npsn && (
-                  <div>
-                    <label className="block text-xs font-medium text-slate-500">NPSN</label>
-                    <p className="mt-1 text-sm text-slate-700">{(selectedSchool as any).npsn}</p>
+
+                {selectedNpsn && (
+                  <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+                    <label className="block text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500">NPSN</label>
+                    <p className="mt-2 text-sm font-bold text-slate-900">{selectedNpsn}</p>
                   </div>
                 )}
               </div>
 
-              {selectedSchool.status !== "approved" && (
-                <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
+              <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Kembali
+                </button>
+
+                {selectedSchool.status !== "approved" && (
                   <button
-                    onClick={closeModal}
-                    className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                  >
-                    Kembali
-                  </button>
-                  <button
+                    type="button"
                     onClick={() => handleApprove(selectedSchool.id, selectedSchool.school)}
                     disabled={processingId === selectedSchool.id}
-                    className="rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:shadow-md disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-sky-600/20 transition hover:-translate-y-0.5 disabled:opacity-60"
                   >
+                    <Icon name="verify" className="h-4 w-4" />
                     {processingId === selectedSchool.id ? "Memverifikasi..." : "Verifikasi Sekolah"}
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>

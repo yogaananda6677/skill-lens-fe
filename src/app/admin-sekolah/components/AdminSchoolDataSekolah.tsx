@@ -88,7 +88,6 @@ function normalizeSchoolType(value?: string | null, schoolName?: string | null) 
 
 function isAllowedSchoolType(value?: string | null, schoolName?: string | null) {
   const normalized = normalizeSchoolType(value, schoolName);
-
   return SCHOOL_TYPE_OPTIONS.some((type) => normalized.includes(type));
 }
 
@@ -97,13 +96,11 @@ function getApiBaseUrl() {
     process.env.NEXT_PUBLIC_API_BASE_URL ||
     process.env.NEXT_PUBLIC_API_URL ||
     "";
-
   return baseUrl.replace(/\/$/, "");
 }
 
 function getAuthToken() {
   if (typeof window === "undefined") return "";
-
   return (
     window.localStorage.getItem("accessToken") ||
     window.localStorage.getItem("token") ||
@@ -117,7 +114,6 @@ function pick(source: Record<string, any>, keys: string[]) {
     const value = cleanText(source?.[key]);
     if (value) return value;
   }
-
   return "";
 }
 
@@ -160,11 +156,7 @@ function normalizeLookupResponse(json: any): SchoolLookupData {
     "namaDesaKelurahan",
   ]);
 
-  const kecamatan = pick(data, [
-    "kecamatan",
-    "namaKecamatan",
-  ]);
-
+  const kecamatan = pick(data, ["kecamatan", "namaKecamatan"]);
   const kabupatenKota = pick(data, [
     "kabupaten_kota",
     "kabupatenKota",
@@ -172,12 +164,7 @@ function normalizeLookupResponse(json: any): SchoolLookupData {
     "namaKabupatenKota",
     "kabupaten",
   ]);
-
-  const provinsi = pick(data, [
-    "provinsi",
-    "namaProvinsi",
-    "propinsi",
-  ]);
+  const provinsi = pick(data, ["provinsi", "namaProvinsi", "propinsi"]);
 
   const generatedAddress = [
     alamatJalan,
@@ -193,25 +180,24 @@ function normalizeLookupResponse(json: any): SchoolLookupData {
     npsn,
     nama_sekolah: namaSekolah,
     jenis_sekolah: jenisSekolah || null,
-    status_sekolah: pick(data, [
-      "status_sekolah",
-      "statusSekolah",
-      "statusSatuanPendidikan",
-      "status",
-    ]) || null,
-    no_hp_sekolah: pick(data, [
-      "no_hp_sekolah",
-      "noHpSekolah",
-      "noHp",
-      "telepon",
-      "telp",
-      "noTelepon",
-    ]) || null,
-    email_sekolah: pick(data, [
-      "email_sekolah",
-      "emailSekolah",
-      "email",
-    ]) || null,
+    status_sekolah:
+      pick(data, [
+        "status_sekolah",
+        "statusSekolah",
+        "statusSatuanPendidikan",
+        "status",
+      ]) || null,
+    no_hp_sekolah:
+      pick(data, [
+        "no_hp_sekolah",
+        "noHpSekolah",
+        "noHp",
+        "telepon",
+        "telp",
+        "noTelepon",
+      ]) || null,
+    email_sekolah:
+      pick(data, ["email_sekolah", "emailSekolah", "email"]) || null,
     alamat_sekolah: generatedAddress || alamatJalan || null,
     desa: desa || null,
     kecamatan: kecamatan || null,
@@ -249,6 +235,73 @@ async function lookupSchoolByNpsn(npsn: string) {
   return normalizeLookupResponse(json);
 }
 
+function wait(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+type SubmitOverlayState = "idle" | "processing" | "success";
+
+function SubmitProcessOverlay({
+  state,
+  title,
+  description,
+}: {
+  state: Exclude<SubmitOverlayState, "idle">;
+  title: string;
+  description: string;
+}) {
+  const isSuccess = state === "success";
+
+  return (
+    <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-900/30 px-4 py-6">
+      <div className="w-full max-w-sm overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-2xl shadow-slate-950/20">
+        <div className="relative overflow-hidden bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-6 py-5 text-white">
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:32px_32px]" />
+          <div className="relative flex items-center gap-3">
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white/15 text-white ring-1 ring-white/20">
+              {isSuccess ? (
+                <Icon name="check" className="h-5 w-5" />
+              ) : (
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/35 border-t-white" />
+              )}
+            </div>
+            <div>
+              <h3 className="text-base font-black tracking-tight">{title}</h3>
+              <p className="mt-1 text-xs font-medium text-sky-100/90">
+                {description}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 py-5">
+          <div className="h-2 overflow-hidden rounded-full bg-sky-100">
+            <div
+              className={`h-full rounded-full bg-gradient-to-r from-[#0b2450] via-sky-500 to-cyan-300 ${
+                isSuccess ? "w-full" : "w-2/3 animate-[schoolSubmitProgress_1.3s_ease-in-out_infinite]"
+              }`}
+            />
+          </div>
+
+          <p className="mt-4 text-center text-xs font-semibold leading-5 text-slate-500">
+            {isSuccess
+              ? "Tampilan akan diperbarui sebentar lagi."
+              : "Mohon tunggu sampai proses selesai. Jangan menutup halaman ini."}
+          </p>
+        </div>
+      </div>
+
+      <style jsx global>{`
+        @keyframes schoolSubmitProgress {
+          0% { transform: translateX(-100%); }
+          50% { transform: translateX(20%); }
+          100% { transform: translateX(130%); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 export function AdminSchoolDataSekolah({
   schoolStatus,
   schoolForm,
@@ -270,32 +323,32 @@ export function AdminSchoolDataSekolah({
   schoolError: string;
   loadingSchool: boolean;
   onUpdate: (key: keyof SchoolForm, value: string) => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void> | void;
   onBack: () => void;
-
-  /**
-   * Optional.
-   * Isi ini kalau kamu punya data sekolah di FE untuk dropdown:
-   * provinsi -> kab/kota -> kecamatan -> sekolah.
-   * Kalau tidak dikirim, bagian dropdown otomatis tidak muncul.
-   */
   schoolOptions?: SchoolDirectoryItem[];
 }) {
   const [selectedProvince, setSelectedProvince] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [selectedSchoolNpsn, setSelectedSchoolNpsn] = useState("");
-
   const [lookupLoading, setLookupLoading] = useState(false);
   const [lookupMessage, setLookupMessage] = useState("");
   const [lookupError, setLookupError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitOverlay, setSubmitOverlay] = useState<SubmitOverlayState>("idle");
+  const [submitOverlayTitle, setSubmitOverlayTitle] = useState("Menyimpan data sekolah");
+  const [submitOverlayDescription, setSubmitOverlayDescription] = useState(
+    "Harap tunggu, sedang mengirim data...",
+  );
+  const [submitLocalError, setSubmitLocalError] = useState("");
+
+  // ... (normalizedDirectory dan useMemo lainnya tetap sama, tidak diubah)
 
   const normalizedDirectory = useMemo(() => {
     return schoolOptions
       .map((item) => {
         const npsn = cleanNpsn(item.npsn || "");
         const namaSekolah = cleanText(item.nama_sekolah);
-
         return {
           ...item,
           npsn,
@@ -308,45 +361,48 @@ export function AdminSchoolDataSekolah({
           alamat: cleanText(item.alamat),
         };
       })
-      .filter((item) => {
-        return (
+      .filter(
+        (item) =>
           item.npsn &&
           item.nama_sekolah &&
-          isAllowedSchoolType(item.jenis_sekolah, item.nama_sekolah)
-        );
-      });
+          isAllowedSchoolType(item.jenis_sekolah, item.nama_sekolah),
+      );
   }, [schoolOptions]);
 
-  const provinceOptions = useMemo(() => {
-    return unique(normalizedDirectory.map((item) => item.provinsi || ""));
-  }, [normalizedDirectory]);
-
-  const cityOptions = useMemo(() => {
-    return unique(
-      normalizedDirectory
-        .filter((item) => !selectedProvince || item.provinsi === selectedProvince)
-        .map((item) => item.kabupaten_kota || ""),
-    );
-  }, [normalizedDirectory, selectedProvince]);
-
-  const districtOptions = useMemo(() => {
-    return unique(
+  const provinceOptions = useMemo(
+    () => unique(normalizedDirectory.map((item) => item.provinsi || "")),
+    [normalizedDirectory],
+  );
+  const cityOptions = useMemo(
+    () =>
+      unique(
+        normalizedDirectory
+          .filter((item) => !selectedProvince || item.provinsi === selectedProvince)
+          .map((item) => item.kabupaten_kota || ""),
+      ),
+    [normalizedDirectory, selectedProvince],
+  );
+  const districtOptions = useMemo(
+    () =>
+      unique(
+        normalizedDirectory
+          .filter((item) => !selectedProvince || item.provinsi === selectedProvince)
+          .filter((item) => !selectedCity || item.kabupaten_kota === selectedCity)
+          .map((item) => item.kecamatan || ""),
+      ),
+    [normalizedDirectory, selectedProvince, selectedCity],
+  );
+  const filteredSchoolOptions = useMemo(
+    () =>
       normalizedDirectory
         .filter((item) => !selectedProvince || item.provinsi === selectedProvince)
         .filter((item) => !selectedCity || item.kabupaten_kota === selectedCity)
-        .map((item) => item.kecamatan || ""),
-    );
-  }, [normalizedDirectory, selectedProvince, selectedCity]);
-
-  const filteredSchoolOptions = useMemo(() => {
-    return normalizedDirectory
-      .filter((item) => !selectedProvince || item.provinsi === selectedProvince)
-      .filter((item) => !selectedCity || item.kabupaten_kota === selectedCity)
-      .filter((item) => !selectedDistrict || item.kecamatan === selectedDistrict);
-  }, [normalizedDirectory, selectedProvince, selectedCity, selectedDistrict]);
-
+        .filter((item) => !selectedDistrict || item.kecamatan === selectedDistrict),
+    [normalizedDirectory, selectedProvince, selectedCity, selectedDistrict],
+  );
   const hasDirectoryOptions = normalizedDirectory.length > 0;
 
+  // Helper functions (resetLookupStatus, updateNpsn, applySchoolToForm, handleLookup, dll) tetap sama
   function resetLookupStatus() {
     setLookupMessage("");
     setLookupError("");
@@ -374,7 +430,6 @@ export function AdminSchoolDataSekolah({
 
   async function handleLookup(npsnValue = schoolForm.npsn) {
     const npsn = cleanNpsn(npsnValue);
-
     setLookupMessage("");
     setLookupError("");
 
@@ -388,22 +443,17 @@ export function AdminSchoolDataSekolah({
 
     try {
       const school = await lookupSchoolByNpsn(npsn);
-
       if (!school.npsn || !school.nama_sekolah) {
         throw new Error("Data sekolah tidak lengkap.");
       }
-
       if (!isAllowedSchoolType(school.jenis_sekolah, school.nama_sekolah)) {
         throw new Error("Sekolah yang dipilih bukan SMA/SMK/sederajat.");
       }
-
       applySchoolToForm(school);
       setLookupMessage("Data sekolah berhasil ditemukan dan otomatis diisi.");
     } catch (error) {
       setLookupError(
-        error instanceof Error
-          ? error.message
-          : "Gagal mengambil data sekolah.",
+        error instanceof Error ? error.message : "Gagal mengambil data sekolah.",
       );
     } finally {
       setLookupLoading(false);
@@ -439,7 +489,6 @@ export function AdminSchoolDataSekolah({
     const selectedSchool = filteredSchoolOptions.find(
       (item) => item.npsn === cleanSelectedNpsn,
     );
-
     if (!selectedSchool) return;
 
     applySchoolToForm({
@@ -452,13 +501,71 @@ export function AdminSchoolDataSekolah({
       kabupaten_kota: selectedSchool.kabupaten_kota || null,
       provinsi: selectedSchool.provinsi || null,
     });
-
     void handleLookup(selectedSchool.npsn);
   }
 
+  const submitProcessOverlay =
+    submitOverlay !== "idle" ? (
+      <SubmitProcessOverlay
+        state={submitOverlay}
+        title={submitOverlayTitle}
+        description={submitOverlayDescription}
+      />
+    ) : null;
+
+  const handleFormSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (submitting) return;
+
+    setSubmitLocalError("");
+
+    if (!schoolForm.nama_sekolah || !schoolForm.npsn) {
+      setSubmitLocalError("Nama sekolah dan NPSN wajib diisi sebelum pengajuan dikirim.");
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmitOverlayTitle("Menyimpan data sekolah");
+    setSubmitOverlayDescription("Harap tunggu, sedang mengirim data pengajuan...");
+    setSubmitOverlay("processing");
+
+    const startedAt = Date.now();
+
+    try {
+      const result = onSubmit(event);
+      if (result && typeof result.then === "function") {
+        await result;
+      }
+
+      const minimumLoadingTime = 1400;
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < minimumLoadingTime) {
+        await wait(minimumLoadingTime - elapsed);
+      }
+
+      setSubmitOverlayTitle("Pengajuan berhasil dikirim");
+      setSubmitOverlayDescription("Data sekolah akan diverifikasi oleh superadmin.");
+      setSubmitOverlay("success");
+
+      await wait(1200);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Gagal mengirim data sekolah.";
+      setSubmitLocalError(errorMessage);
+      setSubmitOverlay("idle");
+    } finally {
+      setSubmitting(false);
+      setSubmitOverlay("idle");
+    }
+  };
+
+  // Render conditional untuk status sekolah (approved / pending) tetap sama persis seperti sebelumnya
   if (schoolStatus?.school_status === "approved") {
     return (
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-blue-50/40 to-blue-100/20 p-[1px] shadow-md">
+      <>
+        {submitProcessOverlay}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-blue-50/40 to-blue-100/20 p-[1px] shadow-md">
         <div className="rounded-2xl bg-gradient-to-b from-blue-50/90 to-white p-6">
           <div className="-mx-6 -mt-6 mb-6 rounded-t-2xl bg-gradient-to-r from-[#0a1a3a] to-[#0f2a5f] px-6 py-5">
             <div className="flex items-center gap-2">
@@ -476,11 +583,8 @@ export function AdminSchoolDataSekolah({
               Data sekolah sudah disetujui. Pengajuan baru tidak diperlukan.
             </p>
           </div>
-
           <div className="mt-2 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-5">
-            <p className="text-sm font-semibold text-emerald-700">
-              Status Aktif
-            </p>
+            <p className="text-sm font-semibold text-emerald-700">Status Aktif</p>
             <h3 className="mt-2 text-2xl font-bold text-slate-950">
               {schoolStatus.nama_sekolah}
             </h3>
@@ -489,7 +593,6 @@ export function AdminSchoolDataSekolah({
               import siswa, dan data siswa sudah aktif.
             </p>
           </div>
-
           <button
             type="button"
             onClick={onBack}
@@ -499,13 +602,16 @@ export function AdminSchoolDataSekolah({
           </button>
         </div>
         <div className="absolute bottom-0 left-0 h-0.5 w-full rounded-b-xl bg-gradient-to-r from-blue-400 to-cyan-400 opacity-70" />
-      </div>
+        </div>
+      </>
     );
   }
 
   if (schoolStatus?.school_status === "pending") {
     return (
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-blue-50/40 to-blue-100/20 p-[1px] shadow-md">
+      <>
+        {submitProcessOverlay}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-blue-50/40 to-blue-100/20 p-[1px] shadow-md">
         <div className="rounded-2xl bg-gradient-to-b from-blue-50/90 to-white p-6">
           <div className="-mx-6 -mt-6 mb-6 rounded-t-2xl bg-gradient-to-r from-[#0a1a3a] to-[#0f2a5f] px-6 py-5">
             <div className="flex items-center gap-2">
@@ -520,25 +626,18 @@ export function AdminSchoolDataSekolah({
               Pengajuan sedang diverifikasi
             </h2>
             <p className="mt-1 text-sm text-blue-100">
-              Data sekolah sudah dikirim dan sedang menunggu persetujuan
-              superadmin.
+              Data sekolah sudah dikirim dan sedang menunggu persetujuan superadmin.
             </p>
           </div>
-
           <div className="mt-2 rounded-2xl border border-amber-200 bg-amber-50/80 p-5">
             <div className="flex items-center gap-2">
               <div className="rounded-full bg-white/50 p-1.5 text-amber-600">
                 <Icon name="clock" className="h-4 w-4" />
               </div>
-              <h3 className="text-lg font-bold text-slate-800">
-                Menunggu verifikasi
-              </h3>
+              <h3 className="text-lg font-bold text-slate-800">Menunggu verifikasi</h3>
             </div>
-            <p className="mt-2 text-sm text-amber-700">
-              {schoolStatus.message}
-            </p>
+            <p className="mt-2 text-sm text-amber-700">{schoolStatus.message}</p>
           </div>
-
           <button
             type="button"
             onClick={onBack}
@@ -548,12 +647,16 @@ export function AdminSchoolDataSekolah({
           </button>
         </div>
         <div className="absolute bottom-0 left-0 h-0.5 w-full rounded-b-xl bg-gradient-to-r from-blue-400 to-cyan-400 opacity-70" />
-      </div>
+        </div>
+      </>
     );
   }
 
+  // Form pengajuan
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-blue-50/40 to-blue-100/20 p-[1px] shadow-md">
+    <>
+      {submitProcessOverlay}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-blue-50/40 to-blue-100/20 p-[1px] shadow-md">
       <div className="rounded-2xl bg-gradient-to-b from-blue-50/90 to-white p-6">
         <div className="-mx-6 -mt-6 mb-6 rounded-t-2xl bg-gradient-to-r from-[#0a1a3a] to-[#0f2a5f] px-6 py-5">
           <div className="flex items-center gap-2">
@@ -564,12 +667,10 @@ export function AdminSchoolDataSekolah({
               Pengajuan Sekolah
             </p>
           </div>
-          <h2 className="mt-2 text-xl font-bold text-white">
-            Ajukan data sekolah
-          </h2>
+          <h2 className="mt-2 text-xl font-bold text-white">Ajukan data sekolah</h2>
           <p className="mt-1 text-sm text-blue-100">
-            Pilih sekolah atau masukkan NPSN. Data sekolah akan diambil
-            otomatis, lalu masih bisa kamu koreksi jika ada data yang kosong.
+            Pilih sekolah atau masukkan NPSN. Data sekolah akan diambil otomatis,
+            lalu masih bisa kamu koreksi jika ada data yang kosong.
           </p>
         </div>
 
@@ -579,8 +680,8 @@ export function AdminSchoolDataSekolah({
           </div>
         ) : null}
 
-        <form onSubmit={onSubmit} className="space-y-5">
-          {hasDirectoryOptions ? (
+        <form onSubmit={handleFormSubmit} className="space-y-5">
+          {hasDirectoryOptions && (
             <div className="rounded-2xl border border-blue-100 bg-white/80 p-4">
               <div className="mb-4">
                 <p className="text-sm font-bold text-slate-800">
@@ -588,11 +689,10 @@ export function AdminSchoolDataSekolah({
                 </p>
                 <p className="mt-1 text-xs font-medium text-slate-500">
                   Filter dibuat bertahap: provinsi, kabupaten/kota, kecamatan,
-                  lalu sekolah. Setelah sekolah dipilih, detail akan dicari
-                  lagi lewat NPSN.
+                  lalu sekolah. Setelah sekolah dipilih, detail akan dicari lagi
+                  lewat NPSN.
                 </p>
               </div>
-
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="block">
                   <span className="mb-1 block text-sm font-medium text-slate-700">
@@ -600,7 +700,7 @@ export function AdminSchoolDataSekolah({
                   </span>
                   <select
                     value={selectedProvince}
-                    onChange={(event) => handleProvinceChange(event.target.value)}
+                    onChange={(e) => handleProvinceChange(e.target.value)}
                     className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
                   >
                     <option value="">Pilih provinsi</option>
@@ -618,7 +718,7 @@ export function AdminSchoolDataSekolah({
                   </span>
                   <select
                     value={selectedCity}
-                    onChange={(event) => handleCityChange(event.target.value)}
+                    onChange={(e) => handleCityChange(e.target.value)}
                     disabled={!selectedProvince}
                     className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-50 disabled:bg-slate-100 disabled:text-slate-400"
                   >
@@ -637,7 +737,7 @@ export function AdminSchoolDataSekolah({
                   </span>
                   <select
                     value={selectedDistrict}
-                    onChange={(event) => handleDistrictChange(event.target.value)}
+                    onChange={(e) => handleDistrictChange(e.target.value)}
                     disabled={!selectedCity}
                     className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-50 disabled:bg-slate-100 disabled:text-slate-400"
                   >
@@ -656,9 +756,7 @@ export function AdminSchoolDataSekolah({
                   </span>
                   <select
                     value={selectedSchoolNpsn}
-                    onChange={(event) =>
-                      handleDirectorySchoolChange(event.target.value)
-                    }
+                    onChange={(e) => handleDirectorySchoolChange(e.target.value)}
                     disabled={!selectedDistrict}
                     className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-50 disabled:bg-slate-100 disabled:text-slate-400"
                   >
@@ -672,7 +770,7 @@ export function AdminSchoolDataSekolah({
                 </label>
               </div>
             </div>
-          ) : null}
+          )}
 
           <div className="rounded-2xl border border-blue-100 bg-white/80 p-4">
             <div className="mb-4">
@@ -684,7 +782,6 @@ export function AdminSchoolDataSekolah({
                 digit, lalu klik Ambil Data.
               </p>
             </div>
-
             <div className="flex flex-col gap-3 md:flex-row md:items-start">
               <label className="block flex-1">
                 <span className="mb-1 block text-sm font-medium text-slate-700">
@@ -693,16 +790,13 @@ export function AdminSchoolDataSekolah({
                 <input
                   value={schoolForm.npsn}
                   placeholder="Contoh: 20500435"
-                  onChange={(event) => updateNpsn(event.target.value)}
+                  onChange={(e) => updateNpsn(e.target.value)}
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none placeholder:text-slate-400 focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
                 />
-                {schoolTouched && schoolErrors.npsn ? (
-                  <p className="mt-1 text-xs text-rose-600">
-                    {schoolErrors.npsn}
-                  </p>
-                ) : null}
+                {schoolTouched && schoolErrors.npsn && (
+                  <p className="mt-1 text-xs text-rose-600">{schoolErrors.npsn}</p>
+                )}
               </label>
-
               <button
                 type="button"
                 disabled={lookupLoading || !schoolForm.npsn}
@@ -713,18 +807,16 @@ export function AdminSchoolDataSekolah({
                 {lookupLoading ? "Mengambil..." : "Ambil Data"}
               </button>
             </div>
-
-            {lookupMessage ? (
+            {lookupMessage && (
               <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm font-medium text-blue-700">
                 {lookupMessage}
               </div>
-            ) : null}
-
-            {lookupError ? (
+            )}
+            {lookupError && (
               <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-medium text-rose-700">
                 {lookupError}
               </div>
-            ) : null}
+            )}
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -735,16 +827,13 @@ export function AdminSchoolDataSekolah({
               error={schoolTouched ? schoolErrors.nama_sekolah : ""}
               onChange={(value) => onUpdate("nama_sekolah", value)}
             />
-
             <label className="block">
               <span className="mb-1 block text-sm font-medium text-slate-700">
                 Jenis sekolah
               </span>
               <select
                 value={schoolForm.jenis_sekolah}
-                onChange={(event) =>
-                  onUpdate("jenis_sekolah", event.target.value)
-                }
+                onChange={(e) => onUpdate("jenis_sekolah", e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
               >
                 <option value="">Pilih jenis sekolah</option>
@@ -754,11 +843,9 @@ export function AdminSchoolDataSekolah({
                   </option>
                 ))}
               </select>
-              {schoolTouched && schoolErrors.jenis_sekolah ? (
-                <p className="mt-1 text-xs text-rose-600">
-                  {schoolErrors.jenis_sekolah}
-                </p>
-              ) : null}
+              {schoolTouched && schoolErrors.jenis_sekolah && (
+                <p className="mt-1 text-xs text-rose-600">{schoolErrors.jenis_sekolah}</p>
+              )}
             </label>
 
             <Field
@@ -770,13 +857,11 @@ export function AdminSchoolDataSekolah({
             />
 
             <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-              <p className="text-sm font-bold text-slate-700">
-                Informasi pengisian
-              </p>
+              <p className="text-sm font-bold text-slate-700">Informasi pengisian</p>
               <p className="mt-2 text-xs leading-5 text-slate-500">
-                Nomor telepon bisa kosong karena tidak semua data sekolah
-                menyediakan nomor aktif. Alamat tetap boleh diedit kalau hasil
-                dari API kurang lengkap.
+                Nomor telepon bisa kosong karena tidak semua data sekolah menyediakan
+                nomor aktif. Alamat tetap boleh diedit kalau hasil dari API kurang
+                lengkap.
               </p>
             </div>
 
@@ -787,34 +872,37 @@ export function AdminSchoolDataSekolah({
               <textarea
                 value={schoolForm.alamat}
                 placeholder="Contoh: Jl. Pendidikan No. 1, Desa/Kelurahan, Kecamatan, Kabupaten/Kota, Provinsi"
-                onChange={(event) => onUpdate("alamat", event.target.value)}
+                onChange={(e) => onUpdate("alamat", e.target.value)}
                 rows={3}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none placeholder:text-slate-400 focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
               />
-              {schoolTouched && schoolErrors.alamat ? (
-                <p className="mt-1 text-xs text-rose-600">
-                  {schoolErrors.alamat}
-                </p>
-              ) : null}
+              {schoolTouched && schoolErrors.alamat && (
+                <p className="mt-1 text-xs text-rose-600">{schoolErrors.alamat}</p>
+              )}
             </label>
           </div>
+
+          {submitLocalError ? (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+              {submitLocalError}
+            </div>
+          ) : null}
 
           <StatusMessage message={schoolMessage} error={schoolError} />
 
           <div className="flex flex-wrap gap-3 pt-2">
             <button
               type="submit"
-              disabled={loadingSchool || lookupLoading}
+              disabled={loadingSchool || lookupLoading || submitting}
               className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:shadow-md disabled:opacity-60"
             >
               <Icon name="spark" className="h-4 w-4" />
-              {loadingSchool ? "Mengirim..." : "Ajukan Sekolah"}
+              {submitting ? "Mengirim..." : "Ajukan Sekolah"}
             </button>
-
             <button
               type="button"
               onClick={onBack}
-              disabled={loadingSchool || lookupLoading}
+              disabled={loadingSchool || lookupLoading || submitting}
               className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
             >
               Kembali
@@ -822,8 +910,8 @@ export function AdminSchoolDataSekolah({
           </div>
         </form>
       </div>
-
-      <div className="absolute bottom-0 left-0 h-0.5 w-full rounded-b-xl bg-gradient-to-r from-blue-400 to-cyan-400 opacity-70" />
-    </div>
+        <div className="absolute bottom-0 left-0 h-0.5 w-full rounded-b-xl bg-gradient-to-r from-blue-400 to-cyan-400 opacity-70" />
+      </div>
+    </>
   );
 }

@@ -130,7 +130,10 @@ export default function LoginPage() {
       persistAuth(result.token, result.user, remember);
       setPreparing(true);
 
-      if (result.user?.must_change_password) {
+      if (
+        result.user?.must_change_password &&
+        result.user.role !== "superadmin"
+      ) {
         setPreparingText("Menyiapkan halaman ganti password...");
         router.replace("/auth/force-change-password");
         return;

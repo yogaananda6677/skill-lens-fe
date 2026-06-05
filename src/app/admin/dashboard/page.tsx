@@ -11,32 +11,31 @@ type Metric = {
   label: string;
   value: string;
   detail: string;
-  icon: "school" | "verify" | "users";
-  tone: "blue" | "emerald" | "amber" | "cyan";
+  icon: "school" | "verify" | "users" | "graduation";
 };
 
 function MetricCard({ item }: { item: Metric }) {
-  // Warna latar ikon disesuaikan dengan tone, namun kartu tetap menggunakan gradasi biru
-  const iconBgColor = {
-    blue: "bg-blue-100 text-blue-600",
-    emerald: "bg-emerald-100 text-emerald-600",
-    amber: "bg-amber-100 text-amber-600",
-    cyan: "bg-cyan-100 text-cyan-600",
-  }[item.tone];
-
   return (
-    <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-white via-blue-50/40 to-blue-100/20 p-5 shadow-md border border-blue-100/60 transition hover:shadow-lg">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{item.label}</p>
-          <p className="mt-2 text-3xl font-bold text-slate-800">{item.value}</p>
-          <p className="mt-1 text-xs text-slate-500">{item.detail}</p>
+    <div className="group relative overflow-hidden rounded-2xl border border-sky-100 bg-gradient-to-br from-white via-sky-50/70 to-blue-50/70 p-5 shadow-[0_14px_35px_rgba(15,23,42,0.07)] transition duration-300 hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_18px_45px_rgba(15,23,42,0.11)]">
+      <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#0b2450] via-sky-500 to-cyan-300" />
+
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.17em] text-sky-700">
+            {item.label}
+          </p>
+          <p className="mt-2 text-2xl font-black tracking-tight text-slate-950">
+            {item.value}
+          </p>
+          <p className="mt-1 text-xs font-medium leading-5 text-slate-500">
+            {item.detail}
+          </p>
         </div>
-        <div className={`rounded-full ${iconBgColor} p-2 shadow-sm`}>
-          <Icon name={item.icon} className="h-5 w-5" />
+
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200/70">
+          <Icon name={item.icon as any} className="h-5 w-5" />
         </div>
       </div>
-      <div className="absolute bottom-0 left-0 h-0.5 w-full bg-gradient-to-r from-blue-400 to-cyan-400 opacity-60 rounded-b-xl" />
     </div>
   );
 }
@@ -44,22 +43,53 @@ function MetricCard({ item }: { item: Metric }) {
 export default function AdminDashboardPage() {
   const [data, setData] = useState<AdminDashboardResponse | null>(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
+
     getAdminDashboard()
-      .then(setData)
-      .catch((err) => setError(err instanceof Error ? err.message : "Gagal mengambil dashboard"));
+      .then((result) => {
+        setData(result);
+        setError("");
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Gagal mengambil dashboard");
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const metrics = useMemo<Metric[]>(
     () => [
-      { label: "Sekolah aktif", value: String(data?.stats.schools ?? 0), detail: "Satuan pendidikan dari database", icon: "school", tone: "blue" },
-      { label: "Menunggu verifikasi", value: String(data?.stats.pendingSchools ?? 0), detail: "Sekolah perlu ditinjau admin", icon: "verify", tone: "amber" },
-      { label: "Pembimbing", value: String(data?.stats.teachers ?? 0), detail: "Akun guru dari database", icon: "users", tone: "emerald" },
-      { label: "Siswa", value: String(data?.stats.students ?? 0), detail: "Akun siswa tersinkron", icon: "users", tone: "cyan" },
+      {
+        label: "Sekolah aktif",
+        value: loading ? "..." : String(data?.stats.schools ?? 0),
+        detail: "Satuan pendidikan dari database",
+        icon: "school",
+      },
+      {
+        label: "Menunggu verifikasi",
+        value: loading ? "..." : String(data?.stats.pendingSchools ?? 0),
+        detail: "Sekolah perlu ditinjau admin",
+        icon: "verify",
+      },
+      {
+        label: "Pembimbing",
+        value: loading ? "..." : String(data?.stats.teachers ?? 0),
+        detail: "Akun guru dari database",
+        icon: "users",
+      },
+      {
+        label: "Siswa",
+        value: loading ? "..." : String(data?.stats.students ?? 0),
+        detail: "Akun siswa tersinkron",
+        icon: "graduation",
+      },
     ],
-    [data]
+    [data, loading]
   );
+
+  const activities = data?.activities ?? [];
 
   return (
     <DashboardShell
@@ -72,65 +102,130 @@ export default function AdminDashboardPage() {
       userLabel="Administrator"
       schoolName="Platform SkillLens"
     >
-      {error && (
-        <div className="mb-5 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-medium text-rose-700">
-          {error}
+      <div className="space-y-7">
+        {error && (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 shadow-sm">
+            {error}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+          {metrics.map((item) => (
+            <MetricCard key={item.label} item={item} />
+          ))}
         </div>
-      )}
 
-      {/* Kartu statistik */}
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {metrics.map((item) => (
-          <MetricCard key={item.label} item={item} />
-        ))}
-      </div>
+        <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
+          <section className="overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60">
+            <div className="flex flex-col gap-4 border-b border-sky-100 bg-gradient-to-r from-sky-50 via-white to-blue-50 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-sky-600">
+                  Kinerja Sistem
+                </p>
+                <h2 className="mt-1 text-xl font-black tracking-tight text-slate-900">
+                  Data langsung dari backend
+                </h2>
+                <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-slate-500">
+                  Ringkasan ini membaca tabel sekolah, user guru, dan siswa melalui NestJS
+                  sehingga tidak lagi memakai data dummy.
+                </p>
+              </div>
 
-      {/* Dua kolom: Kinerja Sistem & Aktivitas Terbaru */}
-      <div className="mt-6 grid gap-6 md:grid-cols-2">
-        {/* Kiri: Kinerja Sistem */}
-        <div className="rounded-xl bg-gradient-to-br from-white via-blue-50/50 to-blue-100/20 p-6 shadow-md border border-blue-100/60 hover:shadow-lg transition">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Kinerja Sistem</p>
-              <h2 className="mt-1 text-xl font-bold text-slate-800">Data langsung dari backend</h2>
-              <p className="mt-2 text-sm text-slate-600 leading-relaxed">
-                Ringkasan ini membaca tabel sekolah, user guru, dan siswa melalui NestJS sehingga tidak lagi memakai data dummy.
-              </p>
+              <Link
+                href="/admin/verifikasi"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-sky-600/20 transition duration-200 hover:-translate-y-0.5 hover:bg-sky-700 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-sky-200"
+              >
+                Buka verifikasi
+                <Icon name="chevronRight" className="h-4 w-4" />
+              </Link>
             </div>
-            <Link
-              href="/admin/verifikasi"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2 text-sm font-medium text-white shadow-md hover:shadow-lg transition"
-            >
-              Buka verifikasi
-              <Icon name="chevronRight" className="h-4 w-4" />
-            </Link>
-          </div>
-          <div className="mt-4 rounded-xl bg-blue-50/50 p-3 text-xs text-slate-600 border border-blue-100">
-            Pastikan backend aktif di alamat <code className="bg-white px-1 rounded text-blue-600">NEXT_PUBLIC_API_URL</code> agar kartu metrik terisi dari database MySQL.
-          </div>
-        </div>
 
-        {/* Kanan: Aktivitas Terbaru */}
-        <div className="rounded-xl bg-gradient-to-br from-white via-blue-50/50 to-blue-100/20 p-6 shadow-md border border-blue-100/60 hover:shadow-lg transition">
-          <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Aktivitas Terbaru</p>
-          <h2 className="mt-1 text-xl font-bold text-slate-800">Timeline sistem</h2>
-          <div className="mt-4 space-y-3">
-            {(data?.activities ?? []).length === 0 ? (
-              <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">Belum ada aktivitas terbaru.</p>
-            ) : (
-              data?.activities?.map((item, index) => (
-                <div key={`${item.title}-${index}`} className="flex gap-3 rounded-xl bg-white p-3 shadow-sm border border-slate-100">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600 text-xs font-bold">
-                    {index + 1}
+            <div className="p-5">
+              <div className="rounded-2xl border border-sky-100 bg-gradient-to-br from-white via-sky-50/70 to-blue-50/70 p-5 shadow-sm text-center">
+                <div className="flex flex-col items-center justify-center gap-2">
+                  <div className="grid h-10 w-10 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200/70">
+                    <Icon name="chart" className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-sm font-black text-slate-900">
+                    Integrasi dashboard aktif
+                  </h3>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <aside className="space-y-5">
+            <section className="overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60">
+              <div className="flex items-center justify-between border-b border-sky-100 bg-gradient-to-r from-sky-50 via-white to-blue-50 px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <div className="grid h-9 w-9 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200/70">
+                    <Icon name="clock" className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-slate-800">{item.title}</p>
-                    <p className="text-xs text-slate-500">{item.text}</p>
+                    <h3 className="text-sm font-black text-slate-900">
+                      Aktivitas Terbaru
+                    </h3>
+                    <p className="text-xs font-medium text-slate-500">
+                      Timeline sistem
+                    </p>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
+              </div>
+
+              {loading ? (
+                <div className="grid min-h-[220px] place-items-center px-5 py-10 text-sm font-semibold text-slate-500">
+                  Memuat aktivitas...
+                </div>
+              ) : activities.length === 0 ? (
+                <div className="grid min-h-[220px] place-items-center px-5 py-10 text-center">
+                  <div>
+                    <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200/70">
+                      <Icon name="clock" className="h-5 w-5" />
+                    </div>
+                    <p className="mt-4 text-sm font-semibold text-slate-700">
+                      Belum ada aktivitas terbaru.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3 p-5">
+                  {activities.map((item, index) => (
+                    <div
+                      key={`${item.title}-${index}`}
+                      className="flex gap-3 rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-100 transition hover:bg-white hover:shadow-sm"
+                    >
+                      <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-sky-100 text-[11px] font-black text-sky-700">
+                        {index + 1}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-black text-slate-800">
+                          {item.title}
+                        </p>
+                        <p className="mt-1 text-xs font-medium leading-5 text-slate-500">
+                          {item.text}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-50/90 via-white to-blue-50/70 p-5 shadow-sm shadow-sky-100/60">
+              <div className="flex items-center gap-2">
+                <div className="grid h-9 w-9 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200/70">
+                  <Icon name="info" className="h-4 w-4" />
+                </div>
+                <h3 className="text-sm font-black text-slate-900">
+                  Catatan Dashboard
+                </h3>
+              </div>
+              <p className="mt-3 text-xs font-medium leading-6 text-slate-600">
+                Modul ini dipakai untuk memantau verifikasi sekolah dan ringkasan data pengguna.
+                Data akan mengikuti endpoint backend yang sudah aktif.
+              </p>
+            </section>
+          </aside>
         </div>
       </div>
     </DashboardShell>
