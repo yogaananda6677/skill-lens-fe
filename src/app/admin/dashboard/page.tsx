@@ -143,47 +143,6 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        <section className="relative overflow-hidden rounded-[2rem] border border-sky-100 bg-gradient-to-br from-[#07142f] via-[#0b2450] to-sky-700 p-6 text-white shadow-2xl shadow-sky-950/10">
-          <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-cyan-300/20 blur-3xl" />
-          <div className="pointer-events-none absolute bottom-0 left-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-
-          <div className="relative grid gap-6 xl:grid-cols-[1fr_360px] xl:items-center">
-            <div>
-              <p className="inline-flex rounded-full bg-white/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.2em] text-cyan-100 ring-1 ring-white/15">
-                Admin Platform SkillLens
-              </p>
-              <h1 className="mt-5 max-w-3xl text-3xl font-black tracking-tight sm:text-4xl">
-                Kelola platform dari satu ruang kerja yang lebih rapi.
-              </h1>
-              <p className="mt-3 max-w-2xl text-sm font-medium leading-7 text-sky-100">
-                Dashboard sekarang difokuskan untuk monitoring. Pengaturan roadmap sudah dipindahkan ke halaman khusus agar tidak bercampur dengan ringkasan platform.
-              </p>
-            </div>
-
-            <div className="rounded-3xl border border-white/15 bg-white/10 p-4 shadow-xl shadow-slate-950/10 backdrop-blur">
-              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-cyan-100">
-                Tindakan cepat
-              </p>
-              <div className="mt-4 grid gap-3">
-                <Link
-                  href="/admin/verifikasi"
-                  className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 text-sm font-extrabold text-slate-950 shadow-lg shadow-slate-950/10 transition hover:-translate-y-0.5"
-                >
-                  Buka verifikasi sekolah
-                  <Icon name="chevronRight" className="h-4 w-4 text-sky-600" />
-                </Link>
-                <Link
-                  href="/admin/roadmap"
-                  className="flex items-center justify-between rounded-2xl bg-sky-500/20 px-4 py-3 text-sm font-extrabold text-white ring-1 ring-white/20 transition hover:-translate-y-0.5 hover:bg-sky-500/30"
-                >
-                  Kelola master roadmap
-                  <Icon name="chevronRight" className="h-4 w-4" />
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {loading ? (
           <CardGridSkeleton count={4} />
         ) : (

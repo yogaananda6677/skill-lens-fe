@@ -27,6 +27,52 @@ export type DashboardNavItem = {
   roles?: readonly AuthRole[];
 };
 
+type PendingAdminSekolahRow = {
+  id?: number;
+  id_user?: number;
+  nama?: string;
+  name?: string;
+  username?: string;
+  email?: string;
+  school?: string;
+  nama_sekolah?: string;
+  status?: string;
+};
+
+function normalizeApiList<T>(result: unknown): T[] {
+  if (Array.isArray(result)) return result as T[];
+
+  if (result && typeof result === "object") {
+    const data = (result as { data?: unknown; rows?: unknown; items?: unknown }).data;
+
+    if (Array.isArray(data)) return data as T[];
+
+    const rows = (result as { rows?: unknown }).rows;
+    if (Array.isArray(rows)) return rows as T[];
+
+    const items = (result as { items?: unknown }).items;
+    if (Array.isArray(items)) return items as T[];
+  }
+
+  return [];
+}
+
+function getPendingAdminSekolahName(item: PendingAdminSekolahRow) {
+  return (
+    item.nama ||
+    item.name ||
+    item.username ||
+    item.email ||
+    item.school ||
+    item.nama_sekolah ||
+    "Admin sekolah baru"
+  );
+}
+
+function isSuperadminAdminNavKey(key: string) {
+  return ["kelola-admin", "admin", "admins", "admin-sekolah"].includes(key);
+}
+
 type DashboardShellProps = {
   activeKey: string;
   navItems: readonly DashboardNavItem[];
@@ -95,7 +141,7 @@ function LogoutModal({
   if (!open || typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[1000] grid place-items-center bg-slate-950/58 p-4 text-slate-950 backdrop-blur-[4px] sm:p-6">
+    <div className="fixed inset-0 z-[1000] grid place-items-center bg-slate-950/45 p-4 text-slate-950 backdrop-blur-[2px] sm:p-6">
       <button
         type="button"
         aria-label="Batal logout"
@@ -106,22 +152,33 @@ function LogoutModal({
       <section
         role="dialog"
         aria-modal="true"
-        className="relative flex w-full max-w-xl flex-col overflow-hidden rounded-[1.75rem] border border-white/30 bg-white shadow-[0_28px_90px_rgba(15,23,42,0.35)]"
+        className="relative w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_28px_90px_rgba(15,23,42,0.24)] animate-[modalIn_220ms_ease-out]"
       >
-        <div className="relative shrink-0 overflow-hidden border-b border-sky-100 bg-gradient-to-r from-[#0b2450] via-[#0d3c70] to-sky-600 px-5 py-5 text-white sm:px-7">
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:32px_32px]" />
+        <div className="relative overflow-hidden border-b border-slate-100 bg-gradient-to-br from-white via-slate-50 to-rose-50/55 px-6 py-6">
+          <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-rose-100/70 blur-3xl" />
+          <div className="pointer-events-none absolute -left-16 bottom-0 h-36 w-36 rounded-full bg-slate-100/90 blur-3xl" />
+
           <div className="relative flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-cyan-100">Konfirmasi Akun</p>
-              <h2 className="mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl">Keluar dari SkillLens?</h2>
-              <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-sky-100/90">
-                Sesi akan diakhiri dan kamu perlu login kembali untuk mengakses dashboard.
-              </p>
+            <div className="flex items-start gap-4">
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-rose-600">
+                  Konfirmasi Logout
+                </p>
+
+                <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
+                  Keluar dari SkillLens?
+                </h2>
+
+                <p className="mt-2 max-w-md text-sm font-medium leading-6 text-slate-500">
+                  Sesi akan diakhiri dan kamu perlu login kembali untuk mengakses dashboard.
+                </p>
+              </div>
             </div>
+
             <button
               type="button"
               onClick={onCancel}
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white/10 text-white transition hover:bg-white/20"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-white text-slate-500 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-100 hover:text-slate-800"
               aria-label="Batal logout"
             >
               <Icon name="x" className="h-4 w-4" />
@@ -129,19 +186,7 @@ function LogoutModal({
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-slate-50 via-white to-sky-50/40 px-5 py-6 sm:px-7">
-          <div className="w-full rounded-3xl border border-slate-100 bg-white p-6 text-center shadow-sm sm:p-8">
-            <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200">
-              <Icon name="logout" className="h-6 w-6" />
-            </div>
-            <h3 className="mt-5 text-xl font-black tracking-tight text-slate-950">Konfirmasi logout</h3>
-            <p className="mx-auto mt-3 max-w-xl text-sm font-medium leading-7 text-slate-500">
-              Pastikan pekerjaan yang belum tersimpan sudah disimpan sebelum keluar dari akun.
-            </p>
-          </div>
-        </div>
-
-        <div className="border-t border-slate-100 bg-white/95 px-5 py-4 shadow-[0_-12px_30px_rgba(15,23,42,0.06)] sm:px-7">
+        <div className="border-t border-slate-100 bg-white px-6 py-4 shadow-[0_-12px_30px_rgba(15,23,42,0.04)]">
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <button
               type="button"
@@ -150,10 +195,11 @@ function LogoutModal({
             >
               Batal
             </button>
+
             <button
               type="button"
               onClick={onConfirm}
-              className="rounded-2xl bg-rose-600 px-5 py-3 text-sm font-bold text-white shadow-md shadow-rose-600/15 transition hover:bg-rose-700"
+              className="rounded-2xl bg-rose-600 px-5 py-3 text-sm font-bold text-white shadow-md shadow-rose-600/20 transition hover:-translate-y-0.5 hover:bg-rose-700"
             >
               Ya, logout
             </button>
@@ -279,88 +325,194 @@ function PasswordChangeReminderModal({
   if (!open || typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[1000] grid place-items-center bg-slate-950/58 p-4 text-slate-950 backdrop-blur-[4px] sm:p-6">
+    <div className="fixed inset-0 z-[1000] grid place-items-center bg-slate-950/38 p-4 text-slate-950 backdrop-blur-[3px] sm:p-6">
+      <button
+        type="button"
+        aria-label="Tutup modal"
+        onClick={onLater}
+        className="absolute inset-0 cursor-default"
+      />
+
       <section
         role="dialog"
         aria-modal="true"
-        className="relative w-full max-w-xl overflow-hidden rounded-[1.9rem] border border-white/30 bg-white shadow-[0_28px_90px_rgba(15,23,42,0.35)] animate-[modalIn_220ms_ease-out]"
+        className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[1.8rem] border border-sky-100 bg-white shadow-[0_28px_90px_rgba(15,23,42,0.22)] animate-[modalIn_220ms_ease-out]"
       >
-        <button
-          type="button"
-          onClick={onLater}
-          className="absolute right-4 top-4 z-10 grid h-10 w-10 place-items-center rounded-2xl bg-white/10 text-white transition hover:bg-white/20"
-          aria-label="Tutup"
-        >
-          <Icon name="x" className="h-4 w-4" />
-        </button>
+        <div className="relative shrink-0 overflow-hidden border-b border-sky-100 bg-gradient-to-br from-white via-cyan-50/45 to-sky-50/70 px-6 py-6 text-slate-950">
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(14,165,233,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(14,165,233,0.045)_1px,transparent_1px)] bg-[size:34px_34px]" />
+          <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-cyan-200/25 blur-3xl" />
+          <div className="pointer-events-none absolute -left-16 bottom-0 h-40 w-40 rounded-full bg-sky-200/20 blur-3xl" />
 
-        <div className="relative overflow-hidden bg-gradient-to-r from-[#0b2450] via-[#0d3c70] to-sky-600 px-6 py-6 text-white">
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:32px_32px]" />
-          <div className="relative">
-            <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-cyan-100">Keamanan Akun</p>
-            <h2 className="mt-2 text-2xl font-black tracking-tight text-white">Ganti password awal</h2>
-            <p className="mt-2 text-sm font-medium leading-6 text-sky-100/90">
-              Akun masih memakai password bawaan. Ubah password agar dashboard bisa dipakai lebih aman.
-            </p>
+          <div className="relative flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-sky-100 bg-white text-sky-700 shadow-sm shadow-sky-100/70">
+                <Icon name="shield" className="h-5 w-5" />
+              </div>
+
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-sky-700">
+                  Keamanan Akun
+                </p>
+
+                <h2 className="mt-1.5 text-2xl font-black tracking-tight text-slate-950">
+                  Ganti password awal
+                </h2>
+
+                <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-slate-600">
+                  Akun masih memakai password bawaan. Ubah password agar dashboard
+                  bisa dipakai dengan lebih aman.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onLater}
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
+              aria-label="Tutup"
+            >
+              <Icon name="x" className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
-        <form onSubmit={submit} className="space-y-4 px-6 py-6">
+        <form
+          onSubmit={submit}
+          className="min-h-0 flex-1 overflow-y-auto bg-gradient-to-br from-white via-slate-50/40 to-sky-50/30 px-6 py-6"
+        >
           {error ? (
-            <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+            <div className="mb-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 shadow-sm">
               {error}
             </div>
           ) : null}
 
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-bold text-slate-700">Password lama/default</span>
-            <input
-              type={showPassword ? "text" : "password"}
-              value={currentPassword}
-              onChange={(event) => setCurrentPassword(event.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none transition focus:border-sky-300 focus:bg-white focus:ring-4 focus:ring-sky-50"
-            />
-          </label>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-bold text-slate-700">Password baru</span>
-              <input
-                type={showPassword ? "text" : "password"}
-                value={newPassword}
-                onChange={(event) => setNewPassword(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none transition focus:border-sky-300 focus:bg-white focus:ring-4 focus:ring-sky-50"
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-bold text-slate-700">Konfirmasi password</span>
-              <input
-                type={showPassword ? "text" : "password"}
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none transition focus:border-sky-300 focus:bg-white focus:ring-4 focus:ring-sky-50"
-              />
-            </label>
-          </div>
-
-          <button type="button" onClick={() => setShowPassword((value) => !value)} className="text-xs font-black text-sky-700 hover:text-sky-900">
-            {showPassword ? "Sembunyikan password" : "Tampilkan password"}
-          </button>
-
-          <div className="grid gap-2 sm:grid-cols-2">
-            {checks.map((item) => (
-              <div key={item.label} className={`flex items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold transition ${item.valid ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100" : "bg-slate-50 text-slate-500 ring-1 ring-slate-100"}`}>
-                <Icon name={item.valid ? "check" : "x"} className="h-3.5 w-3.5" />
-                {item.label}
+          <div className="rounded-[1.4rem] border border-sky-100 bg-white p-5 shadow-sm shadow-sky-100/50">
+            <div className="mb-5 flex items-start gap-3 border-b border-slate-100 pb-4">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sky-50 text-sky-700 ring-1 ring-sky-100">
+                <Icon name="shield" className="h-4 w-4" />
               </div>
-            ))}
+
+              <div>
+                <p className="text-sm font-black text-slate-950">
+                  Form Password Baru
+                </p>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
+                  Masukkan password lama/default, lalu buat password baru yang
+                  lebih kuat.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-bold text-slate-700">
+                  Password lama/default
+                </span>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={currentPassword}
+                  onChange={(event) => setCurrentPassword(event.target.value)}
+                  placeholder="Masukkan password lama/default"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                />
+              </label>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-bold text-slate-700">
+                    Password baru
+                  </span>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
+                    placeholder="Masukkan password baru"
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-bold text-slate-700">
+                    Konfirmasi password
+                  </span>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    placeholder="Ulangi password baru"
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                  />
+                </label>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowPassword((value) => !value)}
+                className="inline-flex items-center gap-2 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-xs font-black text-sky-700 transition hover:bg-sky-100 hover:text-sky-900"
+              >
+                {showPassword ? "Sembunyikan password" : "Tampilkan password"}
+              </button>
+            </div>
           </div>
 
-          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
-            <button type="button" onClick={onLater} disabled={loading} className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">
+          <div className="mt-5 rounded-[1.4rem] border border-slate-100 bg-white p-5 shadow-sm">
+            <div className="mb-4 flex items-start gap-3">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
+                <Icon name="check" className="h-4 w-4" />
+              </div>
+
+              <div>
+                <p className="text-sm font-black text-slate-950">
+                  Syarat password
+                </p>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
+                  Pastikan semua syarat terpenuhi sebelum menyimpan password baru.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              {checks.map((item) => (
+                <div
+                  key={item.label}
+                  className={`flex items-center gap-2 rounded-2xl px-3 py-2.5 text-xs font-bold transition ${
+                    item.valid
+                      ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
+                      : "bg-slate-50 text-slate-500 ring-1 ring-slate-100"
+                  }`}
+                >
+                  <span
+                    className={`grid h-5 w-5 shrink-0 place-items-center rounded-full ${
+                      item.valid
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-white text-slate-400"
+                    }`}
+                  >
+                    <Icon name={item.valid ? "check" : "x"} className="h-3 w-3" />
+                  </span>
+
+                  {item.label}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={onLater}
+              disabled={loading}
+              className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+            >
               Nanti dulu
             </button>
-            <button type="submit" disabled={loading} className="rounded-2xl bg-sky-600 px-5 py-3 text-sm font-bold text-white shadow-md shadow-sky-600/15 transition hover:bg-sky-700 disabled:opacity-50">
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-sky-600/20 transition hover:-translate-y-0.5 disabled:opacity-50"
+            >
+              <Icon name="shield" className="h-4 w-4" />
               {loading ? "Menyimpan..." : "Simpan password"}
             </button>
           </div>
@@ -495,9 +647,11 @@ export function DashboardShell({
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [routeSwitching, setRouteSwitching] = useState(false);
   const [passwordReminderOpen, setPasswordReminderOpen] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
   const [storedUser, setStoredUser] =
     useState<ReturnType<typeof getStoredUser>>(null);
   const [pendingVerifications, setPendingVerifications] = useState<VerificationRow[]>([]);
+  const [pendingAdminSekolah, setPendingAdminSekolah] = useState<PendingAdminSekolahRow[]>([]);
 
   const pathname = usePathname();
   const router = useRouter();
@@ -539,22 +693,61 @@ export function DashboardShell({
   useEffect(() => {
     let alive = true;
 
-    async function loadPendingVerifications() {
-      if (storedUser?.role !== "admin" && storedUser?.role !== "superadmin") {
-        setPendingVerifications([]);
+    async function loadHeaderNotifications() {
+      setPendingVerifications([]);
+      setPendingAdminSekolah([]);
+
+      if (storedUser?.role === "admin") {
+        try {
+          const rows = await getSchoolVerifications();
+
+          if (!alive) return;
+
+          setPendingVerifications(
+            rows.filter((item) => item.status === "pending"),
+          );
+        } catch {
+          if (alive) setPendingVerifications([]);
+        }
+
         return;
       }
 
-      try {
-        const rows = await getSchoolVerifications();
-        if (!alive) return;
-        setPendingVerifications(rows.filter((item) => item.status === "pending"));
-      } catch {
-        if (alive) setPendingVerifications([]);
+      if (storedUser?.role === "superadmin") {
+        const endpointCandidates = [
+          "/superadmin/admin-sekolah?status=pending",
+          "/superadmin/admin-sekolah/pending",
+          "/superadmin/admins?role=admin_sekolah&status=pending",
+        ];
+
+        for (const endpoint of endpointCandidates) {
+          try {
+            const result = await apiFetch<unknown>(endpoint, {
+              method: "GET",
+              alert: false,
+              successMessage: false,
+              errorMessage: false,
+            });
+
+            if (!alive) return;
+
+            const rows = normalizeApiList<PendingAdminSekolahRow>(result);
+            const pendingRows = rows.filter(
+              (item) => !item.status || item.status === "pending",
+            );
+
+            setPendingAdminSekolah(pendingRows);
+            return;
+          } catch {
+          }
+        }
+
+        if (alive) setPendingAdminSekolah([]);
       }
     }
 
-    loadPendingVerifications();
+    loadHeaderNotifications();
+
     return () => {
       alive = false;
     };
@@ -570,7 +763,12 @@ export function DashboardShell({
     return () => window.clearTimeout(timeout);
   }, [pathname, activeKey]);
 
-  const pendingVerificationCount = pendingVerifications.length;
+  const pendingVerificationCount =
+    storedUser?.role === "admin" ? pendingVerifications.length : 0;
+
+  const pendingAdminSekolahCount =
+    storedUser?.role === "superadmin" ? pendingAdminSekolah.length : 0;
+
   const visibleNav = useMemo(
     () =>
       navItems
@@ -579,15 +777,58 @@ export function DashboardShell({
             !item.roles?.length ||
             (storedUser?.role && item.roles.includes(storedUser.role)),
         )
-        .map((item) =>
-          item.key === "verifikasi" && pendingVerificationCount > 0
-            ? { ...item, badge: String(pendingVerificationCount) }
-            : item,
-        ),
-    [navItems, pendingVerificationCount, storedUser?.role],
+        .map((item) => {
+          if (
+            storedUser?.role === "admin" &&
+            item.key === "verifikasi" &&
+            pendingVerificationCount > 0
+          ) {
+            return { ...item, badge: String(pendingVerificationCount) };
+          }
+
+          if (
+            storedUser?.role === "superadmin" &&
+            isSuperadminAdminNavKey(item.key) &&
+            pendingAdminSekolahCount > 0
+          ) {
+            return { ...item, badge: String(pendingAdminSekolahCount) };
+          }
+
+          return item;
+        }),
+    [
+      navItems,
+      pendingAdminSekolahCount,
+      pendingVerificationCount,
+      storedUser?.role,
+    ],
   );
 
   const latestPendingSchools = pendingVerifications.slice(0, 2);
+  const notificationCount =
+    storedUser?.role === "admin"
+      ? pendingVerificationCount
+      : storedUser?.role === "superadmin"
+        ? pendingAdminSekolahCount
+        : 0;
+
+  const notificationTitle =
+    storedUser?.role === "admin"
+      ? "Verifikasi sekolah"
+      : storedUser?.role === "superadmin"
+        ? "Admin sekolah baru"
+        : "Notifikasi";
+
+  const notificationDescription =
+    storedUser?.role === "admin"
+      ? "Pengajuan sekolah baru menunggu verifikasi."
+      : storedUser?.role === "superadmin"
+        ? "Pengajuan admin sekolah baru masuk ke sistem."
+        : "Belum ada notifikasi baru.";
+
+  const notificationHref =
+    storedUser?.role === "admin" ? "/admin/verifikasi" : "/superadmin/kelola-admin";
+  const latestPendingAdminSekolah = pendingAdminSekolah.slice(0, 2);
 
   const displayName = userName || storedUser?.nama || "Pengguna";
   const displayLabel = userLabel || roleLabel(storedUser?.role);
@@ -632,14 +873,20 @@ export function DashboardShell({
     <aside className="flex h-full min-h-screen w-full flex-col bg-white text-slate-800 shadow-lg">
       <div className="border-b border-slate-200 px-5 py-5">
         <div className="flex items-center gap-3 rounded-2xl p-2">
-          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-600 text-white shadow-md">
-            <Icon name="spark" className="h-5 w-5" />
+          <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-sky-100">
+            <img
+              src="/images/logo-skillens.png"
+              alt="SkillLens Logo"
+              className="h-10 w-10 object-contain"
+            />
           </div>
-          <div className="min-w-0">
+
+          <div className="min-w-0 flex-1">
             <p className="truncate text-base font-black tracking-tight text-slate-800">
               SkillLens
             </p>
-            <p className="truncate text-[11px] font-black uppercase tracking-[0.18em] text-sky-600">
+
+            <p className="max-w-[170px] whitespace-normal break-words text-[10px] font-black uppercase leading-4 tracking-[0.14em] text-sky-600">
               {roleLabel(storedUser?.role)} panel
             </p>
           </div>
@@ -748,6 +995,79 @@ export function DashboardShell({
 
         <section className="min-w-0">
           <div className="mx-auto w-full max-w-[1760px] px-5 py-5 lg:px-8">
+            <div className="relative mb-4 flex justify-end">
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setNotificationOpen((value) => !value)}
+                  className="relative inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-sky-100 bg-white text-sky-700 shadow-sm shadow-sky-100/60 transition hover:-translate-y-0.5 hover:bg-sky-50 hover:shadow-md"
+                  aria-label="Buka notifikasi"
+                >
+                  <Icon name="clipboard" className="h-5 w-5" />
+                  {notificationCount > 0 && (
+                    <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white ring-2 ring-white">
+                      {notificationCount}
+                    </span>
+                  )}
+                </button>
+
+                {notificationOpen && (
+                  <div className="absolute right-0 top-14 z-50 w-[min(92vw,390px)] overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-2xl shadow-slate-950/15">
+                    <div className="border-b border-sky-100 bg-gradient-to-br from-white via-cyan-50/50 to-sky-50/70 px-5 py-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-700">Notifikasi</p>
+                          <h3 className="mt-1 text-base font-black text-slate-950">{notificationTitle}</h3>
+                        </div>
+                        <button type="button" onClick={() => setNotificationOpen(false)} className="grid h-8 w-8 place-items-center rounded-full bg-white text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-800" aria-label="Tutup notifikasi">
+                          <Icon name="x" className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="p-4">
+                      {notificationCount > 0 ? (
+                        <div className="space-y-3">
+                          <div className="rounded-2xl border border-sky-100 bg-sky-50/70 p-4">
+                            <p className="text-sm font-black text-slate-900">Ada {notificationCount} notifikasi baru</p>
+                            <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{notificationDescription}</p>
+                          </div>
+
+                          <div className="space-y-2">
+                            {storedUser?.role === "admin" && latestPendingSchools.map((item) => (
+                              <div key={`${item.id}-${item.school}`} className="rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-sm">
+                                <p className="text-sm font-bold text-slate-800">{item.school}</p>
+                                <p className="mt-0.5 text-xs font-medium text-slate-500">Menunggu verifikasi sekolah</p>
+                              </div>
+                            ))}
+                            {storedUser?.role === "superadmin" && latestPendingAdminSekolah.map((item) => (
+                              <div key={`${item.id || item.id_user || getPendingAdminSekolahName(item)}-${getPendingAdminSekolahName(item)}`} className="rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-sm">
+                                <p className="text-sm font-bold text-slate-800">{getPendingAdminSekolahName(item)}</p>
+                                <p className="mt-0.5 text-xs font-medium text-slate-500">Pengajuan admin sekolah baru</p>
+                              </div>
+                            ))}
+                          </div>
+
+                          <Link href={notificationHref} onClick={() => setNotificationOpen(false)} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-4 py-3 text-sm font-black text-white shadow-md shadow-sky-600/20 transition hover:-translate-y-0.5 hover:shadow-lg">
+                            Buka notifikasi
+                            <Icon name="chevronRight" className="h-4 w-4" />
+                          </Link>
+                        </div>
+                      ) : (
+                        <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-6 text-center">
+                          <div className="mx-auto grid h-11 w-11 place-items-center rounded-2xl bg-white text-slate-400 shadow-sm">
+                            <Icon name="clipboard" className="h-5 w-5" />
+                          </div>
+                          <p className="mt-3 text-sm font-black text-slate-800">Tidak ada notifikasi</p>
+                          <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">Semua data sudah aman untuk saat ini.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <header className="relative mb-6 overflow-hidden rounded-[1.6rem] border border-sky-100 bg-[#0f2d5a] text-white shadow-xl shadow-sky-950/10">
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-sky-400/20 via-transparent to-cyan-300/10" />
               <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.055)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.055)_1px,transparent_1px)] bg-[size:34px_34px]" />
@@ -767,35 +1087,6 @@ export function DashboardShell({
                   </p>
                 )}
                 {rightSlot && <div className="mt-5">{rightSlot}</div>}
-
-                {pendingVerificationCount > 0 && (
-                  <Link
-                    href="/admin/verifikasi"
-                    className="mt-5 flex max-w-3xl flex-col gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 text-left shadow-lg shadow-slate-950/10 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/15 md:flex-row md:items-center md:justify-between"
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sky-700 shadow-md shadow-sky-900/10">
-                        <Icon name="clipboard" className="h-5 w-5" />
-                        <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-sky-600 px-1 text-[10px] font-black text-white ring-2 ring-white/40">
-                          {pendingVerificationCount}
-                        </span>
-                      </span>
-                      <div>
-                        <p className="text-sm font-black text-white">
-                          Ada {pendingVerificationCount} pengajuan sekolah menunggu verifikasi
-                        </p>
-                        <p className="mt-1 text-xs font-medium leading-5 text-sky-100/90">
-                          {latestPendingSchools.map((item) => item.school).join(", ")}
-                          {pendingVerificationCount > latestPendingSchools.length ? ` +${pendingVerificationCount - latestPendingSchools.length} lainnya` : ""}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="inline-flex items-center gap-1 text-xs font-black uppercase tracking-wide text-cyan-100">
-                      Tinjau
-                      <Icon name="chevronRight" className="h-4 w-4" />
-                    </span>
-                  </Link>
-                )}
               </div>
             </header>
 

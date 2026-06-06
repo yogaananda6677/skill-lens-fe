@@ -15,20 +15,40 @@ import { CardGridSkeleton, TableSkeleton } from "@/components/ui/LoadingSkeleton
 
 type VerificationId = VerificationRow["id"];
 
+const ITEMS_PER_PAGE = 10;
+
+function safeText(value?: string | null, fallback = "-") {
+  const text = String(value ?? "").trim();
+  return text.length ? text : fallback;
+}
+
+function shortText(value?: string | null, max = 48) {
+  const text = safeText(value);
+  if (text === "-") return text;
+  return text.length > max ? `${text.slice(0, max)}...` : text;
+}
+
 function StatusBadge({ status }: { status: string }) {
   const isVerified = status === "approved";
   const isRejected = status === "rejected";
 
+  const style = isVerified
+    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+    : isRejected
+      ? "border-rose-200 bg-rose-50 text-rose-700"
+      : "border-amber-200 bg-amber-50 text-amber-700";
+
+  const dotStyle = isVerified
+    ? "bg-emerald-500"
+    : isRejected
+      ? "bg-rose-500"
+      : "bg-amber-500";
+
   return (
     <span
-      className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-wide ring-1 ${
-        isVerified
-          ? "bg-emerald-100 text-emerald-700 ring-emerald-200"
-          : isRejected
-            ? "bg-rose-100 text-rose-700 ring-rose-200"
-            : "bg-amber-100 text-amber-700 ring-amber-200"
-      }`}
+      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wide ${style}`}
     >
+      <span className={`h-1.5 w-1.5 rounded-full ${dotStyle}`} />
       {isVerified ? "Terverifikasi" : isRejected ? "Ditolak" : "Menunggu"}
     </span>
   );
@@ -46,23 +66,25 @@ function StatCard({
   icon: string;
 }) {
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-sky-100 bg-gradient-to-br from-white via-sky-50/70 to-blue-50/70 p-5 shadow-[0_14px_35px_rgba(15,23,42,0.07)] transition duration-300 hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_18px_45px_rgba(15,23,42,0.11)]">
+    <div className="group relative overflow-hidden rounded-[1.6rem] border border-sky-100 bg-gradient-to-br from-white via-cyan-50/45 to-sky-50/70 p-5 shadow-sm shadow-sky-100/60 transition duration-300 hover:-translate-y-0.5 hover:shadow-md">
       <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#0b2450] via-sky-500 to-cyan-300" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(14,165,233,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(14,165,233,0.04)_1px,transparent_1px)] bg-[size:34px_34px]" />
+      <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-cyan-200/25 blur-3xl" />
 
-      <div className="flex items-start justify-between gap-4">
+      <div className="relative flex items-start justify-between gap-4 pt-2">
         <div className="min-w-0">
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.17em] text-sky-700">
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-sky-700">
             {title}
           </p>
-          <p className="mt-2 text-2xl font-black tracking-tight text-slate-950">
+          <p className="mt-2 text-3xl font-black tracking-tight text-slate-950">
             {value}
           </p>
-          <p className="mt-1 text-xs font-medium leading-5 text-slate-500">
+          <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
             {desc}
           </p>
         </div>
 
-        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200/70">
+        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-sky-100 bg-white text-sky-700 shadow-sm shadow-sky-100/70">
           <Icon name={icon as any} className="h-5 w-5" />
         </div>
       </div>
@@ -104,7 +126,7 @@ export default function AdminVerifikasiPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
-  const itemsPerPage = 10;
+  const itemsPerPage = ITEMS_PER_PAGE;
 
   async function refresh() {
     try {
@@ -165,6 +187,12 @@ export default function AdminVerifikasiPage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   function goToPage(page: number) {
     setCurrentPage(Math.max(1, Math.min(page, totalPages)));
@@ -239,7 +267,7 @@ export default function AdminVerifikasiPage() {
       activeKey="verifikasi"
       navItems={navItems}
       title="Verifikasi Sekolah"
-      subtitle="Setujui data sekolah agar guru dapat menggunakan ruang kerja import nilai dan bimbingan."
+      subtitle="Tinjau dan validasi pengajuan sekolah agar ruang kerja guru, import nilai, dan bimbingan dapat digunakan."
       userName="Admin Pusat"
       userLabel="Administrator"
       schoolName="Platform SkillLens"
@@ -249,31 +277,33 @@ export default function AdminVerifikasiPage() {
           <CardGridSkeleton count={3} />
         ) : (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-            <StatCard title="Total Antrean" value={rows.length} desc="Hanya pengajuan yang belum terverifikasi" icon="school" />
+            <StatCard title="Total Antrean" value={rows.length} desc="Pengajuan yang perlu ditinjau" icon="school" />
             <StatCard title="Menunggu" value={pendingCount} desc="Pengajuan perlu ditinjau admin" icon="clock" />
             <StatCard title="Ditolak" value={rejectedCount} desc="Pengajuan dikembalikan dengan alasan" icon="x" />
           </div>
         )}
 
         {!loading && pendingCount > 0 && (
-          <div className="rounded-3xl border border-sky-100 bg-gradient-to-r from-sky-50 via-white to-blue-50 p-5 shadow-sm shadow-sky-100/60">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="relative overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-br from-white via-cyan-50/45 to-sky-50/70 p-5 shadow-sm shadow-sky-100/60">
+            <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#0b2450] via-sky-500 to-cyan-300" />
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(14,165,233,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(14,165,233,0.04)_1px,transparent_1px)] bg-[size:34px_34px]" />
+            <div className="relative flex flex-col gap-3 pt-1 md:flex-row md:items-center md:justify-between">
               <div className="flex items-start gap-3">
-                <div className="relative grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200">
+                <div className="relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-sky-100 bg-white text-sky-700 shadow-sm shadow-sky-100/70">
                   <Icon name="clipboard" className="h-5 w-5" />
-                  <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-sky-600 px-1 text-[10px] font-black text-white ring-2 ring-white">
+                  <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white ring-2 ring-white">
                     {pendingCount}
                   </span>
                 </div>
                 <div>
                   <h3 className="text-sm font-black text-slate-950">Ada pengajuan sekolah baru</h3>
-                  <p className="mt-1 text-sm font-medium leading-6 text-slate-500">
+                  <p className="mt-1 text-sm font-semibold leading-6 text-slate-500">
                     {rows.filter((item) => item.status === "pending").slice(0, 3).map((item) => item.school).join(", ")}
                     {pendingCount > 3 ? ` +${pendingCount - 3} lainnya` : ""}
                   </p>
                 </div>
               </div>
-              <span className="rounded-2xl bg-sky-100 px-4 py-2 text-xs font-black uppercase tracking-wide text-sky-700 ring-1 ring-sky-200">
+              <span className="inline-flex items-center justify-center rounded-2xl border border-sky-100 bg-white px-4 py-2 text-xs font-black uppercase tracking-wide text-sky-700 shadow-sm">
                 Perlu persetujuan
               </span>
             </div>
@@ -292,8 +322,10 @@ export default function AdminVerifikasiPage() {
           </div>
         )}
 
-        <section className="overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60">
-            <div className="flex flex-col gap-4 border-b border-sky-100 bg-gradient-to-r from-sky-50 via-white to-blue-50 px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
+        <section className="overflow-hidden rounded-[1.7rem] border border-sky-100 bg-white shadow-sm shadow-sky-100/60">
+            <div className="relative overflow-hidden border-b border-sky-100 bg-gradient-to-br from-white via-cyan-50/45 to-sky-50/70 px-5 py-5">
+              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(14,165,233,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(14,165,233,0.04)_1px,transparent_1px)] bg-[size:34px_34px]" />
+              <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-sky-600">
                   Antrean Verifikasi
@@ -302,8 +334,7 @@ export default function AdminVerifikasiPage() {
                   Data Pengajuan Sekolah
                 </h2>
                 <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-slate-500">
-                  Halaman ini hanya menampilkan pengajuan yang belum terverifikasi. Tombol detail
-                  dipakai untuk meninjau data sebelum sekolah disetujui atau ditolak.
+                  Tinjau detail sekolah terlebih dahulu sebelum pengajuan disetujui atau ditolak.
                 </p>
               </div>
 
@@ -317,19 +348,20 @@ export default function AdminVerifikasiPage() {
                     placeholder="Cari sekolah..."
                     value={searchQuery}
                     onChange={(event) => setSearchQuery(event.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-9 pr-4 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100 sm:w-64"
+                    className="w-full rounded-2xl border border-sky-100 bg-white py-2.5 pl-9 pr-4 text-sm font-semibold text-slate-700 outline-none shadow-sm transition placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100 sm:w-64"
                   />
                 </div>
 
-                <span className="inline-flex items-center justify-center rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-sky-600/20">
+                <span className="inline-flex items-center justify-center rounded-2xl border border-sky-100 bg-white px-4 py-2.5 text-sm font-black text-sky-700 shadow-sm shadow-sky-100/70">
                   {filteredRows.length} Data
                 </span>
+              </div>
               </div>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-gradient-to-r from-sky-100 via-white to-blue-100 text-xs font-black uppercase tracking-[0.14em] text-sky-800">
+              <table className="w-full min-w-[920px] text-left">
+                <thead className="border-b border-sky-100 bg-gradient-to-r from-sky-50 via-white to-cyan-50 text-xs font-black uppercase tracking-[0.14em] text-sky-800">
                   <tr>
                     <th className="px-5 py-4">No</th>
                     <th className="px-5 py-4">Nama Sekolah</th>
@@ -366,37 +398,35 @@ export default function AdminVerifikasiPage() {
                       const globalIdx = (currentPage - 1) * itemsPerPage + idx + 1;
 
                       return (
-                        <tr key={String(item.id)} className="group transition hover:bg-sky-50/50">
+                        <tr key={String(item.id)} className="group transition hover:bg-cyan-50/40">
                           <td className="px-5 py-4 text-sm font-bold text-slate-500">
                             {globalIdx}
                           </td>
                           <td className="px-5 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sm font-black text-sky-700 ring-1 ring-sky-200/70">
-                                {item.school.slice(0, 2).toUpperCase()}
+                              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-sky-100 bg-white text-sm font-black text-sky-700 shadow-sm shadow-sky-100/70">
+                                {safeText(item.school, "SL").slice(0, 2).toUpperCase()}
                               </div>
                               <div className="min-w-0">
                                 <p className="truncate font-bold text-slate-900">
-                                  {item.school}
+                                  {safeText(item.school, "Sekolah")}
                                 </p>
                                 <p className="text-xs font-medium text-slate-500">
-                                  {item.level}
+                                  {safeText(item.level)}
                                 </p>
                               </div>
                             </div>
                           </td>
                           <td className="px-5 py-4 text-sm font-medium text-slate-600">
-                            <span title={item.address}>
-                              {item.address.length > 45
-                                ? item.address.slice(0, 45) + "..."
-                                : item.address}
+                            <span title={safeText(item.address)}>
+                              {shortText(item.address, 46)}
                             </span>
                           </td>
                           <td className="px-5 py-4 text-sm font-medium text-slate-600">
-                            {item.city}
+                            {safeText(item.city)}
                           </td>
                           <td className="px-5 py-4 text-sm font-bold text-slate-700">
-                            {item.level}
+                            {safeText(item.level)}
                           </td>
                           <td className="px-5 py-4">
                             <StatusBadge status={item.status} />
@@ -406,7 +436,7 @@ export default function AdminVerifikasiPage() {
                               <button
                                 type="button"
                                 onClick={() => openDetailModal(item)}
-                                className="inline-flex items-center justify-center gap-2 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-xs font-bold text-sky-700 transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-100 hover:shadow-sm"
+                                className="inline-flex items-center justify-center gap-2 rounded-xl border border-sky-100 bg-white px-3 py-2 text-xs font-black text-sky-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-sky-50 hover:shadow-md"
                               >
                                 <DetailIcon />
                                 Detail
@@ -438,7 +468,7 @@ export default function AdminVerifikasiPage() {
                     Sebelumnya
                   </button>
 
-                  <span className="inline-flex w-[72px] justify-center rounded-xl bg-sky-50 px-3 py-2 text-sm font-bold text-sky-700 ring-1 ring-sky-100">
+                  <span className="inline-flex w-[72px] justify-center rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-sm font-black text-sky-700 shadow-sm">
                     {currentPage} / {totalPages}
                   </span>
 
@@ -501,72 +531,142 @@ export default function AdminVerifikasiPage() {
           }
         >
           <div className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">Nama Sekolah</label>
-                <p className="mt-2 text-sm font-bold text-slate-900">{selectedSchool.school}</p>
-              </div>
+            <div className="relative overflow-hidden rounded-[1.6rem] border border-sky-100 bg-gradient-to-br from-white via-cyan-50/35 to-sky-50/70 p-5 shadow-sm shadow-sky-100/60">
+              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(14,165,233,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(14,165,233,0.04)_1px,transparent_1px)] bg-[size:34px_34px]" />
+              <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-cyan-200/25 blur-3xl" />
 
-              <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">Jenjang</label>
-                <p className="mt-2 text-sm font-bold text-slate-900">{selectedSchool.level}</p>
-              </div>
+              <div className="relative">
+                <div className="mb-5 flex items-start gap-3">
+                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-sky-100 bg-white text-sky-700 shadow-sm shadow-sky-100/70">
+                    <Icon name="school" className="h-5 w-5" />
+                  </div>
 
-              <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100 sm:col-span-2">
-                <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">Alamat</label>
-                <p className="mt-2 text-sm font-medium leading-6 text-slate-700">{selectedSchool.address}</p>
-              </div>
-
-              <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">Kota</label>
-                <p className="mt-2 text-sm font-bold text-slate-900">{selectedSchool.city}</p>
-              </div>
-
-              <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">Status</label>
-                <p className="mt-2"><StatusBadge status={selectedSchool.status} /></p>
-              </div>
-
-              {selectedPhone && (
-                <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                  <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">No. Telepon</label>
-                  <p className="mt-2 text-sm font-bold text-slate-900">{selectedPhone}</p>
+                  <div>
+                    <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-sky-700">
+                      Data Sekolah
+                    </p>
+                    <h3 className="mt-1 text-xl font-black tracking-tight text-slate-950">
+                      Informasi Pengajuan
+                    </h3>
+                    <p className="mt-1 text-sm font-medium leading-6 text-slate-500">
+                      Periksa data sekolah sebelum pengajuan disetujui atau ditolak.
+                    </p>
+                  </div>
                 </div>
-              )}
 
-              {selectedEmail && (
-                <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                  <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">Email</label>
-                  <p className="mt-2 text-sm font-bold text-slate-900">{selectedEmail}</p>
-                </div>
-              )}
+                <div className="overflow-hidden rounded-2xl border border-sky-100 bg-white/85 shadow-sm">
+                  <div className="grid divide-y divide-slate-100 md:grid-cols-2 md:divide-x md:divide-y-0">
+                    <div className="space-y-5 p-5">
+                      <div>
+                        <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-sky-700">
+                          Nama Sekolah
+                        </p>
+                        <p className="mt-2 text-base font-black text-slate-950">
+                          {selectedSchool.school}
+                        </p>
+                      </div>
 
-              {selectedNpsn && (
-                <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                  <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">NPSN</label>
-                  <p className="mt-2 text-sm font-bold text-slate-900">{selectedNpsn}</p>
+                      <div>
+                        <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-sky-700">
+                          Jenjang
+                        </p>
+                        <p className="mt-2 text-sm font-bold text-slate-800">
+                          {selectedSchool.level}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-sky-700">
+                          Status
+                        </p>
+                        <div className="mt-2">
+                          <StatusBadge status={selectedSchool.status} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-5 p-5">
+                      <div>
+                        <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-sky-700">
+                          Kota
+                        </p>
+                        <p className="mt-2 text-sm font-bold text-slate-800">
+                          {selectedSchool.city}
+                        </p>
+                      </div>
+
+                      {selectedPhone && (
+                        <div>
+                          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-sky-700">
+                            No. Telepon
+                          </p>
+                          <p className="mt-2 text-sm font-bold text-slate-800">
+                            {selectedPhone}
+                          </p>
+                        </div>
+                      )}
+
+                      {selectedNpsn && (
+                        <div>
+                          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-sky-700">
+                            NPSN
+                          </p>
+                          <p className="mt-2 text-sm font-bold text-slate-800">
+                            {selectedNpsn}
+                          </p>
+                        </div>
+                      )}
+
+                      {selectedEmail && (
+                        <div>
+                          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-sky-700">
+                            Email
+                          </p>
+                          <p className="mt-2 text-sm font-bold text-slate-800">
+                            {selectedEmail}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="border-t border-slate-100 p-5">
+                    <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-sky-700">
+                      Alamat
+                    </p>
+                    <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">
+                      {selectedSchool.address}
+                    </p>
+                  </div>
+
+                  {selectedSchool.status !== "approved" && (
+                    <div className="border-t border-rose-100 bg-rose-50/55 p-5">
+                      <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-rose-700">
+                        Alasan Penolakan
+                      </p>
+
+                      <textarea
+                        value={rejectReason}
+                        onChange={(event) => setRejectReason(event.target.value)}
+                        placeholder="Tuliskan alasan jika pengajuan perlu ditolak..."
+                        className="mt-3 min-h-28 w-full resize-none rounded-2xl border border-rose-100 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-rose-300 focus:ring-4 focus:ring-rose-50"
+                      />
+                    </div>
+                  )}
+
+                  {selectedSchool.rejection_reason && (
+                    <div className="border-t border-rose-100 bg-rose-50/80 p-5">
+                      <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-rose-700">
+                        Alasan Penolakan Sebelumnya
+                      </p>
+                      <p className="mt-2 text-sm font-semibold leading-6 text-rose-700">
+                        {selectedSchool.rejection_reason}
+                      </p>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
-
-            {selectedSchool.status !== "approved" && (
-              <label className="block rounded-2xl bg-rose-50 p-4 ring-1 ring-rose-100">
-                <span className="block text-xs font-extrabold uppercase tracking-wide text-rose-700">Alasan penolakan</span>
-                <textarea
-                  value={rejectReason}
-                  onChange={(event) => setRejectReason(event.target.value)}
-                  placeholder="Tuliskan alasan jika pengajuan perlu ditolak..."
-                  className="mt-2 min-h-28 w-full rounded-xl border border-rose-100 bg-white px-3 py-2 text-sm font-semibold outline-none focus:border-rose-300 focus:ring-4 focus:ring-rose-50"
-                />
-              </label>
-            )}
-
-            {selectedSchool.rejection_reason && (
-              <div className="rounded-2xl bg-rose-50 p-4 text-sm font-semibold text-rose-700 ring-1 ring-rose-100">
-                <p className="font-extrabold">Alasan penolakan sebelumnya</p>
-                <p className="mt-1">{selectedSchool.rejection_reason}</p>
-              </div>
-            )}
           </div>
         </AdminFullScreenModal>
       )}

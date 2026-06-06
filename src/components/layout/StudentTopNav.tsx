@@ -218,25 +218,26 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.18),transparent_34%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.16),transparent_30%)]" />
 
         <div className="relative mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3.5">
-          <Link
-            href="/siswa"
-            onClick={() => setHash("")}
-            className="group flex items-center gap-3"
-          >
-            <div className="grid h-11 w-11 place-items-center rounded-2xl border border-white/20 bg-white text-[#07142f] shadow-sm shadow-cyan-400/10 transition group-hover:-translate-y-0.5 group-hover:shadow-cyan-400/20">
-              <Icon name="sparkles" className="h-5 w-5" />
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-sky-100">
+              <img
+                src="/images/logo-skillens.png"
+                alt="SkillLens Logo"
+                className="h-10 w-10 object-contain"
+              />
             </div>
 
-            <div className="leading-tight">
-              <p className="text-base font-black tracking-tight text-white">
+            <div className="min-w-0 leading-tight">
+              <p className="truncate text-base font-black tracking-tight text-white">
                 SkillLens
               </p>
               <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-cyan-200">
                 Ruang Siswa
               </p>
             </div>
-          </Link>
+          </div>
 
+          {/* Desktop Nav */}
           <nav className="hidden items-center gap-1 rounded-full border border-white/10 bg-white/[0.08] p-1 shadow-sm backdrop-blur-md lg:flex">
             {studentNav.map((item) => {
               const href = normalizeHref(item.href);
@@ -261,6 +262,7 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
             })}
           </nav>
 
+          {/* Desktop Right */}
           <div className="hidden items-center gap-3 sm:flex">
             <div className="relative">
               <button
@@ -271,7 +273,7 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
                 aria-expanded={guidanceOpen}
               >
                 <Icon name="bell" className="h-4 w-4" />
-                Bimbingan
+
                 {unreadGuidanceNotes.length ? (
                   <span className="absolute -right-1 -top-1 grid min-h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1.5 text-[10px] font-black text-white ring-2 ring-[#07142f]">
                     {guidanceCountLabel}
@@ -281,39 +283,59 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
 
               {guidanceOpen ? (
                 <div className="absolute right-0 top-[calc(100%+0.75rem)] z-[220] w-[min(92vw,22rem)] overflow-hidden rounded-[1.35rem] border border-slate-200 bg-white text-slate-950 shadow-2xl shadow-slate-950/25 ring-1 ring-white/70">
-                  <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3.5">
+                  <div className="flex items-start justify-between gap-3 border-b border-slate-100 bg-gradient-to-br from-white via-cyan-50/45 to-sky-50/70 px-4 py-3.5">
                     <div>
-                      <p className="text-sm font-extrabold text-slate-950">Bimbingan guru</p>
+                      <p className="text-sm font-extrabold text-slate-950">
+                        Bimbingan guru
+                      </p>
                       <p className="mt-0.5 text-xs font-semibold text-slate-500">
                         {guidanceNotes.length
                           ? `${guidanceNotes.length} catatan pada roadmap aktif.`
                           : "Belum ada catatan baru."}
                       </p>
                     </div>
+
                     {unreadGuidanceNotes.length ? (
-                      <span className="rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-black text-rose-600 ring-1 ring-rose-100">{guidanceCountLabel}</span>
+                      <span className="rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-black text-rose-600 ring-1 ring-rose-100">
+                        {guidanceCountLabel}
+                      </span>
                     ) : null}
                   </div>
 
                   <div className="max-h-80 space-y-2 overflow-y-auto bg-white p-3">
                     {guidanceNotes.length ? (
                       guidanceNotes.slice(0, 4).map((note, index) => {
-                        const unread = unreadGuidanceNotes.some((item) => item.id === note.id);
+                        const unread = unreadGuidanceNotes.some(
+                          (item) => item.id === note.id,
+                        );
 
                         return (
-                          <article key={`${note.id}-${index}`} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-3">
+                          <article
+                            key={`${note.id}-${index}`}
+                            className="rounded-2xl border border-slate-100 bg-slate-50/70 p-3"
+                          >
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
                                 <p className="truncate text-sm font-extrabold text-slate-900">
-                                  {note.title || note.detailTitle || note.stepTitle || "Catatan bimbingan"}
+                                  {note.title ||
+                                    note.detailTitle ||
+                                    note.stepTitle ||
+                                    "Catatan bimbingan"}
                                 </p>
                                 <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400">
-                                  {note.guruName || "Guru BK"} • {formatGuidanceDate(note.createdAt)}
+                                  {note.guruName || "Guru BK"} •{" "}
+                                  {formatGuidanceDate(note.createdAt)}
                                 </p>
                               </div>
-                              {unread ? <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-rose-500" /> : null}
+
+                              {unread ? (
+                                <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-rose-500" />
+                              ) : null}
                             </div>
-                            <p className="mt-2 line-clamp-2 text-xs font-semibold leading-5 text-slate-500">{note.note}</p>
+
+                            <p className="mt-2 line-clamp-2 text-xs font-semibold leading-5 text-slate-500">
+                              {note.note}
+                            </p>
                           </article>
                         );
                       })
@@ -333,6 +355,7 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
                     >
                       Tandai dibaca
                     </button>
+
                     <Link
                       href="/siswa/roadmap"
                       onClick={() => {
@@ -353,7 +376,6 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
               className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2.5 text-sm font-bold text-cyan-100 shadow-sm backdrop-blur-md transition hover:bg-white/15 hover:text-white"
             >
               <Icon name="settings" className="h-4 w-4" />
-              Akun
             </Link>
 
             <div className="flex items-center gap-3 rounded-full border border-white/10 bg-white/10 py-1.5 pl-2 pr-3 shadow-sm backdrop-blur-md">
@@ -380,6 +402,7 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
             </button>
           </div>
 
+          {/* Mobile Menu Button */}
           <button
             type="button"
             onClick={() => setMenuOpen((value) => !value)}
@@ -489,42 +512,43 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
             aria-label="Tutup konfirmasi keluar"
           />
 
-          <section className="relative w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-white/30 bg-white shadow-[0_28px_90px_rgba(15,23,42,0.35)]">
-            <div className="relative overflow-hidden border-b border-sky-100 bg-gradient-to-r from-[#0b2450] via-[#0d3c70] to-sky-600 px-6 py-5 text-white">
-              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:32px_32px]" />
+          <section className="relative w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_28px_90px_rgba(15,23,42,0.22)]">
+            <div className="relative overflow-hidden border-b border-rose-100 bg-gradient-to-br from-white via-slate-50 to-rose-50/60 px-6 py-5 text-slate-950">
+              <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-rose-100/70 blur-3xl" />
+              <div className="pointer-events-none absolute -left-16 bottom-0 h-36 w-36 rounded-full bg-slate-100/80 blur-3xl" />
+
               <div className="relative flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-cyan-100">Konfirmasi Akun</p>
-                  <h2 className="mt-2 text-2xl font-black tracking-tight text-white">Keluar dari akun?</h2>
-                  <p className="mt-2 text-sm font-medium leading-6 text-sky-100/90">Kamu perlu login kembali untuk mengakses rekomendasi dan roadmap.</p>
+                <div className="flex items-start gap-4">
+                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-600 ring-1 ring-rose-100">
+                    <Icon name="logout" className="h-5 w-5" />
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-rose-600">
+                      Konfirmasi Logout
+                    </p>
+
+                    <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
+                      Keluar dari SkillLens?
+                    </h2>
+
+                    <p className="mt-2 max-w-md text-sm font-medium leading-6 text-slate-500">
+                      Sesi akan diakhiri dan kamu perlu login kembali untuk mengakses roadmap.
+                    </p>
+                  </div>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => setLogoutOpen(false)}
-                  className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white/10 text-white transition hover:bg-white/20"
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-800"
                   aria-label="Tutup konfirmasi keluar"
                 >
                   <Icon name="x" className="h-4 w-4" />
                 </button>
               </div>
             </div>
-
-            <div className="bg-gradient-to-br from-slate-50 via-white to-sky-50/40 px-6 py-6">
-              <div className="flex gap-4 rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
-                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200">
-                  <Icon name="logout" className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-extrabold text-slate-900">Konfirmasi logout</h3>
-                  <p className="mt-1 text-sm font-medium leading-6 text-slate-500">
-                    Pastikan data profil atau progress roadmap yang sedang diubah sudah tersimpan.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="border-t border-slate-100 bg-white/95 px-6 py-4 shadow-[0_-12px_30px_rgba(15,23,42,0.06)] backdrop-blur">
+            <div className="border-t border-slate-100 bg-white px-6 py-4 shadow-[0_-12px_30px_rgba(15,23,42,0.04)]">
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <button
                   type="button"
@@ -537,7 +561,7 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
                 <button
                   type="button"
                   onClick={logout}
-                  className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-[#0b2450] to-sky-600 px-5 py-3 text-sm font-extrabold text-white shadow-md shadow-sky-600/20 transition hover:-translate-y-0.5"
+                  className="inline-flex items-center justify-center rounded-2xl bg-rose-600 px-5 py-3 text-sm font-extrabold text-white shadow-md shadow-rose-600/20 transition hover:-translate-y-0.5 hover:bg-rose-700"
                 >
                   Ya, keluar
                 </button>

@@ -872,34 +872,6 @@ export default function RoadmapClient() {
               </div>
             </div>
 
-            {roadmap ? (
-              <div className="relative rounded-[1.5rem] border border-white/15 bg-white/10 p-5 backdrop-blur-md">
-                <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-cyan-100">
-                  Progress berjalan
-                </p>
-                <div className="mt-3 flex items-end justify-between gap-4">
-                  <div>
-                    <p className="text-4xl font-extrabold tracking-tight text-white">
-                      {progress}%
-                    </p>
-                    <p className="mt-1 text-xs font-semibold text-sky-100/75">
-                      {completed}/{details.length} detail selesai
-                    </p>
-                  </div>
-                  <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/15 text-cyan-100 ring-1 ring-white/15">
-                    <Icon name="chart" className="h-5 w-5" />
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <ProgressBar value={progress} light />
-                </div>
-                <p className="mt-4 text-sm font-semibold leading-6 text-sky-100/80">
-                  {nextDetail
-                    ? `Lanjutkan: ${nextDetail.title}`
-                    : "Semua detail roadmap sudah selesai."}
-                </p>
-              </div>
-            ) : null}
           </div>
         </section>
 
@@ -1006,37 +978,48 @@ export default function RoadmapClient() {
                 </div>
               </Panel>
 
-              <section className="mt-6">
-                <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                  <div>
-                    <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-sky-600">
-                      Tahap belajar
-                    </p>
-                    <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950 md:text-3xl">
-                      Learning path menurun per tahap
-                    </h2>
-                    <p className="mt-2 max-w-5xl text-sm font-semibold leading-6 text-slate-500">
-                      Roadmap dibuat turun dari tahap besar ke detail aktivitas.
-                      Referensi belajar hanya tampil pada detail yang memang memiliki link dari database.
-                    </p>
+              <section className="mt-6 overflow-hidden rounded-[1.8rem] border border-sky-100 bg-gradient-to-br from-white via-cyan-50/40 to-sky-50/70 shadow-sm shadow-sky-100/60">
+                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(14,165,233,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(14,165,233,0.04)_1px,transparent_1px)] bg-[size:34px_34px]" />
+
+                <div className="relative border-b border-sky-100 px-5 py-5 sm:px-6">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                    <div>
+                      <p className="inline-flex items-center gap-2 rounded-full border border-sky-100 bg-white/85 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.18em] text-sky-700 shadow-sm">
+                        <Icon name="roadmap" className="h-3.5 w-3.5" />
+                        Tahap Belajar
+                      </p>
+
+                      <h2 className="mt-4 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
+                        Learning path menurun per tahap
+                      </h2>
+
+                      <p className="mt-2 max-w-5xl text-sm font-semibold leading-6 text-slate-500">
+                        Roadmap dibuat turun dari tahap besar ke detail aktivitas.
+                        Referensi belajar hanya tampil pada detail yang memang memiliki link
+                        dari database.
+                      </p>
+                    </div>
+
+                    <span className="w-fit rounded-2xl border border-sky-100 bg-white px-4 py-2 text-xs font-black text-sky-700 shadow-sm shadow-sky-100/60">
+                      Progress {progress}%
+                    </span>
                   </div>
-                  <span className="w-fit rounded-full bg-sky-50 px-4 py-2 text-xs font-bold text-sky-700 ring-1 ring-sky-100">
-                    Progress {progress}%
-                  </span>
                 </div>
 
-                <div className="space-y-5">
-                  {roadmap.steps.map((step, index) => (
-                    <StepSection
-                      key={step.id}
-                      step={step}
-                      index={index}
-                      activeDetailId={activeDetailId}
-                      savingDetailId={savingDetailId}
-                      onSelectDetail={setActiveDetailId}
-                      onUpdateStatus={handleUpdateStatus}
-                    />
-                  ))}
+                <div className="relative p-5 sm:p-6">
+                  <div className="space-y-5">
+                    {roadmap.steps.map((step, index) => (
+                      <StepSection
+                        key={step.id}
+                        step={step}
+                        index={index}
+                        activeDetailId={activeDetailId}
+                        savingDetailId={savingDetailId}
+                        onSelectDetail={setActiveDetailId}
+                        onUpdateStatus={handleUpdateStatus}
+                      />
+                    ))}
+                  </div>
                 </div>
               </section>
 

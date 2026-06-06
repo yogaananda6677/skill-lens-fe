@@ -207,8 +207,12 @@ export function PublicNavbar() {
       <nav className="fixed left-0 right-0 top-0 z-[999] border-b border-white/10 bg-[#0a0f2a]/80 backdrop-blur-xl">
         <div className="mx-auto flex w-[min(1220px,calc(100%-32px))] items-center justify-between gap-4 py-4">
           <Link href="/" className="group flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white text-slate-950 shadow-lg transition duration-300 group-hover:-translate-y-0.5 group-hover:shadow-cyan-300/30">
-              <Icon name="spark" className="h-5 w-5" />
+            <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-sky-100">
+              <img
+                src="/images/logo-skillens.png"
+                alt="SkillLens Logo"
+                className="h-10 w-10 object-contain"
+              />
             </div>
 
             <div>

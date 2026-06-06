@@ -73,7 +73,6 @@ const targetFilters: Array<{ value: TargetFilter; label: string }> = [
   { value: "kuliah", label: "Kuliah" },
   { value: "kerja", label: "Kerja" },
   { value: "wirausaha", label: "Wirausaha" },
-  { value: "umum", label: "Umum" },
 ];
 
 function targetLabel(type?: string | null) {
@@ -172,7 +171,6 @@ function SelectField({
         onChange={(event) => onChange(event.target.value as RoadmapTargetType)}
         className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-sky-300 focus:bg-white focus:ring-4 focus:ring-sky-100"
       >
-        <option value="umum">Umum</option>
         <option value="kuliah">Kuliah</option>
         <option value="kerja">Kerja</option>
         <option value="wirausaha">Wirausaha</option>
@@ -220,9 +218,12 @@ function ActionButton({
   disabled?: boolean;
 }) {
   const styles = {
-    primary: "bg-gradient-to-r from-[#0b2450] to-sky-600 text-white shadow-lg shadow-sky-600/20 hover:-translate-y-0.5 hover:shadow-xl",
-    secondary: "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
-    danger: "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100",
+    primary:
+      "bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 text-white shadow-lg shadow-sky-600/20 hover:-translate-y-0.5 hover:shadow-xl",
+    secondary:
+      "border border-slate-200 bg-white text-slate-700 shadow-sm hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow-md",
+    danger:
+      "border border-rose-200 bg-rose-50 text-rose-700 shadow-sm hover:-translate-y-0.5 hover:bg-rose-100 hover:shadow-md",
   }[tone];
 
   return (
@@ -237,17 +238,40 @@ function ActionButton({
   );
 }
 
-function StatCard({ title, value, desc, icon }: { title: string; value: string | number; desc: string; icon: string }) {
+function StatCard({
+  title,
+  value,
+  desc,
+  icon,
+}: {
+  title: string;
+  value: string | number;
+  desc: string;
+  icon: string;
+}) {
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-sky-100 bg-white p-5 shadow-sm shadow-sky-100/70">
-      <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-sky-500 to-cyan-300" />
-      <div className="flex items-start justify-between gap-4">
+    <div className="group relative overflow-hidden rounded-[1.6rem] border border-sky-100 bg-gradient-to-br from-white via-cyan-50/45 to-sky-50/70 p-5 shadow-sm shadow-sky-100/60 transition hover:-translate-y-0.5 hover:shadow-md">
+      <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#0b2450] via-sky-500 to-cyan-300" />
+
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(14,165,233,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(14,165,233,0.04)_1px,transparent_1px)] bg-[size:34px_34px]" />
+      <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-cyan-200/25 blur-3xl" />
+
+      <div className="relative flex items-start justify-between gap-4 pt-2">
         <div>
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.17em] text-sky-700">{title}</p>
-          <p className="mt-2 text-2xl font-black tracking-tight text-slate-950">{value}</p>
-          <p className="mt-1 text-xs font-medium leading-5 text-slate-500">{desc}</p>
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-sky-700">
+            {title}
+          </p>
+
+          <p className="mt-2 text-3xl font-black tracking-tight text-slate-950">
+            {value}
+          </p>
+
+          <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
+            {desc}
+          </p>
         </div>
-        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-sky-50 text-sky-700 ring-1 ring-sky-100">
+
+        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-sky-100 bg-white text-sky-700 shadow-sm shadow-sky-100/70">
           <Icon name={icon as any} className="h-5 w-5" />
         </div>
       </div>
@@ -257,13 +281,15 @@ function StatCard({ title, value, desc, icon }: { title: string; value: string |
 
 function EmptyState({ title, desc }: { title: string; desc: string }) {
   return (
-    <div className="grid min-h-[220px] place-items-center rounded-3xl border border-dashed border-sky-200 bg-sky-50/50 p-6 text-center">
+    <div className="grid min-h-[240px] place-items-center rounded-3xl border border-dashed border-sky-200 bg-gradient-to-br from-white via-cyan-50/45 to-sky-50/70 p-6 text-center shadow-sm shadow-sky-100/60">
       <div>
-        <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-white text-sky-700 ring-1 ring-sky-100">
-          <Icon name="roadmap" className="h-5 w-5" />
+        <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-white text-sky-700 shadow-sm ring-1 ring-sky-100">
+          <Icon name="roadmap" className="h-6 w-6" />
         </div>
         <h3 className="mt-4 text-base font-black text-slate-950">{title}</h3>
-        <p className="mx-auto mt-2 max-w-md text-sm font-medium leading-6 text-slate-500">{desc}</p>
+        <p className="mx-auto mt-2 max-w-md text-sm font-medium leading-6 text-slate-500">
+          {desc}
+        </p>
       </div>
     </div>
   );
@@ -458,16 +484,25 @@ export default function AdminRoadmapPage() {
         )}
 
         <section className="overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60">
-          <div className="flex flex-col gap-4 border-b border-sky-100 bg-gradient-to-r from-sky-50 via-white to-blue-50 px-5 py-5 xl:flex-row xl:items-center xl:justify-between">
-            <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-sky-600">Roadmap Utama</p>
-              <h2 className="mt-1 text-xl font-black tracking-tight text-slate-900">Daftar master roadmap</h2>
-              <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-slate-500">
-                Bagian ini hanya menampilkan roadmap utama. Isi tahap/step dibuka di halaman detail supaya tidak menumpuk di bawah daftar.
-              </p>
-            </div>
+          <div className="relative overflow-hidden border-b border-sky-100 bg-gradient-to-br from-white via-cyan-50/45 to-sky-50/70 px-5 py-5">
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(14,165,233,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(14,165,233,0.04)_1px,transparent_1px)] bg-[size:34px_34px]" />
+            <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-cyan-200/25 blur-3xl" />
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+              <div>
+                <p className="inline-flex items-center gap-2 rounded-full border border-sky-100 bg-white/85 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.18em] text-sky-700 shadow-sm">
+                  <Icon name="roadmap" className="h-3.5 w-3.5" />
+                  Roadmap Utama
+                </p>
+                <h2 className="mt-4 text-xl font-black tracking-tight text-slate-950 md:text-2xl">
+                  Daftar master roadmap
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-600">
+                  Bagian ini hanya menampilkan roadmap utama. Isi tahap/step dibuka di halaman detail supaya tidak menumpuk di bawah daftar.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="relative">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                   <Icon name="search" className="h-4 w-4 text-slate-400" />
@@ -479,14 +514,15 @@ export default function AdminRoadmapPage() {
                   className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-9 pr-4 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100 sm:w-72"
                 />
               </div>
-              <ActionButton onClick={openCreateRoadmap}>
-                <Icon name="spark" className="h-4 w-4" />
-                Tambah Roadmap
-              </ActionButton>
+                <ActionButton onClick={openCreateRoadmap}>
+                  <Icon name="spark" className="h-4 w-4" />
+                  Tambah Roadmap
+                </ActionButton>
+              </div>
             </div>
           </div>
 
-          <div className="border-b border-sky-100 px-5 py-4">
+          <div className="border-b border-sky-100 bg-white px-5 py-4">
             <div className="flex flex-wrap gap-2">
               {targetFilters.map((filter) => {
                 const active = targetFilter === filter.value;
@@ -497,7 +533,7 @@ export default function AdminRoadmapPage() {
                     onClick={() => setTargetFilter(filter.value)}
                     className={`rounded-2xl px-4 py-2 text-xs font-black uppercase tracking-wide ring-1 transition ${
                       active
-                        ? "bg-sky-600 text-white ring-sky-600 shadow-md shadow-sky-600/20"
+                        ? "bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 text-white ring-sky-600 shadow-md shadow-sky-600/20"
                         : "bg-white text-slate-600 ring-slate-200 hover:bg-sky-50 hover:text-sky-700 hover:ring-sky-100"
                     }`}
                   >
@@ -520,7 +556,12 @@ export default function AdminRoadmapPage() {
                   const detailCount = getActiveDetailsCount(roadmap);
 
                   return (
-                    <article key={roadmap.id_roadmap} className="rounded-3xl border border-slate-100 bg-white p-5 transition duration-300 hover:-translate-y-0.5 hover:border-sky-100 hover:shadow-md">
+                    <article
+                      key={roadmap.id_roadmap}
+                      className="group relative overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-br from-white via-cyan-50/25 to-sky-50/40 p-5 shadow-sm shadow-sky-100/50 transition duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-sky-100/70"
+                    >
+                      <div className="pointer-events-none absolute -right-14 -top-14 h-36 w-36 rounded-full bg-cyan-200/20 blur-3xl" />
+                      <div className="relative">
                       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                         <div className="min-w-0">
                           <div className="flex flex-wrap gap-2">
@@ -548,13 +589,20 @@ export default function AdminRoadmapPage() {
                         </div>
                       </div>
 
-                      <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-                        <ActionButton onClick={() => router.push(`/admin/roadmap/${roadmap.id_roadmap}`)}>
-                          <Icon name="eye" className="h-4 w-4" />
-                          Kelola
-                        </ActionButton>
-                        <ActionButton tone="secondary" onClick={() => openEditRoadmap(roadmap)}>Edit Master</ActionButton>
-                        <ActionButton tone="danger" onClick={() => requestDeleteRoadmap(roadmap)}>Hapus</ActionButton>
+                        <div className="mt-5 flex flex-wrap gap-2 border-t border-sky-100/70 pt-4">
+                          <ActionButton onClick={() => router.push(`/admin/roadmap/${roadmap.id_roadmap}`)}>
+                            <Icon name="eye" className="h-4 w-4" />
+                            Kelola
+                          </ActionButton>
+                          <ActionButton tone="secondary" onClick={() => openEditRoadmap(roadmap)}>
+                            <Icon name="pencil" className="h-4 w-4" />
+                            Edit
+                          </ActionButton>
+                          <ActionButton tone="danger" onClick={() => requestDeleteRoadmap(roadmap)}>
+                            <Icon name="trash" className="h-4 w-4" />
+                            Hapus
+                          </ActionButton>
+                        </div>
                       </div>
                     </article>
                   );
