@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { DashboardShell } from "../../../components/layout/DashboardShell";
 import { Icon } from "../../../components/ui/icons";
+import { ListSkeleton } from "../../../components/ui/LoadingSkeleton";
 import { guruNav } from "../../../config/navigation";
 import { getGuidanceCases, type GuidanceCase } from "../../../features/guru/api";
 import { notifyAppAlert } from "../../../lib/app-alert-events";
@@ -22,7 +23,7 @@ function activityLabel(item: GuidanceCase) {
 }
 
 function tone(item: GuidanceCase) {
-  if (item.hasActiveRoadmap) return "bg-emerald-50 text-emerald-700 ring-emerald-100";
+  if (item.hasActiveRoadmap) return "bg-sky-50 text-sky-700 ring-sky-100";
   if (item.recommendations?.length) return "bg-amber-50 text-amber-700 ring-amber-100";
   return "bg-slate-100 text-slate-600 ring-slate-200";
 }
@@ -102,7 +103,7 @@ export default function GuruRiwayatChatPage() {
 
           <div className="mt-6 grid gap-4">
             {loading ? (
-              <div className="rounded-3xl border border-slate-100 bg-slate-50 p-10 text-center text-sm font-bold text-slate-500">Memuat riwayat chat...</div>
+              <ListSkeleton count={5} />
             ) : filtered.length ? (
               filtered.map((item) => (
                 <article key={item.id} className="rounded-3xl border border-slate-100 bg-slate-50 p-5 transition hover:border-sky-200 hover:bg-sky-50/50">

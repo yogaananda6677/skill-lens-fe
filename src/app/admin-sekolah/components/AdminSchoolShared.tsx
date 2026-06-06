@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { InputHTMLAttributes, ReactNode } from "react";
 import type { UploadProgressState } from "../../../lib/upload";
 import { Icon } from "../../../components/ui/icons";
 
@@ -14,6 +14,12 @@ export function Field({
   placeholder,
   type = "text",
   error,
+  success,
+  loading,
+  helper,
+  inputMode,
+  maxLength,
+  autoComplete,
   onChange,
 }: {
   label: string;
@@ -21,8 +27,16 @@ export function Field({
   placeholder: string;
   type?: string;
   error?: string;
+  success?: string;
+  loading?: string;
+  helper?: string;
+  inputMode?: InputHTMLAttributes<HTMLInputElement>["inputMode"];
+  maxLength?: number;
+  autoComplete?: string;
   onChange: (value: string) => void;
 }) {
+  const message = error || success || loading || helper;
+
   return (
     <label className="block">
       <span className="mb-1.5 block text-sm font-bold text-slate-700">
@@ -33,16 +47,33 @@ export function Field({
         type={type}
         value={value}
         placeholder={placeholder}
+        inputMode={inputMode}
+        maxLength={maxLength}
+        autoComplete={autoComplete}
         onChange={(event) => onChange(event.target.value)}
         className={`w-full rounded-2xl border bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-4 ${
           error
             ? "border-rose-300 focus:border-rose-500 focus:ring-rose-100"
-            : "border-slate-200 focus:border-sky-300 focus:ring-sky-100"
+            : success
+              ? "border-emerald-200 focus:border-emerald-400 focus:ring-emerald-100"
+              : "border-slate-200 focus:border-sky-300 focus:ring-sky-100"
         }`}
       />
 
-      {error ? (
-        <p className="mt-1.5 text-xs font-semibold text-rose-600">{error}</p>
+      {message ? (
+        <p
+          className={`mt-1.5 text-xs font-semibold leading-5 ${
+            error
+              ? "text-rose-600"
+              : success
+                ? "text-emerald-600"
+                : loading
+                  ? "text-sky-600"
+                  : "text-slate-400"
+          }`}
+        >
+          {message}
+        </p>
       ) : null}
     </label>
   );

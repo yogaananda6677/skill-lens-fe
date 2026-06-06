@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Icon } from "../../../components/ui/icons";
+import { FormSkeleton } from "../../../components/ui/LoadingSkeleton";
 import {
   createStudentAchievement,
   deleteStudentAchievement,
@@ -18,7 +19,7 @@ import { buildStudentPayload } from "../utils/buildStudentPayload";
 
 const PROFILE_CHOICE_MIN = 1;
 const PROFILE_CHOICE_MAX = 4;
-const MIN_SAVE_LOADING_MS = 2200;
+const MIN_SAVE_LOADING_MS = 250;
 
 const PROFILE_CHOICE_LABELS: Record<ArrayField, string> = {
   interests: "Minat",
@@ -48,6 +49,11 @@ export default function SiswaProfilPage() {
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [loadingOptions, setLoadingOptions] = useState(false);
+  const profileDraftRef = useRef(profile);
+
+  useEffect(() => {
+    profileDraftRef.current = profile;
+  }, [profile]);
 
   const [profileOptions, setProfileOptions] = useState<{
     interestOptions: string[];
@@ -139,7 +145,7 @@ export default function SiswaProfilPage() {
 
     try {
       await createStudentAchievement(payload);
-      await reloadStudent();
+      await reloadStudent({ preserveProfile: true, profileSnapshot: profileDraftRef.current });
 
       setMessage("Prestasi berhasil ditambahkan.");
     } catch (err) {
@@ -155,7 +161,7 @@ export default function SiswaProfilPage() {
 
     try {
       await deleteStudentAchievement(id);
-      await reloadStudent();
+      await reloadStudent({ preserveProfile: true, profileSnapshot: profileDraftRef.current });
 
       setMessage("Prestasi berhasil dihapus.");
     } catch (err) {
@@ -262,11 +268,7 @@ export default function SiswaProfilPage() {
           </div>
         </section>
 
-        {loadingProfile && (
-          <div className="mt-6 rounded-2xl border border-sky-100 bg-white p-4 text-sm font-semibold text-slate-500 shadow-sm">
-            Memuat data siswa...
-          </div>
-        )}
+
 
         {(message || error) && (
           <div
@@ -281,6 +283,9 @@ export default function SiswaProfilPage() {
         )}
 
         <div className="mt-6">
+          {loadingProfile ? (
+            <FormSkeleton />
+          ) : (
           <StudentProfilePanel
             profile={profile}
             prestasiRows={prestasiRows}
@@ -295,6 +300,7 @@ export default function SiswaProfilPage() {
             loadingOptions={loadingOptions}
             processLabel="Simpan Profil"
           />
+          )}
         </div>
       </section>
     </main>

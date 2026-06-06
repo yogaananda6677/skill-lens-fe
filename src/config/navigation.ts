@@ -163,6 +163,14 @@ export const adminNav = [
     icon: "school",
     roles: ["admin", "superadmin"],
   },
+  {
+    key: "roadmap",
+    label: "Roadmap",
+    description: "Master tahap siswa",
+    href: "/admin/roadmap",
+    icon: "roadmap",
+    roles: ["admin", "superadmin"],
+  },
 ] as const satisfies readonly DashboardNavItem[];
 
 export const superadminNav: DashboardNavItem[] = [

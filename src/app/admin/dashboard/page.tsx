@@ -2,21 +2,23 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+
 import { DashboardShell } from "@/components/layout/DashboardShell";
-import { adminNav as navItems } from "@/config/navigation";
 import { Icon } from "@/components/ui/icons";
-import { getAdminDashboard, updateRoadmapStepLimit, type AdminDashboardResponse } from "@/features/admin/api";
+import { CardGridSkeleton, ListSkeleton } from "@/components/ui/LoadingSkeleton";
+import { adminNav as navItems } from "@/config/navigation";
+import { getAdminDashboard, type AdminDashboardResponse } from "@/features/admin/api";
 
 type Metric = {
   label: string;
   value: string;
   detail: string;
-  icon: "school" | "verify" | "users" | "graduation";
+  icon: "school" | "verify" | "users" | "graduation" | "roadmap";
 };
 
 function MetricCard({ item }: { item: Metric }) {
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-sky-100 bg-gradient-to-br from-white via-sky-50/70 to-blue-50/70 p-5 shadow-[0_14px_35px_rgba(15,23,42,0.07)] transition duration-300 hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_18px_45px_rgba(15,23,42,0.11)]">
+    <div className="group relative overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-br from-white via-sky-50/70 to-blue-50/70 p-5 shadow-[0_14px_35px_rgba(15,23,42,0.07)] transition duration-300 hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_18px_45px_rgba(15,23,42,0.11)]">
       <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#0b2450] via-sky-500 to-cyan-300" />
 
       <div className="flex items-start justify-between gap-4">
@@ -32,11 +34,32 @@ function MetricCard({ item }: { item: Metric }) {
           </p>
         </div>
 
-        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200/70">
-          <Icon name={item.icon as any} className="h-5 w-5" />
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200/70 transition group-hover:scale-105">
+          <Icon name={item.icon} className="h-5 w-5" />
         </div>
       </div>
     </div>
+  );
+}
+
+function QuickAction({ href, icon, title, desc }: { href: string; icon: string; title: string; desc: string }) {
+  return (
+    <Link
+      href={href}
+      className="group relative overflow-hidden rounded-3xl border border-sky-100 bg-white p-5 shadow-sm shadow-sky-100/70 transition duration-300 hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-xl hover:shadow-sky-100/80"
+    >
+      <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-sky-100/70 blur-2xl transition group-hover:bg-cyan-100" />
+      <div className="relative flex items-start gap-4">
+        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-[#0b2450] to-sky-600 text-white shadow-lg shadow-sky-600/20">
+          <Icon name={icon as any} className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-black text-slate-950">{title}</p>
+          <p className="mt-1 text-xs font-medium leading-5 text-slate-500">{desc}</p>
+        </div>
+        <Icon name="chevronRight" className="ml-auto h-4 w-4 shrink-0 text-slate-300 transition group-hover:translate-x-1 group-hover:text-sky-600" />
+      </div>
+    </Link>
   );
 }
 
@@ -44,9 +67,6 @@ export default function AdminDashboardPage() {
   const [data, setData] = useState<AdminDashboardResponse | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [stepLimit, setStepLimit] = useState(4);
-  const [savingStepLimit, setSavingStepLimit] = useState(false);
-  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     setLoading(true);
@@ -54,7 +74,6 @@ export default function AdminDashboardPage() {
     getAdminDashboard()
       .then((result) => {
         setData(result);
-        setStepLimit(Number(result.stats.roadmapStepLimit ?? 4));
         setError("");
       })
       .catch((err) => {
@@ -94,32 +113,17 @@ export default function AdminDashboardPage() {
   );
 
   const activities = useMemo(
-    () => [
-      {
-        title: "Verifikasi sekolah",
-        text: `${loading ? "..." : data?.stats.pendingSchools ?? 0} sekolah menunggu verifikasi.`,
-      },
-    ],
-    [data?.stats.pendingSchools, loading],
+    () => data?.activities?.length
+      ? data.activities
+      : [
+          {
+            title: "Verifikasi sekolah",
+            text: `${loading ? "..." : data?.stats.pendingSchools ?? 0} sekolah menunggu verifikasi.`,
+            tone: "info",
+          },
+        ],
+    [data, loading]
   );
-
-  async function handleSaveStepLimit() {
-    setSavingStepLimit(true);
-    setNotice("");
-    setError("");
-
-    try {
-      const result = await updateRoadmapStepLimit(stepLimit);
-      const saved = Number(result.data?.roadmap_step_limit ?? stepLimit);
-      setStepLimit(saved);
-      setData((current) => current ? { ...current, stats: { ...current.stats, roadmapStepLimit: saved } } : current);
-      setNotice(result.message || "Jumlah tahap roadmap berhasil diperbarui.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Gagal memperbarui jumlah tahap roadmap");
-    } finally {
-      setSavingStepLimit(false);
-    }
-  }
 
   return (
     <DashboardShell
@@ -139,64 +143,56 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {notice && (
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 shadow-sm">
-            {notice}
-          </div>
-        )}
+        <section className="relative overflow-hidden rounded-[2rem] border border-sky-100 bg-gradient-to-br from-[#07142f] via-[#0b2450] to-sky-700 p-6 text-white shadow-2xl shadow-sky-950/10">
+          <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-cyan-300/20 blur-3xl" />
+          <div className="pointer-events-none absolute bottom-0 left-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
 
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-          {metrics.map((item) => (
-            <MetricCard key={item.label} item={item} />
-          ))}
-        </div>
-
-
-        <section className="rounded-3xl border border-sky-100 bg-white p-6 shadow-sm shadow-sky-100/60">
-          <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
+          <div className="relative grid gap-6 xl:grid-cols-[1fr_360px] xl:items-center">
             <div>
-              <p className="text-sm font-extrabold uppercase tracking-[0.2em] text-sky-700">Roadmap Pembelajaran</p>
-              <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">Rekomendasi SPK tetap 3 pilihan terbaik</h2>
-              <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-slate-500">
-                Siswa tetap menerima 3 rekomendasi utama. Admin platform mengatur jumlah tahap roadmap yang diberikan kepada siswa saat mereka membuat roadmap dari rekomendasi terpilih.
+              <p className="inline-flex rounded-full bg-white/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.2em] text-cyan-100 ring-1 ring-white/15">
+                Admin Platform SkillLens
+              </p>
+              <h1 className="mt-5 max-w-3xl text-3xl font-black tracking-tight sm:text-4xl">
+                Kelola platform dari satu ruang kerja yang lebih rapi.
+              </h1>
+              <p className="mt-3 max-w-2xl text-sm font-medium leading-7 text-sky-100">
+                Dashboard sekarang difokuskan untuk monitoring. Pengaturan roadmap sudah dipindahkan ke halaman khusus agar tidak bercampur dengan ringkasan platform.
               </p>
             </div>
 
-            <div className="w-full rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-cyan-50 p-4 shadow-sm xl:w-[390px]">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-sky-700">Pengaturan Tahap</p>
-                  <p className="mt-1 text-sm font-bold text-slate-900">Jumlah tahap untuk siswa</p>
-                </div>
-                <div className="rounded-2xl bg-sky-100 px-4 py-2 text-sm font-extrabold text-sky-700 ring-1 ring-sky-200">
-                  3 rekomendasi
-                </div>
-              </div>
-
-              <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
-                <input
-                  type="number"
-                  min={1}
-                  max={12}
-                  value={stepLimit}
-                  onChange={(event) => setStepLimit(Math.min(12, Math.max(1, Number(event.target.value || 1))))}
-                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
-                />
-                <button
-                  type="button"
-                  disabled={savingStepLimit}
-                  onClick={handleSaveStepLimit}
-                  className="rounded-2xl bg-gradient-to-r from-[#0b2450] to-sky-600 px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-sky-600/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {savingStepLimit ? "Menyimpan..." : "Simpan"}
-                </button>
-              </div>
-              <p className="mt-3 text-xs font-medium leading-5 text-slate-500">
-                Batas 1-12 tahap. Perubahan berlaku untuk roadmap baru yang dibuat siswa setelah pengaturan disimpan.
+            <div className="rounded-3xl border border-white/15 bg-white/10 p-4 shadow-xl shadow-slate-950/10 backdrop-blur">
+              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-cyan-100">
+                Tindakan cepat
               </p>
+              <div className="mt-4 grid gap-3">
+                <Link
+                  href="/admin/verifikasi"
+                  className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 text-sm font-extrabold text-slate-950 shadow-lg shadow-slate-950/10 transition hover:-translate-y-0.5"
+                >
+                  Buka verifikasi sekolah
+                  <Icon name="chevronRight" className="h-4 w-4 text-sky-600" />
+                </Link>
+                <Link
+                  href="/admin/roadmap"
+                  className="flex items-center justify-between rounded-2xl bg-sky-500/20 px-4 py-3 text-sm font-extrabold text-white ring-1 ring-white/20 transition hover:-translate-y-0.5 hover:bg-sky-500/30"
+                >
+                  Kelola master roadmap
+                  <Icon name="chevronRight" className="h-4 w-4" />
+                </Link>
+              </div>
             </div>
           </div>
         </section>
+
+        {loading ? (
+          <CardGridSkeleton count={4} />
+        ) : (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            {metrics.map((item) => (
+              <MetricCard key={item.label} item={item} />
+            ))}
+          </div>
+        )}
 
         <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
           <section className="overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60">
@@ -222,21 +218,29 @@ export default function AdminDashboardPage() {
               </Link>
             </div>
 
-            <div className="p-5">
-              <div className="rounded-2xl border border-sky-100 bg-gradient-to-br from-white via-sky-50/70 to-blue-50/70 p-5 shadow-sm text-center">
-                <div className="flex flex-col items-center justify-center gap-2">
-                  <div className="grid h-10 w-10 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200/70">
-                    <Icon name="chart" className="h-5 w-5" />
-                  </div>
-                  <h3 className="text-sm font-black text-slate-900">
-                    Ringkasan platform siap dipantau
-                  </h3>
-                </div>
-              </div>
+            <div className="grid gap-4 p-5 md:grid-cols-3">
+              <QuickAction
+                href="/admin/verifikasi"
+                icon="verify"
+                title="Verifikasi sekolah"
+                desc="Tinjau pengajuan sekolah yang masih menunggu keputusan."
+              />
+              <QuickAction
+                href="/admin/sekolah"
+                icon="school"
+                title="Data sekolah"
+                desc="Lihat daftar sekolah yang sudah masuk ke platform."
+              />
+              <QuickAction
+                href="/admin/roadmap"
+                icon="roadmap"
+                title="Master roadmap"
+                desc="Atur roadmap, tahap/step, dan detail aktivitas siswa."
+              />
             </div>
           </section>
 
-          <aside className="space-y-5">
+          <aside className="space-y-6">
             <section className="overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60">
               <div className="flex items-center justify-between border-b border-sky-100 bg-gradient-to-r from-sky-50 via-white to-blue-50 px-5 py-4">
                 <div className="flex items-center gap-2">
@@ -245,18 +249,18 @@ export default function AdminDashboardPage() {
                   </div>
                   <div>
                     <h3 className="text-sm font-black text-slate-900">
-                      Verifikasi Sekolah
+                      Aktivitas Sistem
                     </h3>
                     <p className="text-xs font-medium text-slate-500">
-                      Daftar pengajuan sekolah
+                      Ringkasan terbaru
                     </p>
                   </div>
                 </div>
               </div>
 
               {loading ? (
-                <div className="grid min-h-[220px] place-items-center px-5 py-10 text-sm font-semibold text-slate-500">
-                  Memuat aktivitas...
+                <div className="p-5">
+                  <ListSkeleton count={3} />
                 </div>
               ) : activities.length === 0 ? (
                 <div className="grid min-h-[220px] place-items-center px-5 py-10 text-center">
@@ -265,7 +269,7 @@ export default function AdminDashboardPage() {
                       <Icon name="clock" className="h-5 w-5" />
                     </div>
                     <p className="mt-4 text-sm font-semibold text-slate-700">
-                      Belum ada pengajuan sekolah terbaru.
+                      Belum ada aktivitas terbaru.
                     </p>
                   </div>
                 </div>
@@ -303,7 +307,7 @@ export default function AdminDashboardPage() {
                 </h3>
               </div>
               <p className="mt-3 text-xs font-medium leading-6 text-slate-600">
-                Modul ini dipakai untuk memantau verifikasi sekolah, akun pengguna, dan pengaturan roadmap pembelajaran.
+                Dashboard hanya untuk monitoring. Kelola roadmap melalui menu Roadmap agar struktur master, tahap/step, dan detail aktivitas lebih mudah dirapikan.
               </p>
             </section>
           </aside>

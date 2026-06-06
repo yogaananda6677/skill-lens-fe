@@ -250,7 +250,7 @@ function SubmitProcessOverlay({
   const isSuccess = state === "success";
 
   return (
-    <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-900/35 px-4 py-6">
+    <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-950/58 px-4 py-6 backdrop-blur-[4px]">
       <div className="w-full max-w-md overflow-hidden rounded-[2rem] border border-sky-100 bg-white shadow-2xl shadow-slate-950/20">
         <div className="relative p-7">
           {isSuccess && (
@@ -354,8 +354,6 @@ export function AdminSchoolDataSekolah({
 
   void schoolMessage;
 
-  // ... (normalizedDirectory dan useMemo lainnya tetap sama, tidak diubah)
-
   const normalizedDirectory = useMemo(() => {
     return schoolOptions
       .map((item) => {
@@ -414,7 +412,6 @@ export function AdminSchoolDataSekolah({
   );
   const hasDirectoryOptions = normalizedDirectory.length > 0;
 
-  // Helper functions (resetLookupStatus, updateNpsn, applySchoolToForm, handleLookup, dll) tetap sama
   function resetLookupStatus() {
     setLookupMessage("");
     setLookupError("");
@@ -664,7 +661,6 @@ export function AdminSchoolDataSekolah({
   }
 
 
-  // Form pengajuan
   return (
     <>
       {submitProcessOverlay}

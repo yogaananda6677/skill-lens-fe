@@ -4,7 +4,6 @@ import { PublicNavbar } from "../components/layout/PublicNavbar";
 
 const HERO_IMAGE = "/images/skilllens-hero.png";
 
-// ========== DATA ==========
 const features = [
   {
     title: "Integrasi Nilai Akademik",
@@ -58,10 +57,8 @@ const recommendations = [
 export default function Home() {
   return (
   <main className="min-h-screen overflow-x-hidden bg-transparent text-slate-950">
-    {/* ========== NAVBAR FIXED ========== */}
     <PublicNavbar />
 
-    {/* ========== HERO SECTION ========== */}
     <section className="relative overflow-hidden pt-24 text-white">
       <div className="absolute inset-0 bg-gradient-to-br from-[#0a0f2a] via-[#0d1b3e] to-[#0a2a4a]" />
       <div className="absolute top-[-20%] left-[-40%] h-[45%] w-[70%] rounded-full bg-cyan-600 opacity-25 blur-[120px] animate-pulse-slow" />
@@ -125,7 +122,7 @@ export default function Home() {
             src={HERO_IMAGE}
             alt="Preview tampilan SkillLens"
             className="w-[135%] max-w-none h-auto object-contain"
-            style={{ transform: 'translateX(-8%)' }} // optional: pusatkan
+            style={{ transform: 'translateX(-8%)' }}
           />
         </div>
       </div>
@@ -314,7 +311,6 @@ export default function Home() {
       </div>
     </section>
 
-    {/* ========== 6. ALUR KERJA ========== */}
     <section id="alur" className="scroll-mt-24 bg-gradient-to-b from-slate-50 to-white py-20">
       <div className="mx-auto w-[min(1220px,calc(100%-32px))]">
         <div className="text-center">
@@ -335,7 +331,6 @@ export default function Home() {
       </div>
     </section>
 
-    {/* ========== 7. METODE ========== */}
     <section id="metode" className="scroll-mt-24 bg-slate-900 py-20 text-white">
       <div className="mx-auto w-[min(1220px,calc(100%-32px))] grid gap-12 md:grid-cols-2 items-center">
         <div>
@@ -371,7 +366,6 @@ export default function Home() {
       </div>
     </section>
 
-    {/* ========== CTA ========== */}
     <section className="mx-auto w-[min(1220px,calc(100%-32px))] py-20">
       <div className="rounded-2xl bg-gradient-to-r from-[#0f2a5f] to-[#1e3a8a] p-8 text-white shadow-xl md:p-10">
         <div className="flex flex-col md:flex-row justify-between items-center gap-6">

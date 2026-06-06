@@ -13,6 +13,7 @@ import {
   updateAdmin,
 } from "@/features/superadmin/api";
 import { Icon } from "@/components/ui/icons";
+import { CardGridSkeleton, ListSkeleton } from "@/components/ui/LoadingSkeleton";
 
 type FormState = {
   id_user?: number;
@@ -101,11 +102,10 @@ export default function KelolaAdminPage() {
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6; // jumlah admin per halaman
+  const itemsPerPage = 6;
 
   const isEdit = useMemo(() => Boolean(form.id_user), [form.id_user]);
 
-  // Filter admin berdasarkan search query
   const filteredAdmins = useMemo(() => {
     if (!searchQuery.trim()) return admins;
     const query = searchQuery.toLowerCase();
@@ -117,14 +117,12 @@ export default function KelolaAdminPage() {
     );
   }, [admins, searchQuery]);
 
-  // Pagination logic
   const totalPages = Math.ceil(filteredAdmins.length / itemsPerPage);
   const paginatedAdmins = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return filteredAdmins.slice(start, start + itemsPerPage);
   }, [filteredAdmins, currentPage, itemsPerPage]);
 
-  // Reset ke halaman 1 ketika pencarian berubah
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery]);
@@ -282,7 +280,6 @@ export default function KelolaAdminPage() {
       schoolName="Platform SkillLens"
     >
       <div className="space-y-6">
-        {/* Stat Cards */}
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard
             title="Total Admin"
@@ -310,7 +307,6 @@ export default function KelolaAdminPage() {
           />
         </div>
 
-        {/* Notifikasi */}
         {(message || error) && (
           <div
             className={`rounded-2xl border px-4 py-3 text-sm font-semibold shadow-sm ${
@@ -324,7 +320,6 @@ export default function KelolaAdminPage() {
         )}
 
         <div className="grid gap-6 xl:grid-cols-[1fr_340px]">
-          {/* Daftar Admin */}
           <section className="overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60">
             <div className="flex flex-col gap-4 border-b border-sky-100 bg-gradient-to-r from-sky-50 via-white to-blue-50 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -339,7 +334,6 @@ export default function KelolaAdminPage() {
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                {/* Search */}
                 <div className="relative">
                   <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                     <Icon name="search" className="h-4 w-4 text-slate-400" />
@@ -364,8 +358,8 @@ export default function KelolaAdminPage() {
             </div>
 
             {loading ? (
-              <div className="grid min-h-[260px] place-items-center px-5 py-12 text-sm font-semibold text-slate-500">
-                Memuat data admin...
+              <div className="p-5">
+                <ListSkeleton count={4} />
               </div>
             ) : filteredAdmins.length === 0 ? (
               <div className="grid min-h-[260px] place-items-center px-5 py-12 text-center">
@@ -476,7 +470,6 @@ export default function KelolaAdminPage() {
                   ))}
                 </div>
 
-                {/* Pagination */}
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between border-t border-sky-100 px-5 py-4">
                     <button
@@ -502,9 +495,7 @@ export default function KelolaAdminPage() {
             )}
           </section>
 
-          {/* Sidebar Kanan */}
           <aside className="space-y-5">
-            {/* Aktivitas Terbaru */}
             <section className="overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60">
               <div className="flex items-center justify-between border-b border-sky-100 bg-gradient-to-r from-sky-50 via-white to-blue-50 px-5 py-4">
                 <div className="flex items-center gap-2">
@@ -563,7 +554,6 @@ export default function KelolaAdminPage() {
               )}
             </section>
 
-            {/* Tentang Admin */}
             <section className="rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-50/90 via-white to-blue-50/70 p-5 shadow-sm shadow-sky-100/60">
               <div className="flex items-center gap-2">
                 <div className="grid h-9 w-9 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200/70">
@@ -580,9 +570,8 @@ export default function KelolaAdminPage() {
         </div>
       </div>
 
-      {/* Modal Form */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/30 p-4">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/58 p-4 backdrop-blur-[4px]">
           <div className="w-full max-w-xl overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-2xl shadow-slate-950/20">
             <div className="relative overflow-hidden bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-6 py-5 text-white">
               <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:32px_32px]" />
@@ -687,7 +676,6 @@ export default function KelolaAdminPage() {
               </div>
             </form>
 
-            {/* Footer copyright dalam modal */}
             <div className="border-t border-slate-200 px-6 pb-5 pt-4 text-center text-xs text-slate-400">
               © {new Date().getFullYear()} SkillLens. All rights reserved.
             </div>

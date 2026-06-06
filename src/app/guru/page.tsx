@@ -5,10 +5,10 @@ import Link from "next/link";
 
 import { DashboardShell } from "../../components/layout/DashboardShell";
 import { Icon } from "../../components/ui/icons";
+import { CardGridSkeleton, ListSkeleton, TableSkeleton } from "../../components/ui/LoadingSkeleton";
 import { guruNav } from "../../config/navigation";
 import { getGuidanceCases, type GuidanceCase } from "../../features/guru/api";
 import { notifyAppAlert } from "../../lib/app-alert-events";
-import { getStoredUser } from "../../lib/auth";
 import { GuruOnbordaProvider } from "./components/GuruOnbordaProvider";
 import { StartGuruOnbordaButton } from "./components/StartGuruOnbordaButton";
 
@@ -21,31 +21,57 @@ function statusLabel(item: GuidanceCase) {
 function statusTone(item: GuidanceCase) {
   if (!item.recommendations?.length) return "bg-slate-100 text-slate-600 ring-slate-200";
   if (!item.hasActiveRoadmap) return "bg-amber-50 text-amber-700 ring-amber-100";
-  return "bg-emerald-50 text-emerald-700 ring-emerald-100";
+  return "bg-sky-50 text-sky-700 ring-sky-100";
+}
+
+function toTimestamp(value: unknown) {
+  if (!value) return 0;
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+  const time = new Date(String(value)).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
+function activityTime(item: GuidanceCase) {
+  const row = item as GuidanceCase & Record<string, unknown>;
+  return Math.max(
+    toTimestamp(row.latestProgressAt),
+    toTimestamp(row.progressUpdatedAt),
+    toTimestamp(row.latestGeneratedAt),
+    toTimestamp(row.generatedAt),
+    toTimestamp(row.lastLoginAt),
+    toTimestamp(row.latestLoginAt),
+    toTimestamp(row.updatedAt),
+    toTimestamp(item.latestNoteAt),
+    toTimestamp(item.requestedAt),
+  );
+}
+
+function activityLabel(item: GuidanceCase) {
+  const row = item as GuidanceCase & Record<string, unknown>;
+  const pairs: Array<[unknown, string]> = [
+    [row.latestProgressAt, "Progress terbaru"],
+    [row.progressUpdatedAt, "Progress terbaru"],
+    [row.latestGeneratedAt, "Generate terbaru"],
+    [row.generatedAt, "Generate terbaru"],
+    [row.lastLoginAt, "Login terbaru"],
+    [row.latestLoginAt, "Login terbaru"],
+    [item.latestNoteAt, "Catatan terbaru"],
+    [item.requestedAt, "Data terbaru"],
+  ];
+
+  let best = { time: 0, label: "Aktivitas terbaru" };
+  for (const [value, label] of pairs) {
+    const time = toTimestamp(value);
+    if (time > best.time) best = { time, label };
+  }
+
+  return best.label;
 }
 
 export default function GuruDashboardPage() {
   const [cases, setCases] = useState<GuidanceCase[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [mustChangePassword, setMustChangePassword] = useState(false);
-
-
-  useEffect(() => {
-    const user = getStoredUser();
-    const needsChange = Boolean(user?.must_change_password);
-    setMustChangePassword(needsChange);
-
-    if (needsChange) {
-      notifyAppAlert({
-        type: "warning",
-        title: "Password masih default",
-        description: "Disarankan segera mengganti password melalui menu Profil agar akun lebih aman.",
-        autoCloseMs: 6500,
-      });
-    }
-  }, []);
-
   useEffect(() => {
     let active = true;
 
@@ -83,7 +109,7 @@ export default function GuruDashboardPage() {
     return { total, belumIsi, belumPilih, aktif, avgProgress, prioritas };
   }, [cases]);
 
-  const recentCases = cases.slice(0, 5);
+  const recentCases = [...cases].sort((a, b) => activityTime(b) - activityTime(a)).slice(0, 5);
 
   return (
     <GuruOnbordaProvider>
@@ -98,12 +124,6 @@ export default function GuruDashboardPage() {
         {error && (
           <div className="mb-6 rounded-2xl bg-rose-50 p-4 text-sm font-bold text-rose-700 ring-1 ring-rose-100">
             {error}
-          </div>
-        )}
-
-        {mustChangePassword && (
-          <div className="mb-6 rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-800 ring-1 ring-amber-100">
-            Akun masih memakai password awal. Silakan buka menu Profil untuk mengganti password agar akun lebih aman.
           </div>
         )}
 
@@ -129,23 +149,29 @@ export default function GuruDashboardPage() {
             </div>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-            {[
-              ["Total Siswa", stats.total, "users"],
-              ["Belum Isi Data", stats.belumIsi, "profile"],
-              ["Belum Pilih Roadmap", stats.belumPilih, "map"],
-              ["Roadmap Aktif", stats.aktif, "check"],
-              ["Rata-rata Progress", `${stats.avgProgress}%`, "chart"],
-            ].map(([label, value, icon]) => (
-              <div key={String(label)} className="rounded-3xl border border-slate-100 bg-slate-50 p-5">
-                <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white text-sky-700 shadow-sm ring-1 ring-slate-100">
-                  <Icon name={icon as any} className="h-5 w-5" />
+          {loading ? (
+            <div className="mt-6">
+              <CardGridSkeleton count={5} />
+            </div>
+          ) : (
+            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+              {[
+                ["Total Siswa", stats.total, "users"],
+                ["Belum Isi Data", stats.belumIsi, "profile"],
+                ["Belum Pilih Roadmap", stats.belumPilih, "map"],
+                ["Roadmap Aktif", stats.aktif, "check"],
+                ["Rata-rata Progress", `${stats.avgProgress}%`, "chart"],
+              ].map(([label, value, icon]) => (
+                <div key={String(label)} className="rounded-3xl border border-slate-100 bg-slate-50 p-5">
+                  <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white text-sky-700 shadow-sm ring-1 ring-slate-100">
+                    <Icon name={icon as any} className="h-5 w-5" />
+                  </div>
+                  <p className="mt-4 text-sm font-bold text-slate-500">{label}</p>
+                  <p className="mt-1 text-3xl font-extrabold text-slate-950">{value}</p>
                 </div>
-                <p className="mt-4 text-sm font-bold text-slate-500">{label}</p>
-                <p className="mt-1 text-3xl font-extrabold text-slate-950">{loading ? "..." : value}</p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
 
 
@@ -157,15 +183,22 @@ export default function GuruDashboardPage() {
             </div>
             <Link href="/guru/bimbingan" className="text-sm font-extrabold text-sky-700 hover:text-sky-900">Lihat riwayat chat →</Link>
           </div>
-          <div className="mt-5 grid gap-3 lg:grid-cols-3">
-            {recentCases.length ? recentCases.slice(0, 3).map((item) => (
+          <div className="mt-5">
+            {loading ? (
+              <ListSkeleton count={3} />
+            ) : recentCases.length ? (
+              <div className="grid gap-3 lg:grid-cols-3">
+                {recentCases.slice(0, 3).map((item) => (
               <Link key={`notif-${item.id}`} href={`/guru/siswa/${item.studentId}/progress`} className="rounded-3xl border border-white bg-white/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                 <p className="text-sm font-extrabold text-slate-950">{item.studentName}</p>
                 <p className="mt-1 text-xs font-bold text-slate-500">{item.className || "-"} • {item.jurusan || "-"}</p>
                 <p className="mt-3 text-sm font-semibold text-sky-700">{statusLabel(item)}</p>
+                <p className="mt-1 text-[11px] font-black uppercase tracking-wide text-slate-400">{activityLabel(item)}</p>
                 <p className="mt-2 line-clamp-2 text-xs font-medium leading-5 text-slate-500">{item.lastNote || "Belum ada catatan terbaru."}</p>
               </Link>
-            )) : (
+                ))}
+              </div>
+            ) : (
               <div className="rounded-3xl bg-white/80 p-5 text-sm font-bold text-slate-500 ring-1 ring-slate-100">Belum ada notifikasi siswa.</div>
             )}
           </div>
@@ -194,7 +227,13 @@ export default function GuruDashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {recentCases.length ? recentCases.map((item) => (
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-4">
+                      <TableSkeleton rows={5} columns={5} />
+                    </td>
+                  </tr>
+                ) : recentCases.length ? recentCases.map((item) => (
                   <tr key={item.id} className="bg-white">
                     <td className="px-4 py-3 font-extrabold text-slate-900">{item.studentName}</td>
                     <td className="px-4 py-3 text-slate-600">{item.className || "-"}</td>
@@ -210,7 +249,7 @@ export default function GuruDashboardPage() {
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan={5} className="px-4 py-10 text-center font-semibold text-slate-400">{loading ? "Memuat data..." : "Belum ada data siswa."}</td>
+                    <td colSpan={5} className="px-4 py-10 text-center font-semibold text-slate-400">Belum ada data siswa.</td>
                   </tr>
                 )}
               </tbody>

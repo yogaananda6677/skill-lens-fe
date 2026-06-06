@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import { adminNav as navItems } from "@/config/navigation";
 import { getAdminSchools, deleteSchool } from "@/features/admin/api";
+import { AdminConfirmModal, AdminFullScreenModal } from "@/components/ui/AdminFullScreenModal";
 import { Icon } from "@/components/ui/icons";
+import { CardGridSkeleton, TableSkeleton } from "@/components/ui/LoadingSkeleton";
 import { notifyAppAlert } from "@/lib/app-alert-events";
 
 type SchoolRow = {
@@ -71,7 +73,7 @@ function StatCard({
   );
 }
 
-function EditIcon() {
+function DetailIcon() {
   return (
     <svg
       className="h-4 w-4"
@@ -82,8 +84,8 @@ function EditIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M12 20h9" />
-      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+      <circle cx="12" cy="12" r="3" />
     </svg>
   );
 }
@@ -108,18 +110,96 @@ function TrashIcon() {
   );
 }
 
+
+function SchoolDetailModal({ school, onClose }: { school: SchoolRow; onClose: () => void }) {
+  return (
+    <AdminFullScreenModal
+      eyebrow="Detail Sekolah"
+      title={school.name}
+      desc="Data hanya ditinjau di admin pusat. Perubahan data sekolah dilakukan dari alur pengajuan/admin sekolah."
+      onClose={onClose}
+      maxWidthClass="max-w-5xl"
+      footer={
+        <div className="flex justify-end">
+          <button type="button" onClick={onClose} className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50">
+            Tutup
+          </button>
+        </div>
+      }
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+          <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Nama Sekolah</p>
+          <p className="mt-2 text-sm font-bold text-slate-900">{school.name}</p>
+        </div>
+        <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+          <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">NPSN</p>
+          <p className="mt-2 text-sm font-bold text-slate-900">{school.npsn || "-"}</p>
+        </div>
+        <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+          <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Jenis Sekolah</p>
+          <p className="mt-2 text-sm font-bold text-slate-900">{school.level || "-"}</p>
+        </div>
+        <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+          <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Status</p>
+          <p className="mt-2"><StatusBadge status={school.status} /></p>
+        </div>
+        <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100 sm:col-span-2">
+          <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Alamat</p>
+          <p className="mt-2 text-sm font-medium leading-6 text-slate-700">{school.address || "-"}</p>
+        </div>
+        <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100 sm:col-span-2">
+          <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">No. Telepon</p>
+          <p className="mt-2 text-sm font-bold text-slate-900">{school.phone || "-"}</p>
+        </div>
+      </div>
+    </AdminFullScreenModal>
+  );
+}
+
+function DeleteConfirmModal({ school, loading, onCancel, onConfirm }: { school: SchoolRow; loading: boolean; onCancel: () => void; onConfirm: () => void }) {
+  return (
+    <AdminConfirmModal
+      title="Hapus sekolah?"
+      desc={
+        <>
+          Data <span className="font-extrabold text-slate-800">{school.name}</span> akan dihapus dari daftar sekolah. Pastikan data ini memang tidak digunakan lagi.
+        </>
+      }
+      confirmLabel="Hapus Sekolah"
+      loading={loading}
+      onCancel={onCancel}
+      onConfirm={onConfirm}
+    />
+  );
+}
+
+
 export default function AdminSchoolPage() {
   const [schools, setSchools] = useState<SchoolRow[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [detailSchool, setDetailSchool] = useState<SchoolRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<SchoolRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const itemsPerPage = 10;
 
   useEffect(() => {
     getAdminSchools()
       .then((data) => {
-        setSchools(data as unknown as SchoolRow[]);
+        setSchools(
+          data.map((item) => ({
+            id: String(item.id),
+            name: item.name ?? "-",
+            npsn: item.npsn ?? "-",
+            address: item.address ?? "-",
+            phone: item.phone ?? "-",
+            level: item.level ?? "-",
+            status: item.status ?? "pending",
+          }))
+        );
         setError("");
       })
       .catch((err) => {
@@ -176,10 +256,10 @@ export default function AdminSchoolPage() {
 
     return schools.filter(
       (school) =>
-        school.name.toLowerCase().includes(query) ||
-        school.npsn.toLowerCase().includes(query) ||
-        school.level.toLowerCase().includes(query) ||
-        school.address.toLowerCase().includes(query)
+        (school.name ?? "").toLowerCase().includes(query) ||
+        (school.npsn ?? "").toLowerCase().includes(query) ||
+        (school.level ?? "").toLowerCase().includes(query) ||
+        (school.address ?? "").toLowerCase().includes(query)
     );
   }, [schools, searchQuery]);
 
@@ -197,24 +277,28 @@ export default function AdminSchoolPage() {
     setCurrentPage(Math.max(1, Math.min(page, totalPages || 1)));
   }
 
-  function handleEdit(school: SchoolRow) {
-    notifyAppAlert({
-      type: "info",
-      title: "Edit sekolah",
-      description: `Pengubahan data ${school.name} dilakukan melalui proses verifikasi/admin sekolah agar data tetap konsisten.`,
-    });
+  function handleDetail(school: SchoolRow) {
+    setDetailSchool(school);
   }
 
-  async function handleDelete(school: SchoolRow) {
-    if (!confirm(`Hapus sekolah ${school.name}?`)) return;
+  function requestDelete(school: SchoolRow) {
+    setDeleteTarget(school);
+  }
 
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+
+    setDeleting(true);
     try {
-      await deleteSchool(Number(school.id));
-      setSchools((prev) => prev.filter((item) => item.id !== school.id));
+      await deleteSchool(Number(deleteTarget.id));
+      setSchools((prev) => prev.filter((item) => item.id !== deleteTarget.id));
       notifyAppAlert({ type: "success", title: "Sekolah dihapus", description: "Data sekolah berhasil dihapus." });
+      setDeleteTarget(null);
     } catch (err) {
       console.error(err);
       notifyAppAlert({ type: "error", title: "Gagal menghapus sekolah", description: err instanceof Error ? err.message : "Gagal menghapus sekolah" });
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -230,28 +314,15 @@ export default function AdminSchoolPage() {
       schoolName="Platform SkillLens"
     >
       <div className="space-y-6">
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          <StatCard
-            title="Total Sekolah"
-            value={loading ? "..." : schools.length}
-            desc="Sekolah terdaftar di sistem"
-            icon="school"
-          />
-
-          <StatCard
-            title="Terverifikasi"
-            value={loading ? "..." : verifiedCount}
-            desc="Sekolah sudah disetujui"
-            icon="verify"
-          />
-
-          <StatCard
-            title="Menunggu"
-            value={loading ? "..." : pendingCount}
-            desc="Sekolah perlu ditinjau"
-            icon="clock"
-          />
-        </div>
+        {loading ? (
+          <CardGridSkeleton count={3} />
+        ) : (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            <StatCard title="Total Sekolah" value={schools.length} desc="Sekolah terdaftar di sistem" icon="school" />
+            <StatCard title="Terverifikasi" value={verifiedCount} desc="Sekolah sudah disetujui" icon="verify" />
+            <StatCard title="Menunggu" value={pendingCount} desc="Sekolah perlu ditinjau" icon="clock" />
+          </div>
+        )}
 
         {error && !loading && (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
@@ -314,11 +385,8 @@ export default function AdminSchoolPage() {
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
                   <tr>
-                    <td colSpan={8} className="px-5 py-12 text-center text-sm font-semibold text-slate-500">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="h-6 w-6 animate-spin rounded-full border-2 border-sky-600 border-t-transparent" />
-                        Memuat data sekolah...
-                      </div>
+                    <td colSpan={8} className="px-5 py-5">
+                      <TableSkeleton rows={5} columns={8} />
                     </td>
                   </tr>
                 ) : filteredSchools.length === 0 ? (
@@ -388,17 +456,18 @@ export default function AdminSchoolPage() {
                           <div className="flex justify-center gap-2">
                             <button
                               type="button"
-                              onClick={() => handleEdit(school)}
-                              className="grid h-9 w-9 place-items-center rounded-xl border border-sky-100 bg-sky-50 text-sky-700 transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-100 hover:shadow-sm"
-                              title="Edit sekolah"
-                              aria-label="Edit sekolah"
+                              onClick={() => handleDetail(school)}
+                              className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-sky-100 bg-sky-50 px-3 text-xs font-bold text-sky-700 transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-100 hover:shadow-sm"
+                              title="Lihat detail sekolah"
+                              aria-label="Lihat detail sekolah"
                             >
-                              <EditIcon />
+                              <DetailIcon />
+                              Detail
                             </button>
 
                             <button
                               type="button"
-                              onClick={() => handleDelete(school)}
+                              onClick={() => requestDelete(school)}
                               className="grid h-9 w-9 place-items-center rounded-xl border border-rose-100 bg-rose-50 text-rose-600 transition hover:-translate-y-0.5 hover:border-rose-200 hover:bg-rose-100 hover:shadow-sm"
                               title="Hapus sekolah"
                               aria-label="Hapus sekolah"
@@ -447,6 +516,19 @@ export default function AdminSchoolPage() {
           )}
         </section>
       </div>
+
+      {detailSchool && (
+        <SchoolDetailModal school={detailSchool} onClose={() => setDetailSchool(null)} />
+      )}
+
+      {deleteTarget && (
+        <DeleteConfirmModal
+          school={deleteTarget}
+          loading={deleting}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={confirmDelete}
+        />
+      )}
     </DashboardShell>
   );
 }

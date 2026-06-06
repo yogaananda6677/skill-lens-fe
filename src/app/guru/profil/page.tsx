@@ -17,7 +17,7 @@ export default function GuruProfilePage() {
     >
       <UserProfilePanel
         title="Profil Guru BK"
-        subtitle="Kelola informasi akun Guru BK dan keamanan password dengan OTP."
+        subtitle="Kelola informasi akun Guru BK dan keamanan password."
       />
     </DashboardShell>
   );

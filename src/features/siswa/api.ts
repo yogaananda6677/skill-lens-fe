@@ -389,7 +389,10 @@ export async function selectStudentRoadmap(roadmapId: number) {
 }
 
 export async function getActiveStudentRoadmap() {
-  const response = await apiFetch<any>("/roadmaps/student/active");
+  const response = await apiFetch<any>("/roadmaps/student/active", {
+    method: "GET",
+    alert: false,
+  });
   return normalizeActiveRoadmap(response);
 }
 

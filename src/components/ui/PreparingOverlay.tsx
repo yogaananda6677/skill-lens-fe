@@ -16,7 +16,7 @@ export function PreparingOverlay({
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-[120] grid place-items-center bg-slate-950/70 px-5 text-white backdrop-blur-md">
+    <div className="fixed inset-0 z-[120] grid place-items-center bg-slate-950/58 px-5 text-white backdrop-blur-[4px]">
       <div className="relative w-full max-w-sm overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.10] p-7 text-center shadow-2xl shadow-black/30">
         <div className="pointer-events-none absolute inset-0 skilllens-white-sheen opacity-70" />
         <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-cyan-300/30 blur-3xl" />

@@ -4,7 +4,7 @@ import { useEffect, type ReactNode } from "react";
 import { Onborda, OnbordaProvider, useOnborda } from "onborda";
 import { Icon } from "../../../components/ui/icons";
 import { StudentOnbordaCard } from "../../siswa/components/StudentOnbordaCard";
-import { GURU_ONBORDA_DONE_EVENT, GURU_ONBORDA_START_EVENT } from "./StartGuruOnbordaButton";
+import { GURU_ONBORDA_START_EVENT } from "./StartGuruOnbordaButton";
 
 export const GURU_ONBORDA_TOUR = "guru-bk-dashboard-tour";
 
@@ -26,7 +26,7 @@ const guruSteps = [
         icon: <Icon name="progress" className="h-5 w-5" />,
         title: "Pantau progress siswa",
         content: <p>Gunakan daftar siswa untuk melihat siapa yang belum isi data, belum generate roadmap, atau sudah punya progress roadmap.</p>,
-        selector: "#progress",
+        selector: "#dashboard-nav-progress",
         side: "right" as const,
         showControls: true,
         pointerPadding: 12,
@@ -36,7 +36,7 @@ const guruSteps = [
         icon: <Icon name="chart" className="h-5 w-5" />,
         title: "Akses dan kelola nilai murid",
         content: <p>Bagian Lihat Nilai memungkinkan Guru BK memilih siswa, melihat kategori nilai akademik, serta melihat nilai akademik siswa. Import dan perubahan nilai dilakukan oleh Admin Sekolah.</p>,
-        selector: "#nilai",
+        selector: "#dashboard-nav-nilai",
         side: "top" as const,
         showControls: true,
         pointerPadding: 12,
@@ -46,7 +46,7 @@ const guruSteps = [
         icon: <Icon name="guidance" className="h-5 w-5" />,
         title: "Tambahkan catatan bimbingan",
         content: <p>Di detail roadmap, Guru BK bisa menulis catatan pada setiap step agar siswa punya arahan tindak lanjut yang jelas.</p>,
-        selector: "#bimbingan",
+        selector: "#dashboard-nav-bimbingan",
         side: "left" as const,
         showControls: true,
         pointerPadding: 12,
@@ -55,7 +55,7 @@ const guruSteps = [
       {
         icon: <Icon name="profile" className="h-5 w-5" />,
         title: "Kelola profil dan password",
-        content: <p>Menu Profil berisi data diri Guru BK serta fitur ubah password dengan OTP.</p>,
+        content: <p>Menu Profil berisi data diri Guru BK serta fitur ubah password.</p>,
         selector: "#dashboard-nav-profil",
         side: "right" as const,
         showControls: true,
@@ -74,16 +74,10 @@ function GuruOnbordaAutoStart() {
       startOnborda(GURU_ONBORDA_TOUR);
     }
 
-    function handleDone() {
-      window.dispatchEvent(new CustomEvent(GURU_ONBORDA_DONE_EVENT));
-    }
-
     window.addEventListener(GURU_ONBORDA_START_EVENT, handleStart);
-    window.addEventListener(GURU_ONBORDA_DONE_EVENT, handleDone);
 
     return () => {
       window.removeEventListener(GURU_ONBORDA_START_EVENT, handleStart);
-      window.removeEventListener(GURU_ONBORDA_DONE_EVENT, handleDone);
     };
   }, [startOnborda]);
 

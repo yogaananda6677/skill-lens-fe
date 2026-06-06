@@ -87,7 +87,6 @@ export function AdminSchoolDashboard({
 
   return (
     <section className="overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60">
-      {/* Header putih dengan gradasi cyan tipis */}
       <div className="relative overflow-hidden border-b border-sky-100 bg-gradient-to-br from-white via-cyan-50/45 to-sky-50/70 px-6 py-7 text-slate-900">
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(14,165,233,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(14,165,233,0.04)_1px,transparent_1px)] bg-[size:34px_34px]" />
         <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-cyan-200/25 blur-3xl" />
@@ -123,7 +122,6 @@ export function AdminSchoolDashboard({
       </div>
 
       <div className="space-y-6 p-5 md:p-6">
-        {/* Status sekolah */}
         <div className="rounded-3xl border border-sky-100 bg-gradient-to-r from-sky-50 via-white to-blue-50 p-5 shadow-sm shadow-sky-100/50">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex gap-3">
@@ -156,7 +154,6 @@ export function AdminSchoolDashboard({
           </div>
         </div>
 
-        {/* Menu aksi */}
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           {cards.map((item) => {
             const locked = isLockedFeature(item.key);
@@ -222,7 +219,6 @@ export function AdminSchoolDashboard({
           })}
         </div>
 
-        {/* Ringkasan statistik */}
         <div className="grid gap-5 md:grid-cols-3">
           {[
             {

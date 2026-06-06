@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "../../../components/ui/icons";
+import { TableSkeleton } from "../../../components/ui/LoadingSkeleton";
 import { apiFetch } from "../../../lib/axios";
 import type { JurusanRow, SiswaRow } from "../types";
 
@@ -528,14 +529,7 @@ export function AdminSchoolDataNilai({
         </div>
 
         {isLoading ? (
-          <div className="grid min-h-[260px] place-items-center rounded-3xl border border-sky-100 bg-gradient-to-br from-white via-sky-50/70 to-blue-50/70 shadow-sm shadow-sky-100/60">
-            <div className="text-center">
-              <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-sky-100 border-t-sky-600" />
-              <p className="mt-3 text-sm font-semibold text-slate-500">
-                Memuat data siswa dan nilai...
-              </p>
-            </div>
-          </div>
+          <TableSkeleton rows={6} columns={7} />
         ) : (
           <section className="overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60">
             <div className="overflow-x-auto">

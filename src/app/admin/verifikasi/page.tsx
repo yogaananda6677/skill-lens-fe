@@ -9,7 +9,9 @@ import {
   getSchoolVerifications,
   type VerificationRow,
 } from "@/features/admin/api";
+import { AdminFullScreenModal } from "@/components/ui/AdminFullScreenModal";
 import { Icon } from "@/components/ui/icons";
+import { CardGridSkeleton, TableSkeleton } from "@/components/ui/LoadingSkeleton";
 
 type VerificationId = VerificationRow["id"];
 
@@ -108,7 +110,7 @@ export default function AdminVerifikasiPage() {
     try {
       setLoading(true);
       const data = await getSchoolVerifications();
-      setRows(data);
+      setRows(data.filter((item) => item.status !== "approved"));
       setError("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal mengambil verifikasi");
@@ -120,11 +122,6 @@ export default function AdminVerifikasiPage() {
   useEffect(() => {
     refresh();
   }, []);
-
-  const approvedCount = useMemo(
-    () => rows.filter((item) => item.status === "approved").length,
-    [rows],
-  );
 
   const pendingCount = useMemo(
     () => rows.filter((item) => item.status === "pending").length,
@@ -248,32 +245,40 @@ export default function AdminVerifikasiPage() {
       schoolName="Platform SkillLens"
     >
       <div className="space-y-6">
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            title="Total Pengajuan"
-            value={loading ? "..." : rows.length}
-            desc="Data sekolah dari endpoint admin"
-            icon="school"
-          />
-          <StatCard
-            title="Menunggu"
-            value={loading ? "..." : pendingCount}
-            desc="Pengajuan perlu diverifikasi"
-            icon="clock"
-          />
-          <StatCard
-            title="Terverifikasi"
-            value={loading ? "..." : approvedCount}
-            desc="Sekolah sudah disetujui"
-            icon="verify"
-          />
-          <StatCard
-            title="Ditolak"
-            value={loading ? "..." : rejectedCount}
-            desc="Pengajuan dikembalikan dengan alasan"
-            icon="x"
-          />
-        </div>
+        {loading ? (
+          <CardGridSkeleton count={3} />
+        ) : (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+            <StatCard title="Total Antrean" value={rows.length} desc="Hanya pengajuan yang belum terverifikasi" icon="school" />
+            <StatCard title="Menunggu" value={pendingCount} desc="Pengajuan perlu ditinjau admin" icon="clock" />
+            <StatCard title="Ditolak" value={rejectedCount} desc="Pengajuan dikembalikan dengan alasan" icon="x" />
+          </div>
+        )}
+
+        {!loading && pendingCount > 0 && (
+          <div className="rounded-3xl border border-sky-100 bg-gradient-to-r from-sky-50 via-white to-blue-50 p-5 shadow-sm shadow-sky-100/60">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="relative grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200">
+                  <Icon name="clipboard" className="h-5 w-5" />
+                  <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-sky-600 px-1 text-[10px] font-black text-white ring-2 ring-white">
+                    {pendingCount}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-950">Ada pengajuan sekolah baru</h3>
+                  <p className="mt-1 text-sm font-medium leading-6 text-slate-500">
+                    {rows.filter((item) => item.status === "pending").slice(0, 3).map((item) => item.school).join(", ")}
+                    {pendingCount > 3 ? ` +${pendingCount - 3} lainnya` : ""}
+                  </p>
+                </div>
+              </div>
+              <span className="rounded-2xl bg-sky-100 px-4 py-2 text-xs font-black uppercase tracking-wide text-sky-700 ring-1 ring-sky-200">
+                Perlu persetujuan
+              </span>
+            </div>
+          </div>
+        )}
 
         {message && (
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 shadow-sm">
@@ -297,8 +302,8 @@ export default function AdminVerifikasiPage() {
                   Data Pengajuan Sekolah
                 </h2>
                 <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-slate-500">
-                  Setiap baris diambil dari tabel sekolah lewat NestJS. Tombol detail
-                  dipakai untuk meninjau data sebelum sekolah diverifikasi.
+                  Halaman ini hanya menampilkan pengajuan yang belum terverifikasi. Tombol detail
+                  dipakai untuk meninjau data sebelum sekolah disetujui atau ditolak.
                 </p>
               </div>
 
@@ -339,11 +344,8 @@ export default function AdminVerifikasiPage() {
                 <tbody className="divide-y divide-slate-100">
                   {loading ? (
                     <tr>
-                      <td colSpan={7} className="px-5 py-12 text-center text-sm font-semibold text-slate-500">
-                        <div className="flex items-center justify-center gap-2">
-                          <div className="h-6 w-6 animate-spin rounded-full border-2 border-sky-600 border-t-transparent" />
-                          Memuat data verifikasi...
-                        </div>
+                      <td colSpan={7} className="px-5 py-5">
+                        <TableSkeleton rows={5} columns={7} />
                       </td>
                     </tr>
                   ) : filteredRows.length === 0 ? (
@@ -355,7 +357,7 @@ export default function AdminVerifikasiPage() {
                         <p className="mt-4 text-sm font-semibold text-slate-700">
                           {searchQuery
                             ? "Tidak ada pengajuan yang cocok."
-                            : "Tidak ada sekolah yang menunggu verifikasi."}
+                            : "Tidak ada pengajuan sekolah yang perlu diverifikasi."}
                         </p>
                       </td>
                     </tr>
@@ -455,167 +457,120 @@ export default function AdminVerifikasiPage() {
       </div>
 
       {showModal && selectedSchool && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/30 p-4">
-          <div className="w-full max-w-2xl overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-2xl shadow-slate-950/20">
-            <div className="relative overflow-hidden bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-6 py-5 text-white">
-              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:32px_32px]" />
-              <div className="relative flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-black tracking-tight">Detail Sekolah</h2>
-                  <p className="mt-1 text-sm font-medium text-sky-100/90">
-                    Lengkapi verifikasi jika data sekolah sudah sesuai.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="grid h-9 w-9 place-items-center rounded-2xl bg-white/10 text-white transition hover:bg-white/20"
-                  aria-label="Tutup modal"
-                >
-                  <Icon name="x" className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-4 p-6">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                  <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">
-                    Nama Sekolah
-                  </label>
-                  <p className="mt-2 text-sm font-bold text-slate-900">
-                    {selectedSchool.school}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                  <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">
-                    Jenjang
-                  </label>
-                  <p className="mt-2 text-sm font-bold text-slate-900">
-                    {selectedSchool.level}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100 sm:col-span-2">
-                  <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">
-                    Alamat
-                  </label>
-                  <p className="mt-2 text-sm font-medium leading-6 text-slate-700">
-                    {selectedSchool.address}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                  <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">
-                    Kota
-                  </label>
-                  <p className="mt-2 text-sm font-bold text-slate-900">
-                    {selectedSchool.city}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                  <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">
-                    Status
-                  </label>
-                  <p className="mt-2">
-                    <StatusBadge status={selectedSchool.status} />
-                  </p>
-                </div>
-
-                {selectedPhone && (
-                  <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                    <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">
-                      No. Telepon
-                    </label>
-                    <p className="mt-2 text-sm font-bold text-slate-900">
-                      {selectedPhone}
-                    </p>
-                  </div>
-                )}
-
-                {selectedEmail && (
-                  <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                    <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">
-                      Email
-                    </label>
-                    <p className="mt-2 text-sm font-bold text-slate-900">
-                      {selectedEmail}
-                    </p>
-                  </div>
-                )}
-
-                {selectedNpsn && (
-                  <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-                    <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">
-                      NPSN
-                    </label>
-                    <p className="mt-2 text-sm font-bold text-slate-900">
-                      {selectedNpsn}
-                    </p>
-                  </div>
-                )}
-              </div>
+        <AdminFullScreenModal
+          eyebrow="Verifikasi Sekolah"
+          title="Detail Sekolah"
+          desc="Lengkapi verifikasi jika data sekolah sudah sesuai."
+          onClose={closeModal}
+          maxWidthClass="max-w-5xl"
+          zIndexClass="z-[80]"
+          footer={
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={closeModal}
+                className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+              >
+                Kembali
+              </button>
 
               {selectedSchool.status !== "approved" && (
-                <label className="block rounded-2xl bg-rose-50 p-4 ring-1 ring-rose-100">
-                  <span className="block text-xs font-extrabold uppercase tracking-wide text-rose-700">Alasan penolakan</span>
-                  <textarea
-                    value={rejectReason}
-                    onChange={(event) => setRejectReason(event.target.value)}
-                    placeholder="Tuliskan alasan jika pengajuan perlu ditolak..."
-                    className="mt-2 min-h-24 w-full rounded-xl border border-rose-100 bg-white px-3 py-2 text-sm font-semibold outline-none focus:border-rose-300 focus:ring-4 focus:ring-rose-50"
-                  />
-                </label>
+                <button
+                  type="button"
+                  onClick={() => handleReject(selectedSchool.id, selectedSchool.school)}
+                  disabled={processingId === selectedSchool.id}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-600 px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-rose-600/20 transition hover:-translate-y-0.5 disabled:opacity-60"
+                >
+                  <Icon name="x" className="h-4 w-4" />
+                  {processingId === selectedSchool.id ? "Memproses..." : "Tolak Pengajuan"}
+                </button>
               )}
 
-              {selectedSchool.rejection_reason && (
-                <div className="rounded-2xl bg-rose-50 p-4 text-sm font-semibold text-rose-700 ring-1 ring-rose-100">
-                  <p className="font-extrabold">Alasan penolakan sebelumnya</p>
-                  <p className="mt-1">{selectedSchool.rejection_reason}</p>
+              {selectedSchool.status !== "approved" && (
+                <button
+                  type="button"
+                  onClick={() => handleApprove(selectedSchool.id, selectedSchool.school)}
+                  disabled={processingId === selectedSchool.id}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-sky-600/20 transition hover:-translate-y-0.5 disabled:opacity-60"
+                >
+                  <Icon name="verify" className="h-4 w-4" />
+                  {processingId === selectedSchool.id ? "Memverifikasi..." : "Verifikasi Sekolah"}
+                </button>
+              )}
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+                <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">Nama Sekolah</label>
+                <p className="mt-2 text-sm font-bold text-slate-900">{selectedSchool.school}</p>
+              </div>
+
+              <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+                <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">Jenjang</label>
+                <p className="mt-2 text-sm font-bold text-slate-900">{selectedSchool.level}</p>
+              </div>
+
+              <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100 sm:col-span-2">
+                <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">Alamat</label>
+                <p className="mt-2 text-sm font-medium leading-6 text-slate-700">{selectedSchool.address}</p>
+              </div>
+
+              <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+                <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">Kota</label>
+                <p className="mt-2 text-sm font-bold text-slate-900">{selectedSchool.city}</p>
+              </div>
+
+              <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+                <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">Status</label>
+                <p className="mt-2"><StatusBadge status={selectedSchool.status} /></p>
+              </div>
+
+              {selectedPhone && (
+                <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+                  <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">No. Telepon</label>
+                  <p className="mt-2 text-sm font-bold text-slate-900">{selectedPhone}</p>
                 </div>
               )}
 
-              <div className="flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-5">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
-                >
-                  Kembali
-                </button>
+              {selectedEmail && (
+                <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+                  <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">Email</label>
+                  <p className="mt-2 text-sm font-bold text-slate-900">{selectedEmail}</p>
+                </div>
+              )}
 
-                {selectedSchool.status !== "approved" && (
-                  <button
-                    type="button"
-                    onClick={() => handleReject(selectedSchool.id, selectedSchool.school)}
-                    disabled={processingId === selectedSchool.id}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-rose-600 px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-rose-600/20 transition hover:-translate-y-0.5 disabled:opacity-60"
-                  >
-                    <Icon name="x" className="h-4 w-4" />
-                    {processingId === selectedSchool.id ? "Memproses..." : "Tolak Pengajuan"}
-                  </button>
-                )}
-
-                {selectedSchool.status !== "approved" && (
-                  <button
-                    type="button"
-                    onClick={() => handleApprove(selectedSchool.id, selectedSchool.school)}
-                    disabled={processingId === selectedSchool.id}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-sky-600/20 transition hover:-translate-y-0.5 disabled:opacity-60"
-                  >
-                    <Icon name="verify" className="h-4 w-4" />
-                    {processingId === selectedSchool.id
-                      ? "Memverifikasi..."
-                      : "Verifikasi Sekolah"}
-                  </button>
-                )}
-              </div>
+              {selectedNpsn && (
+                <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+                  <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">NPSN</label>
+                  <p className="mt-2 text-sm font-bold text-slate-900">{selectedNpsn}</p>
+                </div>
+              )}
             </div>
+
+            {selectedSchool.status !== "approved" && (
+              <label className="block rounded-2xl bg-rose-50 p-4 ring-1 ring-rose-100">
+                <span className="block text-xs font-extrabold uppercase tracking-wide text-rose-700">Alasan penolakan</span>
+                <textarea
+                  value={rejectReason}
+                  onChange={(event) => setRejectReason(event.target.value)}
+                  placeholder="Tuliskan alasan jika pengajuan perlu ditolak..."
+                  className="mt-2 min-h-28 w-full rounded-xl border border-rose-100 bg-white px-3 py-2 text-sm font-semibold outline-none focus:border-rose-300 focus:ring-4 focus:ring-rose-50"
+                />
+              </label>
+            )}
+
+            {selectedSchool.rejection_reason && (
+              <div className="rounded-2xl bg-rose-50 p-4 text-sm font-semibold text-rose-700 ring-1 ring-rose-100">
+                <p className="font-extrabold">Alasan penolakan sebelumnya</p>
+                <p className="mt-1">{selectedSchool.rejection_reason}</p>
+              </div>
+            )}
           </div>
-        </div>
+        </AdminFullScreenModal>
       )}
+
     </DashboardShell>
   );
 }

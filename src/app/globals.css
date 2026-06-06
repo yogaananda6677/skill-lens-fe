@@ -314,7 +314,7 @@ textarea::placeholder {
   filter: saturate(1.08);
 }
 
-/* V15: siswa UI dibuat lebih ringan, tidak berat/alay, dan transisi dibuat natural. */
+/* Motion tokens */
 :root {
   --skilllens-ease: cubic-bezier(.2,.8,.2,1);
 }
@@ -455,4 +455,28 @@ body {
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.76), transparent);
   filter: blur(0.5px);
   animation: skilllensWhiteSheen 2.35s ease-in-out infinite;
+}
+
+@keyframes skilllens-skeleton-wave {
+  0% { background-position: 180% 0; }
+  100% { background-position: -180% 0; }
+}
+
+.skilllens-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(226, 232, 240, 0.82) 0%,
+    rgba(241, 245, 249, 0.92) 28%,
+    rgba(203, 213, 225, 0.72) 48%,
+    rgba(241, 245, 249, 0.92) 66%,
+    rgba(226, 232, 240, 0.82) 100%
+  );
+  background-size: 220% 100%;
+  animation: skilllens-skeleton-wave 1.55s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skilllens-skeleton {
+    animation: none;
+  }
 }

@@ -8,6 +8,7 @@ import { superadminNav as navItems } from "@/config/navigation";
 import { getStoredUser, redirectPathByRole } from "@/lib/auth";
 import { getAdmins, AdminUser } from "@/features/superadmin/api";
 import { Icon } from "@/components/ui/icons";
+import { CardGridSkeleton, ListSkeleton } from "@/components/ui/LoadingSkeleton";
 
 function StatCard({
   title,
@@ -125,20 +126,24 @@ export default function SuperadminDashboard() {
       schoolName="Platform SkillLens"
     >
       <div className="space-y-7">
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <StatCard
-            title="SkillLens Admin"
-            value={loading ? "..." : totalSkilllensAdmin}
-            desc="Administrator platform SkillLens"
-            icon="users"
-          />
-          <StatCard
-            title="Admin Sekolah"
-            value={loading ? "..." : totalSekolahAdmin}
-            desc="Administrator yang mengelola sekolah"
-            icon="school"
-          />
-        </div>
+        {loading ? (
+          <CardGridSkeleton count={2} />
+        ) : (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <StatCard
+              title="SkillLens Admin"
+              value={totalSkilllensAdmin}
+              desc="Administrator platform SkillLens"
+              icon="users"
+            />
+            <StatCard
+              title="Admin Sekolah"
+              value={totalSekolahAdmin}
+              desc="Administrator yang mengelola sekolah"
+              icon="school"
+            />
+          </div>
+        )}
 
         <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
           <section className="overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60">
@@ -164,8 +169,8 @@ export default function SuperadminDashboard() {
             </div>
 
             {loading ? (
-              <div className="grid min-h-[290px] place-items-center px-5 py-12 text-sm font-semibold text-slate-500">
-                Memuat data admin...
+              <div className="p-5">
+                <ListSkeleton count={4} />
               </div>
             ) : paginatedAdmins.length === 0 ? (
               <div className="grid min-h-[290px] place-items-center px-5 py-12 text-center">

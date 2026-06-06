@@ -324,7 +324,6 @@ export function AdminSchoolJurusan({
           </div>
 
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
-            {/* input/select tetap */}
             {isSma ? (
               <select
                 value={jurusanName}
@@ -375,7 +374,6 @@ export function AdminSchoolJurusan({
           )}
         </form>
 
-        {/* Daftar jurusan */}
         <section className="overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60">
           <div className="flex flex-col gap-3 border-b border-sky-100 bg-gradient-to-r from-sky-50 via-white to-blue-50 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
             <div>

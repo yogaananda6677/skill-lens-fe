@@ -27,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="id" className="h-full scroll-smooth">
+    <html lang="id" data-scroll-behavior="smooth" className="h-full scroll-smooth">
       <body className={`${jakarta.variable} min-h-full flex flex-col antialiased`}>
         <AppAlertProvider>{children}</AppAlertProvider>
       </body>

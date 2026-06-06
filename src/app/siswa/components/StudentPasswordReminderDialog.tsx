@@ -123,7 +123,7 @@ export function StudentPasswordReminderDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-950/60 px-4 py-8 backdrop-blur-md">
+    <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-950/58 px-4 py-8 backdrop-blur-[4px]">
       <div className="relative w-full max-w-xl overflow-hidden rounded-[2rem] border border-white/20 bg-white shadow-2xl shadow-slate-950/30">
         <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-amber-300/30 blur-3xl" />
         <div className="absolute -bottom-24 left-0 h-64 w-64 rounded-full bg-blue-500/20 blur-3xl" />

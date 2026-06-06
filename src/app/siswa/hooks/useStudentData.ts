@@ -30,6 +30,21 @@ const emptyProfile: StudentProfileForm = {
   constraints: "",
 };
 
+
+function preserveStudentProfileDraft(loaded: StudentProfileForm, draft: StudentProfileForm) {
+  return {
+    ...loaded,
+    interests: draft.interests,
+    hobbies: draft.hobbies,
+    talents: draft.talents,
+    experiences: draft.experiences,
+    achievements: draft.achievements,
+    goal: draft.goal,
+    learningPreference: draft.learningPreference,
+    constraints: draft.constraints,
+  };
+}
+
 const FIRST_PREPARING_SESSION_KEY = "skilllens_student_preparing_seen";
 const MIN_FIRST_PREPARING_TIME = 800;
 
@@ -148,9 +163,11 @@ export function useStudentData() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [error, setError] = useState("");
 
-  async function loadStudent(options?: { force?: boolean; showPreparing?: boolean }) {
+  async function loadStudent(options?: { force?: boolean; showPreparing?: boolean; preserveProfile?: boolean; profileSnapshot?: StudentProfileForm }) {
     const force = Boolean(options?.force);
     const showPreparing = Boolean(options?.showPreparing);
+    const preserveProfile = Boolean(options?.preserveProfile);
+    const profileSnapshot = options?.profileSnapshot;
     const startedAt = Date.now();
     const cache = getCachedStudentForCurrentUser();
     const useDelay = showPreparing && !cache && shouldUsePreparingDelay();
@@ -164,9 +181,11 @@ export function useStudentData() {
       return cache;
     }
 
-    setStudentData(null);
-    setProfile(emptyProfile);
-    setPrestasiRows([]);
+    if (!preserveProfile) {
+      setStudentData(null);
+      setProfile(emptyProfile);
+      setPrestasiRows([]);
+    }
     setLoadingProfile(true);
     setError("");
 
@@ -175,7 +194,19 @@ export function useStudentData() {
       if (loaded.cacheKey !== getStudentCacheKey()) return null;
 
       setStudentData(loaded.data);
-      setProfile(loaded.profile);
+      setProfile((current) => {
+        const draft = profileSnapshot ?? current;
+        const nextProfile = preserveProfile
+          ? preserveStudentProfileDraft(loaded.profile, draft)
+          : loaded.profile;
+        const cache = getCachedStudentForCurrentUser();
+
+        if (cache) {
+          cachedStudent = { ...cache, profile: nextProfile, data: loaded.data, prestasiRows: loaded.prestasiRows };
+        }
+
+        return nextProfile;
+      });
       setPrestasiRows(loaded.prestasiRows);
       return loaded;
     } catch (err) {
@@ -264,6 +295,12 @@ export function useStudentData() {
     setError,
     updateProfile,
     markPasswordChanged,
-    reloadStudent: () => loadStudent({ force: true, showPreparing: false }),
+    reloadStudent: (options?: { preserveProfile?: boolean; profileSnapshot?: StudentProfileForm }) =>
+      loadStudent({
+        force: true,
+        showPreparing: false,
+        preserveProfile: Boolean(options?.preserveProfile),
+        profileSnapshot: options?.profileSnapshot,
+      }),
   };
 }

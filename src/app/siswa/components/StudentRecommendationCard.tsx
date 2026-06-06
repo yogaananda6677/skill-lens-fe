@@ -51,7 +51,6 @@ export function StudentRecommendationCard({
         }`}
       />
 
-      {/* HEADER CARD */}
       <div className="relative flex min-h-[76px] items-start justify-between gap-4 pr-2">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2 pr-2">
@@ -105,7 +104,6 @@ export function StudentRecommendationCard({
         </div>
       </div>
 
-      {/* RINGKASAN */}
       <p
         className={`relative mt-4 min-h-[168px] max-h-[168px] overflow-hidden text-sm leading-7 ${
           roadmapActive ? "text-sky-50/88" : "text-slate-600"
@@ -114,7 +112,6 @@ export function StudentRecommendationCard({
         {item.summary}
       </p>
 
-      {/* TAG / DOMINANT FACTORS */}
       <div className="relative mt-4 min-h-[34px]">
         {!!item.dominantFactors?.length && (
           <div className="flex max-h-[70px] flex-wrap gap-2 overflow-hidden">
@@ -134,7 +131,6 @@ export function StudentRecommendationCard({
         )}
       </div>
 
-      {/* FOOTER */}
       <div
         className={`relative mt-auto flex items-center justify-between gap-3 border-t pt-4 ${
           roadmapActive ? "border-white/10" : "border-slate-100"

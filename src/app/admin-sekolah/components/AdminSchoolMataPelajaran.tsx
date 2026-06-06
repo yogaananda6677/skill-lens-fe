@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../../lib/axios";
+import { ListSkeleton } from "../../../components/ui/LoadingSkeleton";
 import {
   InformationCircleIcon,
   MagnifyingGlassIcon,
@@ -637,12 +638,7 @@ export function AdminSchoolMataPelajaran({
             </div>
 
             {loading ? (
-              <div className="flex flex-col items-center justify-center rounded-3xl border border-sky-100 bg-gradient-to-br from-white via-sky-50/50 to-blue-50/50 py-14 shadow-sm">
-                <div className="h-10 w-10 animate-spin rounded-full border-4 border-sky-100 border-t-sky-600" />
-                <p className="mt-3 text-sm font-semibold text-slate-500">
-                  Memuat data mata pelajaran...
-                </p>
-              </div>
+              <ListSkeleton count={4} />
             ) : allFilteredMapel.length === 0 ? (
               <div className="rounded-3xl border border-dashed border-sky-200 bg-gradient-to-br from-white via-sky-50/50 to-blue-50/50 py-14 text-center">
                 <p className="text-sm font-semibold text-slate-500">
@@ -1026,7 +1022,7 @@ Kimia`}
         </div>
 
         {showDefaultMapelModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 px-4 py-6">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/58 px-4 py-6 backdrop-blur-[4px]">
             <div className="w-full max-w-5xl overflow-hidden rounded-[2rem] border border-sky-100 bg-white shadow-2xl shadow-slate-950/20">
               <div className="relative overflow-hidden border-b border-sky-100 bg-gradient-to-br from-white via-cyan-50/45 to-sky-50/70 px-6 py-5 text-slate-900">
                 <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(14,165,233,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(14,165,233,0.045)_1px,transparent_1px)] bg-[size:32px_32px]" />

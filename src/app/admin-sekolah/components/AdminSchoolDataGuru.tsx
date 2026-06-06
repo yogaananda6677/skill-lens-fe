@@ -1,5 +1,13 @@
+import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { Icon } from "../../../components/ui/icons";
+import { apiFetch } from "../../../lib/axios";
+import {
+  type AvailabilityResponse,
+  type AvailabilityStatus,
+  availabilityMessage,
+  getAvailabilityValue,
+} from "../../../lib/form-rules";
 import { jabatanOptions } from "../constants";
 import type { FieldErrors, TeacherForm, TeacherRow } from "../types";
 import {
@@ -7,6 +15,7 @@ import {
   StatusMessage,
   getInitials,
 } from "./AdminSchoolShared";
+
 
 function StatCard({
   title,
@@ -84,6 +93,84 @@ export function AdminSchoolDataGuru({
   const activeTeacherCount = teacherRows.filter(
     (teacher) => !teacher.status || teacher.status.toLowerCase() === "aktif",
   ).length;
+
+  const [emailStatus, setEmailStatus] = useState<AvailabilityStatus>("idle");
+  const [usernameStatus, setUsernameStatus] = useState<AvailabilityStatus>("idle");
+
+  const emailLocalError = teacherErrors.email;
+  const usernameLocalError = teacherErrors.username;
+
+  useEffect(() => {
+    const email = teacherForm.email.trim().toLowerCase();
+
+    if (!teacherModalOpen || !email || emailLocalError) {
+      setEmailStatus("idle");
+      return;
+    }
+
+    let alive = true;
+    const timeout = window.setTimeout(async () => {
+      setEmailStatus("checking");
+      try {
+        const result = await apiFetch<AvailabilityResponse>(`/auth/check-availability?email=${encodeURIComponent(email)}`, {
+          method: "GET",
+          alert: false,
+        });
+        if (!alive) return;
+        setEmailStatus(getAvailabilityValue(result, "email") ? "available" : "unavailable");
+      } catch {
+        if (alive) setEmailStatus("error");
+      }
+    }, 450);
+
+    return () => {
+      alive = false;
+      window.clearTimeout(timeout);
+    };
+  }, [emailLocalError, teacherForm.email, teacherModalOpen]);
+
+  useEffect(() => {
+    const username = teacherForm.username.trim().toLowerCase();
+
+    if (!teacherModalOpen || !username || usernameLocalError) {
+      setUsernameStatus("idle");
+      return;
+    }
+
+    let alive = true;
+    const timeout = window.setTimeout(async () => {
+      setUsernameStatus("checking");
+      try {
+        const result = await apiFetch<AvailabilityResponse>(`/auth/check-availability?username=${encodeURIComponent(username)}`, {
+          method: "GET",
+          alert: false,
+        });
+        if (!alive) return;
+        setUsernameStatus(getAvailabilityValue(result, "username") ? "available" : "unavailable");
+      } catch {
+        if (alive) setUsernameStatus("error");
+      }
+    }, 450);
+
+    return () => {
+      alive = false;
+      window.clearTimeout(timeout);
+    };
+  }, [teacherForm.username, teacherModalOpen, usernameLocalError]);
+
+  const emailHint = useMemo(() => availabilityMessage(emailStatus, "email"), [emailStatus]);
+  const usernameHint = useMemo(() => availabilityMessage(usernameStatus, "username"), [usernameStatus]);
+  const isCheckingIdentity = emailStatus === "checking" || usernameStatus === "checking";
+  const isIdentityUnavailable = emailStatus === "unavailable" || usernameStatus === "unavailable";
+
+  function handleSubmitTeacher(event: FormEvent<HTMLFormElement>) {
+    if (isCheckingIdentity || isIdentityUnavailable) {
+      event.preventDefault();
+      return;
+    }
+
+    onSubmitTeacher(event);
+  }
 
   return (
     <section className="overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60">
@@ -277,9 +364,9 @@ export function AdminSchoolDataGuru({
       </div>
 
       {teacherModalOpen && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/30 px-4 py-6">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/58 px-4 py-6 backdrop-blur-[4px]">
           <form
-            onSubmit={onSubmitTeacher}
+            onSubmit={handleSubmitTeacher}
             className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-sky-100 bg-white shadow-2xl shadow-slate-950/20"
           >
             <div className="relative overflow-hidden border-b border-sky-100 bg-gradient-to-br from-white via-cyan-50/50 to-sky-50/70 px-6 py-5 text-slate-900">
@@ -321,7 +408,7 @@ export function AdminSchoolDataGuru({
                   label="Nama guru"
                   value={teacherForm.nama}
                   placeholder="Contoh: Budi Santoso"
-                  error={teacherTouched ? teacherErrors.nama : undefined}
+                  error={teacherTouched || teacherForm.nama ? teacherErrors.nama : undefined}
                   onChange={(value) => onUpdateTeacher("nama", value)}
                 />
 
@@ -330,15 +417,25 @@ export function AdminSchoolDataGuru({
                   value={teacherForm.email}
                   placeholder="guru@email.com"
                   type="email"
-                  error={teacherTouched ? teacherErrors.email : undefined}
+                  autoComplete="email"
+                  maxLength={120}
+                  error={teacherTouched || teacherForm.email ? teacherErrors.email || emailHint.error : undefined}
+                  success={!teacherErrors.email ? emailHint.success : undefined}
+                  loading={!teacherErrors.email ? emailHint.loading : undefined}
+                  helper="Email digunakan guru untuk login dan pemulihan akun."
                   onChange={(value) => onUpdateTeacher("email", value)}
                 />
 
                 <Field
                   label="Username"
                   value={teacherForm.username}
-                  placeholder="budi123"
-                  error={teacherTouched ? teacherErrors.username : undefined}
+                  placeholder="otomatis dari nama dan NIP"
+                  maxLength={24}
+                  autoComplete="username"
+                  error={teacherTouched || teacherForm.username ? teacherErrors.username || usernameHint.error : undefined}
+                  success={!teacherErrors.username ? usernameHint.success : undefined}
+                  loading={!teacherErrors.username ? usernameHint.loading : undefined}
+                  helper="Dibuat otomatis dari nama dan NIP/NUPTK, tetapi tetap bisa diedit."
                   onChange={(value) => onUpdateTeacher("username", value)}
                 />
 
@@ -346,7 +443,10 @@ export function AdminSchoolDataGuru({
                   label="NIP/NUPTK"
                   value={teacherForm.nip}
                   placeholder="1234567890"
-                  error={teacherTouched ? teacherErrors.nip : undefined}
+                  inputMode="numeric"
+                  maxLength={40}
+                  error={teacherTouched || teacherForm.nip ? teacherErrors.nip : undefined}
+                  helper="Hanya angka. Password awal guru otomatis sama dengan NIP/NUPTK."
                   onChange={(value) => onUpdateTeacher("nip", value)}
                 />
 
@@ -354,7 +454,11 @@ export function AdminSchoolDataGuru({
                   label="No HP"
                   value={teacherForm.no_hp}
                   placeholder="081234567890"
-                  error={teacherTouched ? teacherErrors.no_hp : undefined}
+                  type="tel"
+                  inputMode="tel"
+                  maxLength={16}
+                  error={teacherTouched || teacherForm.no_hp ? teacherErrors.no_hp : undefined}
+                  helper="Boleh diawali 08, 62, atau +62."
                   onChange={(value) => onUpdateTeacher("no_hp", value)}
                 />
 
@@ -398,7 +502,7 @@ export function AdminSchoolDataGuru({
 
                 <button
                   type="submit"
-                  disabled={loadingTeacher}
+                  disabled={loadingTeacher || isCheckingIdentity || isIdentityUnavailable}
                   className="rounded-2xl bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-sky-600/20 transition hover:-translate-y-0.5 disabled:opacity-50"
                 >
                   {loadingTeacher ? "Menyimpan..." : "Simpan Guru"}

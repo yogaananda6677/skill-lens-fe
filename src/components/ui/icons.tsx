@@ -47,7 +47,8 @@ export type IconName =
   | "search"
   | "calendar"
   | "arrowLeft"
-  | "download";
+  | "download"
+  | "bell";
 
 type Props = SVGProps<SVGSVGElement> & {
   name: IconName | string;
@@ -84,6 +85,8 @@ export function Icon({ name, className = "h-5 w-5", ...props }: Props) {
       return <svg {...common}><path d="M12 16V5"/><path d="m8 9 4-4 4 4"/><path d="M4 17v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/></svg>;
     case "download":
       return <svg {...common}><path d="M12 5v11"/><path d="m8 12 4 4 4-4"/><path d="M4 19h16"/></svg>;
+    case "bell":
+      return <svg {...common}><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>;
     case "users":
       return <svg {...common}><path d="M16 21v-1.5a4.5 4.5 0 0 0-4.5-4.5h-3A4.5 4.5 0 0 0 4 19.5V21"/><circle cx="10" cy="8" r="3"/><path d="M17 11a3 3 0 1 0 0-6"/><path d="M20 21v-1a4 4 0 0 0-2.5-3.7"/></svg>;
     case "guidance":

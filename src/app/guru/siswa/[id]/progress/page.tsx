@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 
 import { DashboardShell } from "../../../../../components/layout/DashboardShell";
 import { Icon } from "../../../../../components/ui/icons";
+import { ListSkeleton, PageSkeleton } from "../../../../../components/ui/LoadingSkeleton";
 import { guruNav } from "../../../../../config/navigation";
 import { getGuidanceCases, type GuidanceCase } from "../../../../../features/guru/api";
 import { notifyAppAlert } from "../../../../../lib/app-alert-events";
@@ -230,7 +231,7 @@ export default function GuruStudentProgressDetailPage() {
         )}
 
         {loading ? (
-          <div className="rounded-[2rem] bg-white p-10 text-center text-sm font-bold text-slate-500 ring-1 ring-slate-100">Memuat detail siswa...</div>
+          <PageSkeleton title stats={false} />
         ) : !selected ? (
           <div className="rounded-[2rem] bg-white p-10 text-center text-sm font-bold text-slate-500 ring-1 ring-slate-100">Siswa tidak ditemukan.</div>
         ) : (
@@ -265,10 +266,10 @@ export default function GuruStudentProgressDetailPage() {
                   (selected.recommendations ?? []).slice(0, 3).map((item) => {
                     const chosen = Number(item.roadmapId || 0) === Number(selected.selectedRoadmapId || 0) || item.title === selected.selectedRoadmapTitle;
                     return (
-                      <article key={item.id} className={`rounded-3xl p-5 ring-1 ${chosen ? "bg-emerald-50 ring-emerald-200" : "bg-slate-50 ring-slate-100"}`}>
+                      <article key={item.id} className={`rounded-3xl p-5 ring-1 ${chosen ? "bg-sky-50 ring-sky-200" : "bg-slate-50 ring-slate-100"}`}>
                         <div className="flex items-center justify-between gap-2">
-                          <span className={`grid h-10 w-10 place-items-center rounded-full text-sm font-extrabold ${chosen ? "bg-emerald-600 text-white" : "bg-white text-slate-600 ring-1 ring-slate-100"}`}>#{item.rank}</span>
-                          {chosen && <span className="rounded-full bg-emerald-600 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wide text-white">Dipilih siswa</span>}
+                          <span className={`grid h-10 w-10 place-items-center rounded-full text-sm font-extrabold ${chosen ? "bg-sky-600 text-white" : "bg-white text-slate-600 ring-1 ring-slate-100"}`}>#{item.rank}</span>
+                          {chosen && <span className="rounded-full bg-sky-600 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wide text-white">Dipilih siswa</span>}
                         </div>
                         <h4 className="mt-4 text-lg font-extrabold text-slate-950">{item.title}</h4>
                         <p className="mt-1 text-xs font-bold text-slate-500">{item.category || "Rekomendasi"}</p>
@@ -286,7 +287,7 @@ export default function GuruStudentProgressDetailPage() {
 
             <section className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-xl shadow-slate-900/5">
               {loadingRoadmap ? (
-                <div className="rounded-3xl bg-slate-50 p-8 text-center text-sm font-bold text-slate-500">Memuat roadmap siswa...</div>
+                <ListSkeleton count={4} />
               ) : !roadmap ? (
                 <div className="rounded-3xl bg-slate-50 p-8 text-center text-sm font-bold text-slate-500">Roadmap siswa belum tersedia atau belum dipilih.</div>
               ) : (

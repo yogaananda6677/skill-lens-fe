@@ -1,12 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type React from "react";
 
 import { notifyAppAlert } from "../../lib/app-alert-events";
 import { apiFetch } from "../../lib/axios";
 import { persistAuth, type AuthRole } from "../../lib/auth";
+import {
+  type AvailabilityResponse,
+  type AvailabilityStatus,
+  availabilityMessage,
+  cleanPhoneInput,
+  getAvailabilityValue,
+  getPasswordChecks,
+  getPasswordStrength,
+  normalizePhone,
+  validateEmail,
+  validateName,
+  validatePhone,
+  validateUsername,
+} from "../../lib/form-rules";
 import { Icon } from "../ui/icons";
+import { FormSkeleton } from "../ui/LoadingSkeleton";
 
 type ProfileUser = {
   id?: number;
@@ -33,9 +48,8 @@ type ProfileForm = {
   no_hp: string;
 };
 
-type PasswordOtpForm = {
+type PasswordForm = {
   current_password: string;
-  otp: string;
   new_password: string;
   confirm_password: string;
 };
@@ -47,9 +61,8 @@ const emptyProfile: ProfileForm = {
   no_hp: "",
 };
 
-const emptyPassword: PasswordOtpForm = {
+const emptyPassword: PasswordForm = {
   current_password: "",
-  otp: "",
   new_password: "",
   confirm_password: "",
 };
@@ -63,11 +76,16 @@ const sectionHeaderClass =
 const primaryButtonClass =
   "inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-sky-600/20 transition hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50";
 
-const secondaryButtonClass =
-  "inline-flex items-center justify-center gap-2 rounded-2xl border border-sky-100 bg-sky-50 px-5 py-3 text-sm font-extrabold text-sky-700 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50";
-
 const inputClass =
   "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition placeholder:text-slate-400 hover:border-sky-200 focus:border-sky-300 focus:bg-white focus:ring-4 focus:ring-sky-50";
+
+
+function FieldMessage({ error, success, loading }: { error?: string; success?: string; loading?: string }) {
+  if (loading) return <p className="mt-2 text-xs font-bold text-sky-600">{loading}</p>;
+  if (error) return <p className="mt-2 text-xs font-bold text-rose-600">{error}</p>;
+  if (success) return <p className="mt-2 text-xs font-bold text-emerald-600">{success}</p>;
+  return null;
+}
 
 function roleLabel(role?: string) {
   if (role === "admin") return "Admin Platform";
@@ -87,10 +105,6 @@ function initials(name: string) {
       .map((word) => word[0]?.toUpperCase())
       .join("") || "SL"
   );
-}
-
-function cleanPhone(value: string) {
-  return value.replace(/[^\d+]/g, "");
 }
 
 function InfoItem({ label, value }: { label: string; value: string }) {
@@ -152,12 +166,19 @@ export function UserProfilePanel({
   const [user, setUser] = useState<ProfileUser | null>(null);
   const [profileForm, setProfileForm] = useState<ProfileForm>(emptyProfile);
   const [passwordForm, setPasswordForm] =
-    useState<PasswordOtpForm>(emptyPassword);
+    useState<PasswordForm>(emptyPassword);
 
   const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
-  const [sendingOtp, setSendingOtp] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<AvailabilityStatus>("idle");
+  const [usernameStatus, setUsernameStatus] = useState<AvailabilityStatus>("idle");
+  const [touched, setTouched] = useState<Record<keyof ProfileForm, boolean>>({
+    nama: false,
+    email: false,
+    username: false,
+    no_hp: false,
+  });
 
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -198,47 +219,125 @@ export function UserProfilePanel({
   }, []);
 
   function updateProfile(key: keyof ProfileForm, value: string) {
-    setProfileForm((current) => ({
-      ...current,
-      [key]:
-        key === "email" || key === "username" ? value.toLowerCase() : value,
-    }));
+    let nextValue = value;
+    if (key === "email" || key === "username") nextValue = value.trim().toLowerCase();
+    if (key === "no_hp") nextValue = cleanPhoneInput(value);
+
+    setTouched((current) => ({ ...current, [key]: true }));
+    setProfileForm((current) => ({ ...current, [key]: nextValue }));
   }
 
-  function updatePassword(key: keyof PasswordOtpForm, value: string) {
-    setPasswordForm((current) => ({
-      ...current,
-      [key]: key === "otp" ? value.replace(/\D/g, "").slice(0, 6) : value,
-    }));
+  function updatePassword(key: keyof PasswordForm, value: string) {
+    setPasswordForm((current) => ({ ...current, [key]: value }));
+  }
+
+  const profileErrors = useMemo(() => ({
+    nama: validateName(profileForm.nama),
+    email: validateEmail(profileForm.email),
+    username: validateUsername(profileForm.username),
+    no_hp: validatePhone(profileForm.no_hp),
+  }), [profileForm.email, profileForm.nama, profileForm.no_hp, profileForm.username]);
+
+  const passwordChecks = useMemo(
+    () => getPasswordChecks(passwordForm.new_password, {
+      username: profileForm.username,
+      email: profileForm.email,
+      name: profileForm.nama,
+    }),
+    [passwordForm.new_password, profileForm.email, profileForm.nama, profileForm.username],
+  );
+  const passwordScore = passwordChecks.filter((item) => item.valid).length;
+  const passwordStrength = getPasswordStrength(passwordScore, passwordChecks.length);
+  const passwordReady = passwordChecks.every((item) => item.valid);
+
+  useEffect(() => {
+    const emailClean = profileForm.email.trim().toLowerCase();
+    const currentEmail = user?.email?.trim().toLowerCase() || "";
+
+    if (!emailClean || profileErrors.email || emailClean === currentEmail) {
+      setEmailStatus("idle");
+      return;
+    }
+
+    let alive = true;
+    const timeout = window.setTimeout(async () => {
+      setEmailStatus("checking");
+      try {
+        const result = await apiFetch<AvailabilityResponse>(`/auth/check-availability?email=${encodeURIComponent(emailClean)}`, {
+          method: "GET",
+          alert: false,
+        });
+        if (!alive) return;
+        setEmailStatus(getAvailabilityValue(result, "email") ? "available" : "unavailable");
+      } catch {
+        if (alive) setEmailStatus("error");
+      }
+    }, 450);
+
+    return () => {
+      alive = false;
+      window.clearTimeout(timeout);
+    };
+  }, [profileForm.email, profileErrors.email, user?.email]);
+
+  useEffect(() => {
+    const usernameClean = profileForm.username.trim().toLowerCase();
+    const currentUsername = user?.username?.trim().toLowerCase() || "";
+
+    if (!usernameClean || profileErrors.username || usernameClean === currentUsername) {
+      setUsernameStatus("idle");
+      return;
+    }
+
+    let alive = true;
+    const timeout = window.setTimeout(async () => {
+      setUsernameStatus("checking");
+      try {
+        const result = await apiFetch<AvailabilityResponse>(`/auth/check-availability?username=${encodeURIComponent(usernameClean)}`, {
+          method: "GET",
+          alert: false,
+        });
+        if (!alive) return;
+        setUsernameStatus(getAvailabilityValue(result, "username") ? "available" : "unavailable");
+      } catch {
+        if (alive) setUsernameStatus("error");
+      }
+    }, 450);
+
+    return () => {
+      alive = false;
+      window.clearTimeout(timeout);
+    };
+  }, [profileForm.username, profileErrors.username, user?.username]);
+
+  function emailMessage() {
+    if (touched.email && profileErrors.email) return { error: profileErrors.email };
+    return availabilityMessage(emailStatus, "email");
+  }
+
+  function usernameMessage() {
+    if (touched.username && profileErrors.username) return { error: profileErrors.username };
+    return availabilityMessage(usernameStatus, "username");
   }
 
   async function submitProfile(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!profileForm.nama.trim()) {
-      notifyAppAlert({
-        type: "error",
-        title: "Nama wajib diisi",
-        autoCloseMs: 2400,
-      });
+    setTouched({ nama: true, email: true, username: true, no_hp: true });
+
+    const firstError = Object.values(profileErrors).find(Boolean);
+    if (firstError) {
+      notifyAppAlert({ type: "error", title: "Periksa kembali data profil", description: String(firstError), autoCloseMs: 2600 });
       return;
     }
 
-    if (!profileForm.email.trim()) {
-      notifyAppAlert({
-        type: "error",
-        title: "Email wajib diisi",
-        autoCloseMs: 2400,
-      });
+    if (emailStatus === "checking" || usernameStatus === "checking") {
+      notifyAppAlert({ type: "error", title: "Tunggu pengecekan selesai", autoCloseMs: 2400 });
       return;
     }
 
-    if (!profileForm.username.trim()) {
-      notifyAppAlert({
-        type: "error",
-        title: "Username wajib diisi",
-        autoCloseMs: 2400,
-      });
+    if (emailStatus === "unavailable" || usernameStatus === "unavailable") {
+      notifyAppAlert({ type: "error", title: "Email atau username sudah digunakan", autoCloseMs: 2600 });
       return;
     }
 
@@ -256,7 +355,7 @@ export function UserProfilePanel({
           nama: profileForm.nama.trim(),
           email: profileForm.email.trim().toLowerCase(),
           username: profileForm.username.trim().toLowerCase(),
-          no_hp: cleanPhone(profileForm.no_hp.trim()),
+          no_hp: normalizePhone(profileForm.no_hp.trim()),
         }),
         successMessage: false,
         errorMessage: false,
@@ -309,51 +408,6 @@ export function UserProfilePanel({
     }
   }
 
-  async function requestOtp() {
-    if (!passwordForm.current_password) {
-      notifyAppAlert({
-        type: "error",
-        title: "Password lama wajib diisi",
-        description: "Isi password lama terlebih dahulu untuk meminta OTP.",
-        autoCloseMs: 2400,
-      });
-      return;
-    }
-
-    setSendingOtp(true);
-
-    try {
-      const result = await apiFetch<{
-        message?: string;
-        dev_otp?: string;
-        expires_in_minutes?: number;
-      }>("/auth/request-password-otp", {
-        method: "POST",
-        body: JSON.stringify({
-          current_password: passwordForm.current_password,
-        }),
-        successMessage: false,
-        errorMessage: false,
-      });
-
-      notifyAppAlert({
-        type: "success",
-        title: "Kode OTP telah dikirim",
-        description: result.message || "Silakan cek email Anda.",
-        autoCloseMs: 2600,
-      });
-    } catch (err) {
-      notifyAppAlert({
-        type: "error",
-        title: "Gagal meminta OTP",
-        description: err instanceof Error ? err.message : "Gagal meminta OTP.",
-        autoCloseMs: false,
-      });
-    } finally {
-      setSendingOtp(false);
-    }
-  }
-
   async function submitPassword(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -366,20 +420,12 @@ export function UserProfilePanel({
       return;
     }
 
-    if (!passwordForm.otp || passwordForm.otp.length !== 6) {
+    if (!passwordReady) {
       notifyAppAlert({
         type: "error",
-        title: "Kode OTP wajib diisi 6 digit",
-        autoCloseMs: 2400,
-      });
-      return;
-    }
-
-    if (passwordForm.new_password.length < 8) {
-      notifyAppAlert({
-        type: "error",
-        title: "Password baru minimal 8 karakter",
-        autoCloseMs: 2400,
+        title: "Password baru belum memenuhi syarat",
+        description: "Lengkapi semua indikator keamanan password.",
+        autoCloseMs: 2600,
       });
       return;
     }
@@ -396,8 +442,8 @@ export function UserProfilePanel({
     setSavingPassword(true);
 
     try {
-      const result = await apiFetch<{ message?: string }>(
-        "/auth/change-password-with-otp",
+      const result = await apiFetch<{ message?: string; token?: string; user?: ProfileUser }>(
+        "/auth/change-default-password",
         {
           method: "POST",
           body: JSON.stringify(passwordForm),
@@ -411,10 +457,27 @@ export function UserProfilePanel({
       setShowNewPassword(false);
       setShowConfirmPassword(false);
 
+      if (result.token && result.user?.role) {
+        persistAuth(
+          result.token,
+          {
+            id: result.user.id || result.user.id_user || user?.id || user?.id_user || 0,
+            nama: result.user.nama || user?.nama || "Pengguna",
+            email: result.user.email || user?.email,
+            username: result.user.username || user?.username || "",
+            role: result.user.role,
+            id_sekolah: result.user.id_sekolah ?? user?.id_sekolah ?? null,
+            must_change_password: false,
+          },
+          localStorage.getItem("skilllens_remember") === "true",
+        );
+        setUser((current) => current ? { ...current, must_change_password: false } : current);
+      }
+
       notifyAppAlert({
         type: "success",
         title: "Password berhasil diperbarui",
-        description: result.message || "Password berhasil diperbarui dengan OTP.",
+        description: result.message || "Password berhasil diperbarui.",
         autoCloseMs: 2600,
       });
     } catch (err) {
@@ -431,16 +494,7 @@ export function UserProfilePanel({
   }
 
   if (loading) {
-    return (
-      <div className="grid min-h-[360px] place-items-center rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60">
-        <div className="text-center">
-          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-sky-600 border-t-transparent" />
-          <p className="mt-3 text-sm font-semibold text-slate-500">
-            Memuat profil...
-          </p>
-        </div>
-      </div>
-    );
+    return <FormSkeleton />;
   }
 
   return (
@@ -509,8 +563,12 @@ export function UserProfilePanel({
                   <input
                     value={profileForm.nama}
                     onChange={(event) => updateProfile("nama", event.target.value)}
+                    onBlur={() => setTouched((current) => ({ ...current, nama: true }))}
+                    minLength={3}
+                    maxLength={80}
                     className={inputClass}
                   />
+                  <FieldMessage error={touched.nama ? profileErrors.nama : ""} />
                 </label>
 
                 <label className="block">
@@ -520,8 +578,12 @@ export function UserProfilePanel({
                   <input
                     value={profileForm.username}
                     onChange={(event) => updateProfile("username", event.target.value)}
+                    onBlur={() => setTouched((current) => ({ ...current, username: true }))}
+                    minLength={5}
+                    maxLength={24}
                     className={inputClass}
                   />
+                  <FieldMessage {...usernameMessage()} />
                 </label>
 
                 <label className="block">
@@ -532,8 +594,12 @@ export function UserProfilePanel({
                     type="email"
                     value={profileForm.email}
                     onChange={(event) => updateProfile("email", event.target.value)}
+                    onBlur={() => setTouched((current) => ({ ...current, email: true }))}
+                    autoComplete="email"
+                    maxLength={120}
                     className={inputClass}
                   />
+                  <FieldMessage {...emailMessage()} />
                 </label>
 
                 <label className="block">
@@ -541,15 +607,20 @@ export function UserProfilePanel({
                     Nomor HP
                   </span>
                   <input
+                    type="tel"
+                    inputMode="numeric"
                     value={profileForm.no_hp}
                     onChange={(event) => updateProfile("no_hp", event.target.value)}
+                    onBlur={() => setTouched((current) => ({ ...current, no_hp: true }))}
+                    placeholder="Contoh: 081234567890"
                     className={inputClass}
                   />
+                  <FieldMessage error={touched.no_hp ? profileErrors.no_hp : ""} />
                 </label>
               </div>
 
               <div className="mt-6 flex justify-end">
-                <button type="submit" disabled={savingProfile} className={primaryButtonClass}>
+                <button type="submit" disabled={savingProfile || emailStatus === "checking" || usernameStatus === "checking" || emailStatus === "unavailable" || usernameStatus === "unavailable"} className={primaryButtonClass}>
                   <Icon name="check" className="h-4 w-4" />
                   {savingProfile ? "Menyimpan..." : "Simpan Profil"}
                 </button>
@@ -565,7 +636,7 @@ export function UserProfilePanel({
                 </div>
                 <div>
                   <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-sky-600">
-                    Keamanan OTP
+                    Keamanan Akun
                   </p>
                   <h3 className="text-xl font-black tracking-tight text-slate-900">
                     Ubah Password
@@ -584,25 +655,6 @@ export function UserProfilePanel({
                   onChange={(value) => updatePassword("current_password", value)}
                 />
 
-                <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-                  <label className="block">
-                    <span className="mb-1.5 block text-sm font-bold text-slate-700">
-                      Kode OTP
-                    </span>
-                    <input
-                      value={passwordForm.otp}
-                      onChange={(event) => updatePassword("otp", event.target.value)}
-                      placeholder="6 digit"
-                      className={`${inputClass} font-black tracking-[0.3em] placeholder:tracking-normal`}
-                    />
-                  </label>
-
-                  <button type="button" disabled={sendingOtp} onClick={requestOtp} className={secondaryButtonClass}>
-                    <Icon name="mail" className="h-4 w-4" />
-                    {sendingOtp ? "Mengirim OTP..." : "Kirim OTP"}
-                  </button>
-                </div>
-
                 <div className="grid gap-4 md:grid-cols-2">
                   <PasswordInput
                     label="Password baru"
@@ -619,6 +671,24 @@ export function UserProfilePanel({
                     onToggle={() => setShowConfirmPassword((current) => !current)}
                     onChange={(value) => updatePassword("confirm_password", value)}
                   />
+                </div>
+
+                <div className="rounded-3xl border border-slate-100 bg-slate-50 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-black text-slate-800">Kekuatan password</p>
+                    <p className={`text-xs font-black ${passwordStrength.text}`}>{passwordStrength.label}</p>
+                  </div>
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-white ring-1 ring-slate-100">
+                    <div className={`h-full rounded-full transition-all duration-500 ${passwordStrength.bar}`} style={{ width: `${Math.max(10, Math.round((passwordScore / passwordChecks.length) * 100))}%` }} />
+                  </div>
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    {passwordChecks.map((item) => (
+                      <div key={item.label} className={`flex items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold transition ${item.valid ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100" : "bg-white text-slate-500 ring-1 ring-slate-100"}`}>
+                        <Icon name={item.valid ? "check" : "x"} className="h-3.5 w-3.5" />
+                        {item.label}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 

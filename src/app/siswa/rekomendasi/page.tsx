@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { useAppAlert } from "../../../components/ui/AppAlertProvider";
 import { Icon } from "../../../components/ui/icons";
+import { CardGridSkeleton } from "../../../components/ui/LoadingSkeleton";
 import {
   getActiveStudentRoadmap,
   getLatestSiswaSpk,
@@ -18,7 +19,7 @@ import { StudentRecommendationPanel } from "../components/StudentRecommendationP
 import { useStudentData } from "../hooks/useStudentData";
 import { buildStudentPayload } from "../utils/buildStudentPayload";
 
-const MIN_RECOMMENDATION_LOADING_MS = 1300;
+const MIN_RECOMMENDATION_LOADING_MS = 1800;
 
 function wait(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -34,37 +35,42 @@ function getRecommendationRoadmapId(item: Recommendation | null) {
 function RecommendationLoadingOverlay({
   open,
   autoMode,
+  progress,
+  stageLabel,
 }: {
   open: boolean;
   autoMode?: boolean;
+  progress: number;
+  stageLabel: string;
 }) {
   if (!open) return null;
 
+  const safeProgress = Math.min(100, Math.max(0, Math.round(progress)));
   const steps = [
+    {
+      label: "Menyiapkan profil",
+      icon: "profile",
+      threshold: 10,
+    },
     {
       label: "Membaca nilai akademik",
       icon: "academic",
-      color: "from-sky-500 to-cyan-500",
+      threshold: 34,
     },
     {
-      label: "Mencocokkan minat dan bakat",
+      label: "Menghitung SPK",
       icon: "sparkles",
-      color: "from-blue-500 to-cyan-400",
+      threshold: 62,
     },
     {
-      label: "Menimbang pengalaman dan prestasi",
-      icon: "clipboard",
-      color: "from-sky-500 to-blue-600",
-    },
-    {
-      label: "Mengurutkan alternatif terbaik",
+      label: "Merapikan hasil",
       icon: "chart",
-      color: "from-cyan-400 to-sky-600",
+      threshold: 88,
     },
   ];
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-[#07142f]/[0.64] px-4 backdrop-blur-md">
+    <div className="fixed inset-0 z-[260] grid place-items-center bg-slate-950/58 px-4 backdrop-blur-[4px]">
       <div className="relative w-full max-w-2xl overflow-hidden rounded-[2.2rem] bg-white/[0.96] p-6 shadow-2xl skilllens-page-enter md:p-7">
         <div className="absolute -right-24 -top-24 h-60 w-60 rounded-full bg-sky-200/60 blur-3xl" />
         <div className="absolute -bottom-28 -left-20 h-72 w-72 rounded-full bg-blue-300/50 blur-3xl" />
@@ -88,31 +94,59 @@ function RecommendationLoadingOverlay({
               : "Tunggu sebentar ya. Sistem sedang membaca data profil, prestasi, nilai, dan alternatif terbaik."}
           </p>
 
-          <div className="mt-6 h-2 overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full w-3/4 rounded-full bg-gradient-to-r from-[#08224f] via-[#0a54c7] to-[#39d9ff] animate-pulse" />
+          <div className="mt-6 rounded-3xl border border-sky-100 bg-slate-50 p-3">
+            <div className="mb-2 flex items-center justify-between gap-3 text-xs font-extrabold text-slate-500">
+              <span>{stageLabel}</span>
+              <span className="text-sky-700">{safeProgress}%</span>
+            </div>
+            <div className="h-2.5 overflow-hidden rounded-full bg-white ring-1 ring-sky-100">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[#08224f] via-[#0a54c7] to-[#39d9ff] transition-all duration-500 ease-out"
+                style={{ width: `${safeProgress}%` }}
+              />
+            </div>
           </div>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            {steps.map((step) => (
-              <div
-                key={step.label}
-                className="flex items-center gap-3 rounded-3xl border border-sky-100 bg-white/[0.82] p-3 text-sm font-bold text-slate-600 shadow-sm backdrop-blur skilllens-smooth"
-              >
-                <span
-                  className={`grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br ${step.color} text-white shadow-lg shadow-slate-950/10`}
+            {steps.map((step) => {
+              const completed = safeProgress >= step.threshold;
+              const active = !completed && safeProgress >= step.threshold - 22;
+
+              return (
+                <div
+                  key={step.label}
+                  className={`flex items-center gap-3 rounded-3xl border p-3 text-sm font-bold shadow-sm backdrop-blur skilllens-smooth ${
+                    completed
+                      ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+                      : active
+                        ? "border-sky-100 bg-white text-sky-700"
+                        : "border-slate-100 bg-white/[0.72] text-slate-500"
+                  }`}
                 >
-                  <Icon name={step.icon as any} className="h-5 w-5" />
-                </span>
+                  <span
+                    className={`grid h-10 w-10 place-items-center rounded-2xl shadow-lg shadow-slate-950/10 ${
+                      completed
+                        ? "bg-emerald-500 text-white"
+                        : active
+                          ? "bg-gradient-to-br from-[#08224f] to-[#39d9ff] text-white"
+                          : "bg-slate-100 text-slate-400"
+                    }`}
+                  >
+                    <Icon name={(completed ? "check" : step.icon) as any} className="h-5 w-5" />
+                  </span>
 
-                <span>{step.label}</span>
+                  <span>{step.label}</span>
 
-                <span className="ml-auto flex gap-1">
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sky-500" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-blue-500 [animation-delay:120ms]" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-cyan-400 [animation-delay:240ms]" />
-                </span>
-              </div>
-            ))}
+                  {active ? (
+                    <span className="ml-auto flex gap-1">
+                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sky-500" />
+                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-blue-500 [animation-delay:120ms]" />
+                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-cyan-400 [animation-delay:240ms]" />
+                    </span>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -200,10 +234,8 @@ function SpkGenerateHistory({
       </div>
 
       {loading ? (
-        <div className="mt-5 grid gap-4 lg:grid-cols-2">
-          {[1, 2].map((item) => (
-            <div key={item} className="h-48 animate-pulse rounded-3xl bg-sky-100" />
-          ))}
+        <div className="mt-5">
+          <CardGridSkeleton count={2} />
         </div>
       ) : items.length ? (
         <div className="mt-5 grid gap-4 xl:grid-cols-2">
@@ -327,10 +359,29 @@ export default function SiswaRekomendasiPage() {
   const [generatingRoadmap, setGeneratingRoadmap] = useState(false);
   const [message, setMessage] = useState("");
   const [autoMode, setAutoMode] = useState(false);
+  const [recommendationProgress, setRecommendationProgress] = useState(0);
+  const [recommendationStage, setRecommendationStage] = useState("Menyiapkan data profil");
+  const progressTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     setMounted(true);
     setAutoMode(new URLSearchParams(window.location.search).get("auto") === "1");
+  }, []);
+
+  function stopRecommendationProgressTimer() {
+    if (progressTimerRef.current !== null) {
+      window.clearInterval(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+  }
+
+  function updateRecommendationProgress(value: number, label: string) {
+    setRecommendationProgress((current) => Math.max(current, value));
+    setRecommendationStage(label);
+  }
+
+  useEffect(() => {
+    return () => stopRecommendationProgressTimer();
   }, []);
 
   useEffect(() => {
@@ -482,21 +533,48 @@ export default function SiswaRekomendasiPage() {
   async function handleProcessSpk(options?: { autoSelectTop?: boolean }) {
     setError("");
     setMessage("");
+    stopRecommendationProgressTimer();
+    setRecommendationProgress(0);
+    setRecommendationStage("Menyiapkan data profil");
     setProcessing(true);
     setSelectedRecommendation(null);
 
     const startedAt = Date.now();
+    let completedSuccessfully = false;
+    let liveProgress = 12;
+
+    updateRecommendationProgress(8, "Menyiapkan data profil");
+    progressTimerRef.current = window.setInterval(() => {
+      liveProgress = Math.min(
+        88,
+        liveProgress + (liveProgress < 42 ? 5 : liveProgress < 70 ? 3 : 1),
+      );
+
+      const label =
+        liveProgress < 30
+          ? "Mengirim data ke mesin SPK"
+          : liveProgress < 58
+            ? "Membaca nilai dan profil siswa"
+            : liveProgress < 82
+              ? "Menghitung ranking TOPSIS"
+              : "Merapikan hasil rekomendasi";
+
+      updateRecommendationProgress(liveProgress, label);
+    }, 220);
 
     try {
+      updateRecommendationProgress(18, "Mengirim data ke mesin SPK");
       const result = await processSiswaSpk(
         buildStudentPayload(profile, prestasiRows),
       );
+      updateRecommendationProgress(72, "Response API diterima");
 
       const rows = Array.isArray(result.recommendations)
         ? result.recommendations
         : [];
 
       setRecommendations(rows);
+      updateRecommendationProgress(84, "Menyusun hasil rekomendasi");
 
       if (!rows.length) {
         const errMessage =
@@ -532,6 +610,8 @@ export default function SiswaRekomendasiPage() {
         setAutoMode(false);
       }
 
+      completedSuccessfully = true;
+      updateRecommendationProgress(100, "Rekomendasi siap ditampilkan");
       return rows;
     } catch (err) {
       const errMessage =
@@ -545,8 +625,13 @@ export default function SiswaRekomendasiPage() {
         setAutoMode(false);
       }
 
+      updateRecommendationProgress(100, "Proses dihentikan");
       return [];
     } finally {
+      stopRecommendationProgressTimer();
+      if (!completedSuccessfully) {
+        setRecommendationProgress(100);
+      }
       const elapsed = Date.now() - startedAt;
       const remaining = Math.max(0, MIN_RECOMMENDATION_LOADING_MS - elapsed);
 
@@ -555,6 +640,10 @@ export default function SiswaRekomendasiPage() {
       }
 
       setProcessing(false);
+      window.setTimeout(() => {
+        setRecommendationProgress(0);
+        setRecommendationStage("Menyiapkan data profil");
+      }, 250);
     }
   }
 
@@ -670,7 +759,12 @@ export default function SiswaRekomendasiPage() {
         </section>
       </main>
 
-      <RecommendationLoadingOverlay open={processing} autoMode={autoMode} />
+      <RecommendationLoadingOverlay
+        open={processing}
+        autoMode={autoMode}
+        progress={recommendationProgress}
+        stageLabel={recommendationStage}
+      />
     </>
   );
 }

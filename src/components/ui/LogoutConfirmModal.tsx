@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Icon } from "./icons";
 
 type LogoutConfirmModalProps = {
@@ -15,57 +17,80 @@ export function LogoutConfirmModal({
   onClose,
   onConfirm,
 }: LogoutConfirmModalProps) {
-  if (!open) return null;
+  useEffect(() => {
+    if (!open) return;
 
-  return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/60 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-md overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl shadow-slate-950/30">
-        <div className="border-b border-slate-100 bg-slate-50 px-6 py-5">
-          <div className="flex items-start justify-between gap-4">
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
+  if (!open || typeof document === "undefined") return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[1000] grid place-items-center bg-slate-950/58 px-4 py-6 text-slate-950 backdrop-blur-[4px]">
+      <button
+        type="button"
+        aria-label="Tutup modal logout"
+        onClick={onClose}
+        className="absolute inset-0 cursor-default"
+      />
+
+      <section className="relative w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-white/30 bg-white shadow-[0_28px_90px_rgba(15,23,42,0.35)]">
+        <div className="relative overflow-hidden border-b border-sky-100 bg-gradient-to-r from-[#0b2450] via-[#0d3c70] to-sky-600 px-6 py-5 text-white">
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:32px_32px]" />
+          <div className="relative flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-sky-700">
-                Konfirmasi keluar
+              <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-cyan-100">
+                Konfirmasi Akun
               </p>
-              <h2 className="mt-1 text-2xl font-bold text-slate-950">
-                Keluar dari akun?
+              <h2 className="mt-2 text-2xl font-black tracking-tight text-white">
+                Keluar dari SkillLens?
               </h2>
+              <p className="mt-2 text-sm font-medium leading-6 text-sky-100/90">
+                Sesi akan diakhiri dan kamu perlu login kembali.
+              </p>
             </div>
 
             <button
               type="button"
               onClick={onClose}
-              className="grid h-10 w-10 place-items-center rounded-full text-slate-400 transition hover:bg-white hover:text-slate-700"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white/10 text-white transition hover:bg-white/20"
               aria-label="Tutup modal"
             >
-              <Icon name="x" className="h-5 w-5" />
+              <Icon name="x" className="h-4 w-4" />
             </button>
           </div>
         </div>
 
-        <div className="px-6 py-5">
-          <div className="flex gap-4 rounded-2xl bg-sky-50 p-4">
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-sky-600 text-white">
+        <div className="bg-gradient-to-br from-slate-50 via-white to-sky-50/40 px-6 py-6">
+          <div className="flex gap-4 rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200">
               <Icon name="logout" className="h-5 w-5" />
             </div>
 
             <div>
-              <p className="text-sm font-semibold text-slate-800">
+              <p className="text-sm font-extrabold text-slate-900">
                 {username
                   ? `Akun ${username} akan keluar dari sistem.`
                   : "Akun Anda akan keluar dari sistem."}
               </p>
               <p className="mt-1 text-sm font-medium leading-6 text-slate-500">
-                Anda perlu login kembali untuk mengakses dashboard dan data
-                SkillLens.
+                Pastikan data yang sedang dikerjakan sudah tersimpan sebelum keluar.
               </p>
             </div>
           </div>
+        </div>
 
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+        <div className="border-t border-slate-100 bg-white/95 px-6 py-4 shadow-[0_-12px_30px_rgba(15,23,42,0.06)] backdrop-blur">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
             >
               Batal
             </button>
@@ -73,13 +98,14 @@ export function LogoutConfirmModal({
             <button
               type="button"
               onClick={onConfirm}
-              className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-rose-700"
+              className="rounded-2xl bg-gradient-to-r from-[#0b2450] to-sky-600 px-5 py-3 text-sm font-bold text-white shadow-md shadow-sky-600/20 transition hover:-translate-y-0.5"
             >
               Ya, keluar
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
+    </div>,
+    document.body,
   );
 }

@@ -5,6 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { clearAuth, getStoredUser } from "../../lib/auth";
 import { studentNav } from "../../config/navigation";
+import { getActiveStudentRoadmap } from "../../features/siswa/api";
+import type { CareerRoadmap, RoadmapNote } from "../../features/siswa/types";
 import { Icon } from "../ui/icons";
 
 function getCurrentHash() {
@@ -39,11 +41,65 @@ function getInitials(name: string) {
   );
 }
 
+type GuidanceNotification = RoadmapNote & {
+  stepTitle?: string;
+  detailTitle?: string;
+};
+
+function guidanceSeenKey(userId?: number | null) {
+  return `skilllens_student_guidance_seen_at:${userId ?? "unknown"}`;
+}
+
+function noteTimestamp(note: GuidanceNotification) {
+  const value = note.createdAt ? new Date(note.createdAt).getTime() : 0;
+  return Number.isNaN(value) ? 0 : value;
+}
+
+function formatGuidanceDate(value?: string | null) {
+  if (!value) return "Baru saja";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Baru saja";
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function collectGuidanceNotes(roadmap: CareerRoadmap | null): GuidanceNotification[] {
+  if (!roadmap) return [];
+
+  const notes: GuidanceNotification[] = [];
+
+  for (const step of roadmap.steps ?? []) {
+    for (const note of step.notes ?? []) {
+      if (!note.note?.trim()) continue;
+      notes.push({ ...note, stepTitle: step.title });
+    }
+
+    for (const detail of step.details ?? []) {
+      for (const note of detail.notes ?? []) {
+        if (!note.note?.trim()) continue;
+        notes.push({ ...note, stepTitle: step.title, detailTitle: detail.title });
+      }
+    }
+  }
+
+  return notes.sort((a, b) => noteTimestamp(b) - noteTimestamp(a));
+}
+
 export function StudentTopNav({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const [guidanceOpen, setGuidanceOpen] = useState(false);
   const [name, setName] = useState("Siswa");
+  const [userId, setUserId] = useState<number | null>(null);
   const [hash, setHash] = useState("");
+  const [guidanceNotes, setGuidanceNotes] = useState<GuidanceNotification[]>([]);
+  const [guidanceSeenAt, setGuidanceSeenAt] = useState("");
 
   const pathname = usePathname();
   const router = useRouter();
@@ -57,6 +113,7 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
     }
 
     setName(user.nama || "Siswa");
+    setUserId(user.id ?? null);
   }, [router]);
 
   useEffect(() => {
@@ -81,10 +138,48 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (!userId) return;
+    setGuidanceSeenAt(window.localStorage.getItem(guidanceSeenKey(userId)) || "");
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    let active = true;
+
+    async function loadGuidanceNotifications() {
+      try {
+        const activeRoadmap = await getActiveStudentRoadmap();
+        if (!active) return;
+        setGuidanceNotes(collectGuidanceNotes(activeRoadmap));
+      } catch {
+        if (active) setGuidanceNotes([]);
+      }
+    }
+
+    loadGuidanceNotifications();
+
+    const timer = window.setInterval(loadGuidanceNotifications, 60000);
+
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [pathname, userId]);
+
+  useEffect(() => {
     setMenuOpen(false);
+    setGuidanceOpen(false);
   }, [pathname, hash]);
 
   const currentInitials = useMemo(() => getInitials(name), [name]);
+  const unreadGuidanceNotes = useMemo(() => {
+    const seenAt = guidanceSeenAt ? new Date(guidanceSeenAt).getTime() : 0;
+    const safeSeenAt = Number.isNaN(seenAt) ? 0 : seenAt;
+
+    return guidanceNotes.filter((note) => noteTimestamp(note) > safeSeenAt);
+  }, [guidanceNotes, guidanceSeenAt]);
+  const guidanceCountLabel = unreadGuidanceNotes.length > 9 ? "9+" : String(unreadGuidanceNotes.length);
 
   function handleNavClick(href?: string) {
     const target = normalizeHref(href);
@@ -105,6 +200,12 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
     setMenuOpen(false);
   }
 
+  function markGuidanceAsRead() {
+    const latestTimestamp = guidanceNotes[0]?.createdAt || new Date().toISOString();
+    window.localStorage.setItem(guidanceSeenKey(userId), latestTimestamp);
+    setGuidanceSeenAt(latestTimestamp);
+  }
+
   function logout() {
     clearAuth();
     setLogoutOpen(false);
@@ -113,7 +214,7 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen text-slate-950 skilllens-blue-page">
-      <header className="sticky top-0 z-50 overflow-hidden border-b border-sky-100/15 bg-[#07142f]/95 text-white shadow-sm shadow-blue-950/10 backdrop-blur-xl">
+      <header className="sticky top-0 z-[90] overflow-visible border-b border-sky-100/15 bg-[#07142f]/95 text-white shadow-sm shadow-blue-950/10 backdrop-blur-xl">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.18),transparent_34%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.16),transparent_30%)]" />
 
         <div className="relative mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3.5">
@@ -161,6 +262,92 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="hidden items-center gap-3 sm:flex">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setGuidanceOpen((value) => !value)}
+                className="relative inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2.5 text-sm font-bold text-cyan-100 shadow-sm backdrop-blur-md transition hover:bg-white/15 hover:text-white"
+                aria-label="Notifikasi bimbingan"
+                aria-expanded={guidanceOpen}
+              >
+                <Icon name="bell" className="h-4 w-4" />
+                Bimbingan
+                {unreadGuidanceNotes.length ? (
+                  <span className="absolute -right-1 -top-1 grid min-h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1.5 text-[10px] font-black text-white ring-2 ring-[#07142f]">
+                    {guidanceCountLabel}
+                  </span>
+                ) : null}
+              </button>
+
+              {guidanceOpen ? (
+                <div className="absolute right-0 top-[calc(100%+0.75rem)] z-[220] w-[min(92vw,22rem)] overflow-hidden rounded-[1.35rem] border border-slate-200 bg-white text-slate-950 shadow-2xl shadow-slate-950/25 ring-1 ring-white/70">
+                  <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-4 py-3.5">
+                    <div>
+                      <p className="text-sm font-extrabold text-slate-950">Bimbingan guru</p>
+                      <p className="mt-0.5 text-xs font-semibold text-slate-500">
+                        {guidanceNotes.length
+                          ? `${guidanceNotes.length} catatan pada roadmap aktif.`
+                          : "Belum ada catatan baru."}
+                      </p>
+                    </div>
+                    {unreadGuidanceNotes.length ? (
+                      <span className="rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-black text-rose-600 ring-1 ring-rose-100">{guidanceCountLabel}</span>
+                    ) : null}
+                  </div>
+
+                  <div className="max-h-80 space-y-2 overflow-y-auto bg-white p-3">
+                    {guidanceNotes.length ? (
+                      guidanceNotes.slice(0, 4).map((note, index) => {
+                        const unread = unreadGuidanceNotes.some((item) => item.id === note.id);
+
+                        return (
+                          <article key={`${note.id}-${index}`} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-extrabold text-slate-900">
+                                  {note.title || note.detailTitle || note.stepTitle || "Catatan bimbingan"}
+                                </p>
+                                <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400">
+                                  {note.guruName || "Guru BK"} • {formatGuidanceDate(note.createdAt)}
+                                </p>
+                              </div>
+                              {unread ? <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-rose-500" /> : null}
+                            </div>
+                            <p className="mt-2 line-clamp-2 text-xs font-semibold leading-5 text-slate-500">{note.note}</p>
+                          </article>
+                        );
+                      })
+                    ) : (
+                      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm font-semibold leading-6 text-slate-500">
+                        Belum ada bimbingan dari guru BK pada roadmap aktif.
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-2 border-t border-slate-100 bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
+                    <button
+                      type="button"
+                      onClick={markGuidanceAsRead}
+                      disabled={!guidanceNotes.length}
+                      className="rounded-full border border-slate-200 bg-white px-3.5 py-2 text-xs font-extrabold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Tandai dibaca
+                    </button>
+                    <Link
+                      href="/siswa/roadmap"
+                      onClick={() => {
+                        markGuidanceAsRead();
+                        setGuidanceOpen(false);
+                      }}
+                      className="rounded-full bg-[#07142f] px-3.5 py-2 text-center text-xs font-extrabold text-white transition hover:bg-slate-800"
+                    >
+                      Lihat roadmap
+                    </Link>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
             <Link
               href="/siswa/akun"
               className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2.5 text-sm font-bold text-cyan-100 shadow-sm backdrop-blur-md transition hover:bg-white/15 hover:text-white"
@@ -249,6 +436,23 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
                 })}
 
                 <Link
+                  href="/siswa/roadmap"
+                  onClick={() => {
+                    markGuidanceAsRead();
+                    setMenuOpen(false);
+                  }}
+                  className="flex items-center justify-between gap-3 rounded-2xl bg-white/[0.08] px-4 py-3 text-sm font-bold text-sky-100/80 transition hover:bg-white/[0.14] hover:text-white"
+                >
+                  <span className="inline-flex items-center gap-3">
+                    <Icon name="bell" className="h-4 w-4" />
+                    Bimbingan guru
+                  </span>
+                  {unreadGuidanceNotes.length ? (
+                    <span className="rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-black text-white">{guidanceCountLabel}</span>
+                  ) : null}
+                </Link>
+
+                <Link
                   href="/siswa/akun"
                   onClick={() => setMenuOpen(false)}
                   className="flex items-center gap-3 rounded-2xl bg-white/[0.08] px-4 py-3 text-sm font-bold text-sky-100/80 transition hover:bg-white/[0.14] hover:text-white"
@@ -277,38 +481,51 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
       {children}
 
       {logoutOpen && (
-        <div className="fixed inset-0 z-[80] grid place-items-center bg-slate-900/30 px-4 py-6">
-          <div className="w-full max-w-md overflow-hidden rounded-[2rem] border border-sky-100 bg-white shadow-2xl shadow-slate-950/20">
-            <div className="relative overflow-hidden bg-gradient-to-br from-white via-cyan-50/45 to-sky-50/70 p-7">
-              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(14,165,233,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(14,165,233,0.045)_1px,transparent_1px)] bg-[size:32px_32px]" />
-              <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-cyan-200/25 blur-3xl" />
-              <div className="pointer-events-none absolute -left-16 bottom-0 h-36 w-36 rounded-full bg-sky-200/20 blur-3xl" />
+        <div className="fixed inset-0 z-[80] grid place-items-center bg-slate-950/58 px-4 py-6 text-slate-950 backdrop-blur-[4px]">
+          <button
+            type="button"
+            onClick={() => setLogoutOpen(false)}
+            className="absolute inset-0 cursor-default"
+            aria-label="Tutup konfirmasi keluar"
+          />
 
-              <button
-                type="button"
-                onClick={() => setLogoutOpen(false)}
-                className="absolute right-5 top-5 z-10 grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-white/90 text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-800"
-                aria-label="Tutup konfirmasi keluar"
-              >
-                <Icon name="x" className="h-4 w-4" />
-              </button>
+          <section className="relative w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-white/30 bg-white shadow-[0_28px_90px_rgba(15,23,42,0.35)]">
+            <div className="relative overflow-hidden border-b border-sky-100 bg-gradient-to-r from-[#0b2450] via-[#0d3c70] to-sky-600 px-6 py-5 text-white">
+              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:32px_32px]" />
+              <div className="relative flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-cyan-100">Konfirmasi Akun</p>
+                  <h2 className="mt-2 text-2xl font-black tracking-tight text-white">Keluar dari akun?</h2>
+                  <p className="mt-2 text-sm font-medium leading-6 text-sky-100/90">Kamu perlu login kembali untuk mengakses rekomendasi dan roadmap.</p>
+                </div>
 
-              <div className="relative z-10 grid h-16 w-16 place-items-center rounded-3xl border border-rose-100 bg-white text-rose-600 shadow-sm shadow-rose-100/60">
-                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-rose-50 text-rose-600">
+                <button
+                  type="button"
+                  onClick={() => setLogoutOpen(false)}
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white/10 text-white transition hover:bg-white/20"
+                  aria-label="Tutup konfirmasi keluar"
+                >
+                  <Icon name="x" className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-slate-50 via-white to-sky-50/40 px-6 py-6">
+              <div className="flex gap-4 rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
+                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200">
                   <Icon name="logout" className="h-5 w-5" />
                 </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-900">Konfirmasi logout</h3>
+                  <p className="mt-1 text-sm font-medium leading-6 text-slate-500">
+                    Pastikan data profil atau progress roadmap yang sedang diubah sudah tersimpan.
+                  </p>
+                </div>
               </div>
+            </div>
 
-              <h2 className="relative z-10 mt-6 text-2xl font-black tracking-tight text-slate-950">
-                Keluar dari akun?
-              </h2>
-
-              <p className="relative z-10 mt-3 text-sm font-medium leading-6 text-slate-600">
-                Kamu akan keluar dari ruang siswa dan perlu login kembali untuk
-                mengakses rekomendasi serta roadmap.
-              </p>
-
-              <div className="relative z-10 mt-7 flex flex-col gap-3 sm:flex-row sm:justify-end">
+            <div className="border-t border-slate-100 bg-white/95 px-6 py-4 shadow-[0_-12px_30px_rgba(15,23,42,0.06)] backdrop-blur">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <button
                   type="button"
                   onClick={() => setLogoutOpen(false)}
@@ -320,13 +537,13 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
                 <button
                   type="button"
                   onClick={logout}
-                  className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-rose-600 to-rose-700 px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-rose-600/20 transition hover:-translate-y-0.5 hover:shadow-xl"
+                  className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-[#0b2450] to-sky-600 px-5 py-3 text-sm font-extrabold text-white shadow-md shadow-sky-600/20 transition hover:-translate-y-0.5"
                 >
                   Ya, keluar
                 </button>
               </div>
             </div>
-          </div>
+          </section>
         </div>
       )}
     </div>

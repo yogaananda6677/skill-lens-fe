@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Icon } from "../../../components/ui/icons";
 import {
   experienceOptions as fallbackExperienceOptions,
@@ -65,6 +66,9 @@ const BASE_SEARCH_SUGGESTIONS = [
 const PROFILE_CHOICE_MIN = 1;
 const PROFILE_CHOICE_MAX = 4;
 const ACHIEVEMENT_MAX = 4;
+const ACHIEVEMENT_NAME_MIN = 6;
+const ACHIEVEMENT_TEXT_MIN = 3;
+const ACHIEVEMENT_DESC_MIN = 10;
 
 const STEP_ACCENTS: Record<WizardStepId, {
   text: string;
@@ -147,6 +151,37 @@ function uniqueOptions(options: string[]) {
   }
 
   return result;
+}
+
+
+function onlySafeText(value: string) {
+  return value.replace(/[<>]/g, "").replace(/\s+/g, " ").trim();
+}
+
+function validateAchievementInput(form: {
+  nama_prestasi: string;
+  tingkat: string;
+  tahun: string;
+  penyelenggara: string;
+  keterangan: string;
+}) {
+  const currentYear = new Date().getFullYear();
+  const nama = onlySafeText(form.nama_prestasi);
+  const penyelenggara = onlySafeText(form.penyelenggara);
+  const keterangan = onlySafeText(form.keterangan);
+  const tahun = onlySafeText(form.tahun);
+
+  if (!nama) return "Nama prestasi wajib diisi.";
+  if (nama.length < ACHIEVEMENT_NAME_MIN) return `Nama prestasi minimal ${ACHIEVEMENT_NAME_MIN} karakter.`;
+  if (!/^[a-zA-Z0-9À-ÿ\s.,()\-\/]+$/.test(nama)) return "Nama prestasi hanya boleh berisi huruf, angka, spasi, titik, koma, kurung, garis miring, dan tanda hubung.";
+  if (!tahun) return "Tahun prestasi wajib diisi.";
+  if (!/^\d{4}$/.test(tahun)) return "Tahun harus 4 digit, contoh 2026.";
+  const yearNumber = Number(tahun);
+  if (yearNumber < 1990 || yearNumber > currentYear + 1) return `Tahun harus di antara 1990 sampai ${currentYear + 1}.`;
+  if (penyelenggara && penyelenggara.length < ACHIEVEMENT_TEXT_MIN) return `Penyelenggara minimal ${ACHIEVEMENT_TEXT_MIN} karakter jika diisi.`;
+  if (keterangan && keterangan.length < ACHIEVEMENT_DESC_MIN) return `Keterangan minimal ${ACHIEVEMENT_DESC_MIN} karakter jika diisi.`;
+
+  return "";
 }
 
 function selectedSummary(profile: StudentProfileForm, prestasiRows: StudentAchievement[]) {
@@ -473,7 +508,7 @@ function AchievementStep({
   achievementSaving: boolean;
   onOpenModal: () => void;
   onDeleteAchievement?: (id: number) => Promise<void>;
-  onDelete: (id?: number) => void;
+  onDelete: (id?: number, title?: string) => void;
 }) {
   const maxReached = prestasiRows.length >= ACHIEVEMENT_MAX;
 
@@ -528,7 +563,7 @@ function AchievementStep({
                       <button
                         type="button"
                         disabled={achievementSaving}
-                        onClick={() => onDelete(item.id_prestasi ?? item.id)}
+                        onClick={() => onDelete(item.id_prestasi ?? item.id, item.nama_prestasi)}
                         className="rounded-full bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 ring-1 ring-rose-100 transition hover:bg-rose-600 hover:text-white disabled:opacity-50"
                       >
                         Hapus
@@ -593,29 +628,10 @@ function AchievementStep({
 }
 
 
-function ProfileSavingOverlay({ open }: { open: boolean }) {
-  if (!open) return null;
+function StudentModalPortal({ children }: { children: ReactNode }) {
+  if (typeof document === "undefined") return null;
 
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-[#07142f]/[0.55] px-4 backdrop-blur-md">
-      <div className="relative w-full max-w-md overflow-hidden rounded-[2rem] bg-white/[0.96] p-6 text-center shadow-2xl skilllens-page-enter">
-        <div className="absolute -left-16 -top-16 h-40 w-40 rounded-full bg-cyan-200/60 blur-3xl" />
-        <div className="absolute -bottom-20 -right-14 h-48 w-48 rounded-full bg-blue-300/50 blur-3xl" />
-        <div className="relative">
-          <div className="mx-auto grid h-16 w-16 place-items-center rounded-3xl bg-[linear-gradient(135deg,#08224f,#0a54c7,#39d9ff)] text-white shadow-xl shadow-sky-700/30 skilllens-soft-pulse">
-            <Icon name="check" className="h-8 w-8" />
-          </div>
-          <h3 className="mt-5 text-xl font-extrabold text-slate-950">Menyimpan profil</h3>
-          <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
-            Sebentar ya, data minat, pengalaman, prestasi, dan tujuan karir sedang diamankan.
-          </p>
-          <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full w-2/3 rounded-full bg-gradient-to-r from-sky-500 via-sky-500 to-cyan-300 animate-pulse" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  return createPortal(children, document.body);
 }
 
 export function StudentProfilePanel({
@@ -647,6 +663,7 @@ export function StudentProfilePanel({
 }) {
   const [activeStep, setActiveStep] = useState<WizardStepId>("minat");
   const [achievementModalOpen, setAchievementModalOpen] = useState(false);
+  const [deleteAchievementTarget, setDeleteAchievementTarget] = useState<{ id: number; title: string } | null>(null);
   const [achievementSaving, setAchievementSaving] = useState(false);
   const [achievementError, setAchievementError] = useState("");
   const [achievementForm, setAchievementForm] = useState({
@@ -820,7 +837,9 @@ export function StudentProfilePanel({
   }
 
   function updateAchievementForm(key: keyof typeof achievementForm, value: string) {
-    setAchievementForm((current) => ({ ...current, [key]: value }));
+    const nextValue = value.replace(/[<>]/g, "");
+    setAchievementForm((current) => ({ ...current, [key]: nextValue }));
+    if (achievementError) setAchievementError("");
   }
 
   function updateAchievementFile(file?: File | null) {
@@ -853,11 +872,16 @@ export function StudentProfilePanel({
       return;
     }
 
-    const nama = achievementForm.nama_prestasi.trim();
-    if (!nama) {
-      setAchievementError("Nama prestasi wajib diisi.");
+    const validationMessage = validateAchievementInput(achievementForm);
+    if (validationMessage) {
+      setAchievementError(validationMessage);
       return;
     }
+
+    const nama = onlySafeText(achievementForm.nama_prestasi);
+    const penyelenggara = onlySafeText(achievementForm.penyelenggara);
+    const keterangan = onlySafeText(achievementForm.keterangan);
+    const tahun = onlySafeText(achievementForm.tahun);
 
     setAchievementSaving(true);
     setAchievementError("");
@@ -865,9 +889,9 @@ export function StudentProfilePanel({
       await onCreateAchievement?.({
         nama_prestasi: nama,
         tingkat: achievementForm.tingkat || null,
-        tahun: achievementForm.tahun || null,
-        penyelenggara: achievementForm.penyelenggara.trim() || null,
-        keterangan: achievementForm.keterangan.trim() || null,
+        tahun: tahun || null,
+        penyelenggara: penyelenggara || null,
+        keterangan: keterangan || null,
         bukti_url: achievementForm.bukti_url.trim() || null,
         bukti_file: achievementFile,
       });
@@ -888,13 +912,18 @@ export function StudentProfilePanel({
     }
   }
 
-  async function handleDeleteAchievement(id?: number) {
+  function requestDeleteAchievement(id?: number, title?: string) {
     if (!id || !onDeleteAchievement) return;
-    const confirmed = window.confirm("Hapus prestasi ini?");
-    if (!confirmed) return;
+    setDeleteAchievementTarget({ id, title: title || "Prestasi" });
+  }
+
+  async function confirmDeleteAchievement() {
+    if (!deleteAchievementTarget || !onDeleteAchievement) return;
+
     setAchievementSaving(true);
     try {
-      await onDeleteAchievement(id);
+      await onDeleteAchievement(deleteAchievementTarget.id);
+      setDeleteAchievementTarget(null);
     } finally {
       setAchievementSaving(false);
     }
@@ -1004,7 +1033,7 @@ export function StudentProfilePanel({
             setAchievementModalOpen(true);
           }}
           onDeleteAchievement={onDeleteAchievement}
-          onDelete={handleDeleteAchievement}
+          onDelete={(id, title) => requestDeleteAchievement(id, title)}
         />
       ) : (
         <GoalStep profile={profile} onChangeProfile={onChangeProfile} />
@@ -1057,14 +1086,56 @@ export function StudentProfilePanel({
 
       </div>
 
-      <ProfileSavingOverlay open={processing} />
+      {deleteAchievementTarget ? (
+        <StudentModalPortal>
+          <div className="fixed inset-0 z-[240] grid place-items-center bg-slate-950/58 px-4 py-6 backdrop-blur-[4px]">
+            <button
+              type="button"
+              onClick={() => (achievementSaving ? undefined : setDeleteAchievementTarget(null))}
+              className="absolute inset-0 cursor-default"
+              aria-label="Tutup konfirmasi hapus prestasi"
+            />
+
+            <section className="relative w-full max-w-md overflow-hidden rounded-[1.7rem] border border-white/30 bg-white shadow-2xl skilllens-page-enter">
+              <div className="border-b border-slate-100 px-6 py-5">
+                <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-rose-600">Konfirmasi</p>
+                <h3 className="mt-2 text-xl font-black text-slate-950">Hapus prestasi?</h3>
+                <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
+                  Apakah kamu ingin menghapus prestasi <span className="font-extrabold text-slate-800">{deleteAchievementTarget.title}</span>?
+                </p>
+              </div>
+
+
+              <div className="flex flex-col-reverse gap-3 border-t border-slate-100 bg-white px-6 py-4 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setDeleteAchievementTarget(null)}
+                  disabled={achievementSaving}
+                  className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-extrabold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDeleteAchievement}
+                  disabled={achievementSaving}
+                  className="rounded-full bg-rose-600 px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-rose-600/20 transition hover:bg-rose-700 disabled:opacity-50"
+                >
+                  {achievementSaving ? "Menghapus..." : "Ya, hapus"}
+                </button>
+              </div>
+            </section>
+          </div>
+        </StudentModalPortal>
+      ) : null}
 
       {achievementModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#07142f]/[0.55] px-4 py-6 backdrop-blur-md">
-          <form
-            onSubmit={submitAchievement}
-            className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-[1.9rem] bg-white/[0.96] p-6 shadow-2xl skilllens-page-enter"
-          >
+        <StudentModalPortal>
+          <div className="fixed inset-0 z-[230] flex items-center justify-center bg-slate-950/58 px-4 py-6 backdrop-blur-[4px]">
+            <form
+              onSubmit={submitAchievement}
+              className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-[1.9rem] bg-white/[0.96] p-6 shadow-2xl skilllens-page-enter"
+            >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-600">Prestasi Siswa</p>
@@ -1093,8 +1164,14 @@ export function StudentProfilePanel({
                   value={achievementForm.nama_prestasi}
                   onChange={(event) => updateAchievementForm("nama_prestasi", event.target.value)}
                   placeholder="Contoh: Juara 1 Lomba Web Design"
+                  minLength={ACHIEVEMENT_NAME_MIN}
+                  maxLength={80}
+                  required
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
                 />
+                <p className="mt-2 text-xs font-semibold leading-5 text-slate-400">
+                  Minimal {ACHIEVEMENT_NAME_MIN} karakter. Contoh format: Juara 1 Lomba Web Design, Finalis Olimpiade, atau Sertifikasi Desain.
+                </p>
               </label>
 
               <label className="block">
@@ -1117,10 +1194,17 @@ export function StudentProfilePanel({
                 <span className="mb-2 block text-sm font-bold text-slate-700">Tahun</span>
                 <input
                   value={achievementForm.tahun}
-                  onChange={(event) => updateAchievementForm("tahun", event.target.value)}
+                  onChange={(event) => updateAchievementForm("tahun", event.target.value.replace(/\D/g, "").slice(0, 4))}
                   placeholder="2026"
+                  inputMode="numeric"
+                  pattern="\d{4}"
+                  maxLength={4}
+                  required
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
                 />
+                <p className="mt-2 text-xs font-semibold leading-5 text-slate-400">
+                  Wajib 4 digit, misalnya 2026.
+                </p>
               </label>
 
               <label className="block md:col-span-2">
@@ -1129,8 +1213,12 @@ export function StudentProfilePanel({
                   value={achievementForm.penyelenggara}
                   onChange={(event) => updateAchievementForm("penyelenggara", event.target.value)}
                   placeholder="Contoh: Dinas Pendidikan / Kampus / Sekolah"
+                  maxLength={80}
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
                 />
+                <p className="mt-2 text-xs font-semibold leading-5 text-slate-400">
+                  Boleh dikosongi. Jika diisi, tulis minimal {ACHIEVEMENT_TEXT_MIN} karakter.
+                </p>
               </label>
 
               <label className="block md:col-span-2">
@@ -1138,10 +1226,14 @@ export function StudentProfilePanel({
                 <textarea
                   value={achievementForm.keterangan}
                   onChange={(event) => updateAchievementForm("keterangan", event.target.value)}
-                  placeholder="Contoh: Juara 1, kategori lomba aplikasi, finalis, sertifikasi kompetensi, organisasi, karya ilmiah, dll."
+                  placeholder="Contoh: Juara 1 kategori aplikasi mobile tingkat kabupaten."
                   rows={3}
+                  maxLength={220}
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
                 />
+                <p className="mt-2 text-xs font-semibold leading-5 text-slate-400">
+                  Boleh dikosongi. Jika diisi, minimal {ACHIEVEMENT_DESC_MIN} karakter dan maksimal 220 karakter.
+                </p>
               </label>
 
               <label className="block md:col-span-2">
@@ -1181,8 +1273,9 @@ export function StudentProfilePanel({
                 {achievementSaving ? "Menyimpan..." : "Simpan Prestasi"}
               </button>
             </div>
-          </form>
-        </div>
+            </form>
+          </div>
+        </StudentModalPortal>
       ) : null}
     </Panel>
   );

@@ -230,7 +230,7 @@ export function AppAlertProvider({ children }: { children: ReactNode }) {
       {children}
 
       {isProcessing && alert && (
-        <div className="fixed inset-0 z-[200] grid place-items-center bg-slate-900/35 px-4">
+        <div className="fixed inset-0 z-[200] grid place-items-center bg-slate-950/58 px-4 backdrop-blur-[4px]">
           <section
             role="status"
             aria-live="polite"

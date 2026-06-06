@@ -1,17 +1,21 @@
-// src/components/layout/DashboardShell.tsx
 
 "use client";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import type React from "react";
+import { createPortal } from "react-dom";
 import {
   clearAuth,
   getStoredUser,
+  persistAuth,
   redirectPathByRole,
   type AuthRole,
 } from "../../lib/auth";
 import { Icon } from "../ui/icons";
+import { getSchoolVerifications, type VerificationRow } from "../../features/admin/api";
+import { apiFetch } from "../../lib/axios";
 
 export type DashboardNavItem = {
   key: string;
@@ -78,61 +82,292 @@ function LogoutModal({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
-  if (!open) return null;
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
 
-  return (
-    <div className="fixed inset-0 z-[90] grid place-items-center px-4 py-6">
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
+  if (!open || typeof document === "undefined") return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[1000] grid place-items-center bg-slate-950/58 p-4 text-slate-950 backdrop-blur-[4px] sm:p-6">
       <button
         type="button"
-        className="absolute inset-0 bg-slate-950/45 backdrop-blur-sm transition-opacity"
+        aria-label="Batal logout"
         onClick={onCancel}
-        aria-label="Tutup modal logout"
+        className="absolute inset-0 cursor-default"
       />
 
-      <div className="relative w-full max-w-md animate-[modalIn_180ms_ease-out] overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-2xl shadow-slate-950/10">
+      <section
+        role="dialog"
+        aria-modal="true"
+        className="relative flex w-full max-w-xl flex-col overflow-hidden rounded-[1.75rem] border border-white/30 bg-white shadow-[0_28px_90px_rgba(15,23,42,0.35)]"
+      >
+        <div className="relative shrink-0 overflow-hidden border-b border-sky-100 bg-gradient-to-r from-[#0b2450] via-[#0d3c70] to-sky-600 px-5 py-5 text-white sm:px-7">
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:32px_32px]" />
+          <div className="relative flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-cyan-100">Konfirmasi Akun</p>
+              <h2 className="mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl">Keluar dari SkillLens?</h2>
+              <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-sky-100/90">
+                Sesi akan diakhiri dan kamu perlu login kembali untuk mengakses dashboard.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white/10 text-white transition hover:bg-white/20"
+              aria-label="Batal logout"
+            >
+              <Icon name="x" className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-slate-50 via-white to-sky-50/40 px-5 py-6 sm:px-7">
+          <div className="w-full rounded-3xl border border-slate-100 bg-white p-6 text-center shadow-sm sm:p-8">
+            <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200">
+              <Icon name="logout" className="h-6 w-6" />
+            </div>
+            <h3 className="mt-5 text-xl font-black tracking-tight text-slate-950">Konfirmasi logout</h3>
+            <p className="mx-auto mt-3 max-w-xl text-sm font-medium leading-7 text-slate-500">
+              Pastikan pekerjaan yang belum tersimpan sudah disimpan sebelum keluar dari akun.
+            </p>
+          </div>
+        </div>
+
+        <div className="border-t border-slate-100 bg-white/95 px-5 py-4 shadow-[0_-12px_30px_rgba(15,23,42,0.06)] sm:px-7">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={onConfirm}
+              className="rounded-2xl bg-rose-600 px-5 py-3 text-sm font-bold text-white shadow-md shadow-rose-600/15 transition hover:bg-rose-700"
+            >
+              Ya, logout
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>,
+    document.body,
+  );
+}
+
+
+function PasswordChangeReminderModal({
+  open,
+  onLater,
+  onChanged,
+}: {
+  open: boolean;
+  onLater: () => void;
+  onChanged: () => void;
+}) {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
+  const checks = [
+    { label: "Minimal 8 karakter", valid: newPassword.length >= 8 },
+    { label: "Huruf besar dan kecil", valid: /[a-z]/.test(newPassword) && /[A-Z]/.test(newPassword) },
+    { label: "Ada angka", valid: /[0-9]/.test(newPassword) },
+    { label: "Ada simbol", valid: /[^A-Za-z0-9]/.test(newPassword) },
+    { label: "Konfirmasi sesuai", valid: !!confirmPassword && newPassword === confirmPassword },
+  ];
+  const passwordReady = checks.every((item) => item.valid);
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+
+    if (!currentPassword) {
+      setError("Isi password lama/default terlebih dahulu.");
+      return;
+    }
+
+    if (!passwordReady) {
+      setError("Password baru belum memenuhi syarat.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const result = await apiFetch<{
+        message?: string;
+        token?: string;
+        user?: {
+          id?: number;
+          id_user?: number;
+          nama: string;
+          email?: string;
+          username: string;
+          role: AuthRole;
+          id_sekolah?: number | null;
+          must_change_password?: boolean;
+        };
+      }>("/auth/change-default-password", {
+        method: "POST",
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword,
+          confirm_password: confirmPassword,
+        }),
+        alert: false,
+        successMessage: false,
+        errorMessage: false,
+      });
+
+      const stored = getStoredUser();
+      const token = result.token || localStorage.getItem("skilllens_token") || "";
+      const nextUser = result.user;
+
+      if (token && (nextUser || stored)) {
+        persistAuth(
+          token,
+          nextUser
+            ? {
+                id: nextUser.id || nextUser.id_user || stored?.id || 0,
+                nama: nextUser.nama,
+                email: nextUser.email,
+                username: nextUser.username,
+                role: nextUser.role,
+                id_sekolah: nextUser.id_sekolah ?? stored?.id_sekolah ?? null,
+                must_change_password: false,
+              }
+            : { ...stored!, must_change_password: false },
+          localStorage.getItem("skilllens_remember") === "true",
+        );
+      }
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      onChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal mengganti password.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (!open || typeof document === "undefined") return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[1000] grid place-items-center bg-slate-950/58 p-4 text-slate-950 backdrop-blur-[4px] sm:p-6">
+      <section
+        role="dialog"
+        aria-modal="true"
+        className="relative w-full max-w-xl overflow-hidden rounded-[1.9rem] border border-white/30 bg-white shadow-[0_28px_90px_rgba(15,23,42,0.35)] animate-[modalIn_220ms_ease-out]"
+      >
         <button
           type="button"
-          onClick={onCancel}
-          className="absolute right-4 top-4 z-10 grid h-9 w-9 place-items-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-950"
-          aria-label="Batal logout"
+          onClick={onLater}
+          className="absolute right-4 top-4 z-10 grid h-10 w-10 place-items-center rounded-2xl bg-white/10 text-white transition hover:bg-white/20"
+          aria-label="Tutup"
         >
           <Icon name="x" className="h-4 w-4" />
         </button>
 
-        <div className="bg-gradient-to-br from-sky-50 via-white to-white px-6 pb-5 pt-6">
-          <div className="grid h-12 w-12 place-items-center rounded-2xl bg-sky-600 text-white shadow-md shadow-sky-600/15">
-            <Icon name="logout" className="h-5 w-5" />
+        <div className="relative overflow-hidden bg-gradient-to-r from-[#0b2450] via-[#0d3c70] to-sky-600 px-6 py-6 text-white">
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:32px_32px]" />
+          <div className="relative">
+            <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-cyan-100">Keamanan Akun</p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight text-white">Ganti password awal</h2>
+            <p className="mt-2 text-sm font-medium leading-6 text-sky-100/90">
+              Akun masih memakai password bawaan. Ubah password agar dashboard bisa dipakai lebih aman.
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={submit} className="space-y-4 px-6 py-6">
+          {error ? (
+            <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+              {error}
+            </div>
+          ) : null}
+
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-bold text-slate-700">Password lama/default</span>
+            <input
+              type={showPassword ? "text" : "password"}
+              value={currentPassword}
+              onChange={(event) => setCurrentPassword(event.target.value)}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none transition focus:border-sky-300 focus:bg-white focus:ring-4 focus:ring-sky-50"
+            />
+          </label>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-bold text-slate-700">Password baru</span>
+              <input
+                type={showPassword ? "text" : "password"}
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none transition focus:border-sky-300 focus:bg-white focus:ring-4 focus:ring-sky-50"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-bold text-slate-700">Konfirmasi password</span>
+              <input
+                type={showPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none transition focus:border-sky-300 focus:bg-white focus:ring-4 focus:ring-sky-50"
+              />
+            </label>
           </div>
 
-          <h2 className="mt-5 text-xl font-black tracking-tight text-slate-950">
-            Keluar dari SkillLens?
-          </h2>
-
-          <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
-            Sesi akan diakhiri dan kamu perlu login kembali untuk mengakses
-            dashboard.
-          </p>
-        </div>
-
-        <div className="grid gap-3 border-t border-slate-100 p-5 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
-          >
-            Batal
+          <button type="button" onClick={() => setShowPassword((value) => !value)} className="text-xs font-black text-sky-700 hover:text-sky-900">
+            {showPassword ? "Sembunyikan password" : "Tampilkan password"}
           </button>
 
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="rounded-2xl bg-rose-600 px-4 py-3 text-sm font-bold text-white shadow-md shadow-rose-600/15 transition hover:bg-rose-700"
-          >
-            Ya, logout
-          </button>
-        </div>
-      </div>
-    </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {checks.map((item) => (
+              <div key={item.label} className={`flex items-center gap-2 rounded-2xl px-3 py-2 text-xs font-bold transition ${item.valid ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100" : "bg-slate-50 text-slate-500 ring-1 ring-slate-100"}`}>
+                <Icon name={item.valid ? "check" : "x"} className="h-3.5 w-3.5" />
+                {item.label}
+              </div>
+            ))}
+          </div>
+
+          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+            <button type="button" onClick={onLater} disabled={loading} className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">
+              Nanti dulu
+            </button>
+            <button type="submit" disabled={loading} className="rounded-2xl bg-sky-600 px-5 py-3 text-sm font-bold text-white shadow-md shadow-sky-600/15 transition hover:bg-sky-700 disabled:opacity-50">
+              {loading ? "Menyimpan..." : "Simpan password"}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>,
+    document.body,
   );
 }
 
@@ -220,6 +455,7 @@ function NavItem({
     return (
       <Link
         href={item.href}
+        prefetch
         onClick={onClick}
         id={`dashboard-nav-${item.key}`}
         className={className}
@@ -258,8 +494,10 @@ export function DashboardShell({
   const [ready, setReady] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [routeSwitching, setRouteSwitching] = useState(false);
+  const [passwordReminderOpen, setPasswordReminderOpen] = useState(false);
   const [storedUser, setStoredUser] =
     useState<ReturnType<typeof getStoredUser>>(null);
+  const [pendingVerifications, setPendingVerifications] = useState<VerificationRow[]>([]);
 
   const pathname = usePathname();
   const router = useRouter();
@@ -283,24 +521,73 @@ export function DashboardShell({
   }, [requiredRole, router]);
 
   useEffect(() => {
+    if (!ready) return;
+
+    const needsPasswordChange =
+      storedUser?.role === "guru" &&
+      Boolean(storedUser?.must_change_password) &&
+      pathname !== "/guru/profil";
+
+    if (needsPasswordChange) {
+      const timeout = window.setTimeout(() => setPasswordReminderOpen(true), 280);
+      return () => window.clearTimeout(timeout);
+    }
+
+    setPasswordReminderOpen(false);
+  }, [pathname, ready, storedUser?.must_change_password, storedUser?.role]);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadPendingVerifications() {
+      if (storedUser?.role !== "admin" && storedUser?.role !== "superadmin") {
+        setPendingVerifications([]);
+        return;
+      }
+
+      try {
+        const rows = await getSchoolVerifications();
+        if (!alive) return;
+        setPendingVerifications(rows.filter((item) => item.status === "pending"));
+      } catch {
+        if (alive) setPendingVerifications([]);
+      }
+    }
+
+    loadPendingVerifications();
+    return () => {
+      alive = false;
+    };
+  }, [storedUser?.role, pathname]);
+
+  useEffect(() => {
     setOpen(false);
 
     const timeout = window.setTimeout(() => {
       setRouteSwitching(false);
-    }, 140);
+    }, 260);
 
     return () => window.clearTimeout(timeout);
   }, [pathname, activeKey]);
 
+  const pendingVerificationCount = pendingVerifications.length;
   const visibleNav = useMemo(
     () =>
-      navItems.filter(
-        (item) =>
-          !item.roles?.length ||
-          (storedUser?.role && item.roles.includes(storedUser.role)),
-      ),
-    [navItems, storedUser?.role],
+      navItems
+        .filter(
+          (item) =>
+            !item.roles?.length ||
+            (storedUser?.role && item.roles.includes(storedUser.role)),
+        )
+        .map((item) =>
+          item.key === "verifikasi" && pendingVerificationCount > 0
+            ? { ...item, badge: String(pendingVerificationCount) }
+            : item,
+        ),
+    [navItems, pendingVerificationCount, storedUser?.role],
   );
+
+  const latestPendingSchools = pendingVerifications.slice(0, 2);
 
   const displayName = userName || storedUser?.nama || "Pengguna";
   const displayLabel = userLabel || roleLabel(storedUser?.role);
@@ -343,7 +630,6 @@ export function DashboardShell({
 
   const sidebar = (
     <aside className="flex h-full min-h-screen w-full flex-col bg-white text-slate-800 shadow-lg">
-      {/* Logo dan nama */}
       <div className="border-b border-slate-200 px-5 py-5">
         <div className="flex items-center gap-3 rounded-2xl p-2">
           <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-600 text-white shadow-md">
@@ -360,7 +646,6 @@ export function DashboardShell({
         </div>
       </div>
 
-      {/* Profil pengguna */}
       <div className="px-5 pt-5">
         <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 shadow-sm transition duration-300 hover:bg-slate-100">
           <div className="flex items-center gap-3">
@@ -379,7 +664,6 @@ export function DashboardShell({
         </div>
       </div>
 
-      {/* Navigasi menu */}
       <nav className="mt-5 flex-1 space-y-1 overflow-y-auto px-4 pb-4">
         {visibleNav.map((item) => (
           <NavItem
@@ -391,7 +675,6 @@ export function DashboardShell({
         ))}
       </nav>
 
-      {/* Tombol logout */}
       <div className="border-t border-slate-200 p-4">
         <button
           type="button"
@@ -484,16 +767,45 @@ export function DashboardShell({
                   </p>
                 )}
                 {rightSlot && <div className="mt-5">{rightSlot}</div>}
+
+                {pendingVerificationCount > 0 && (
+                  <Link
+                    href="/admin/verifikasi"
+                    className="mt-5 flex max-w-3xl flex-col gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 text-left shadow-lg shadow-slate-950/10 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/15 md:flex-row md:items-center md:justify-between"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sky-700 shadow-md shadow-sky-900/10">
+                        <Icon name="clipboard" className="h-5 w-5" />
+                        <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-sky-600 px-1 text-[10px] font-black text-white ring-2 ring-white/40">
+                          {pendingVerificationCount}
+                        </span>
+                      </span>
+                      <div>
+                        <p className="text-sm font-black text-white">
+                          Ada {pendingVerificationCount} pengajuan sekolah menunggu verifikasi
+                        </p>
+                        <p className="mt-1 text-xs font-medium leading-5 text-sky-100/90">
+                          {latestPendingSchools.map((item) => item.school).join(", ")}
+                          {pendingVerificationCount > latestPendingSchools.length ? ` +${pendingVerificationCount - latestPendingSchools.length} lainnya` : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center gap-1 text-xs font-black uppercase tracking-wide text-cyan-100">
+                      Tinjau
+                      <Icon name="chevronRight" className="h-4 w-4" />
+                    </span>
+                  </Link>
+                )}
               </div>
             </header>
 
             <div
               key={`${pathname}-${activeKey}`}
               className={[
-                "transition-all duration-300 ease-out",
+                "transition-all duration-500 ease-out",
                 routeSwitching
                   ? "translate-y-2 opacity-0 blur-[1px]"
-                  : "translate-y-0 opacity-100 blur-0 animate-[contentIn_280ms_ease-out]",
+                  : "translate-y-0 opacity-100 blur-0 animate-[contentIn_380ms_ease-out]",
               ].join(" ")}
             >
               {children}
@@ -501,6 +813,15 @@ export function DashboardShell({
           </div>
         </section>
       </main>
+
+      <PasswordChangeReminderModal
+        open={passwordReminderOpen}
+        onLater={() => setPasswordReminderOpen(false)}
+        onChanged={() => {
+          setPasswordReminderOpen(false);
+          setStoredUser(getStoredUser());
+        }}
+      />
 
       <LogoutModal
         open={logoutOpen}

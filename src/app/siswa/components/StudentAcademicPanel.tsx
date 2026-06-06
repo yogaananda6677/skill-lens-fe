@@ -178,7 +178,6 @@ export function StudentAcademicPanel({
             />
           </div>
 
-          {/* Filter Semester */}
           <div className="mt-6 rounded-2xl border border-sky-100 bg-white/90 p-4 shadow-sm backdrop-blur-sm">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
@@ -210,7 +209,6 @@ export function StudentAcademicPanel({
             </div>
           </div>
 
-          {/* Ringkasan akademik */}
           <div className="mt-4 overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,#08224f_0%,#0a54c7_62%,#39d9ff_100%)] p-5 text-white shadow-xl shadow-sky-700/20 skilllens-gradient-move">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-[2fr_1fr_1fr]">
               <div className="relative overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/10 p-5 backdrop-blur-md">

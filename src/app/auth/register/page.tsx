@@ -13,6 +13,19 @@ import { PublicNavbar } from "../../../components/layout/PublicNavbar";
 import { PreparingOverlay } from "../../../components/ui/PreparingOverlay";
 import { Icon } from "../../../components/ui/icons";
 import { apiFetch } from "../../../lib/axios";
+import {
+  type AvailabilityResponse,
+  type AvailabilityStatus,
+  availabilityMessage,
+  getAvailabilityValue,
+  getPasswordChecks,
+  getPasswordStrength,
+  normalizePhone,
+  validateEmail,
+  validateName,
+  validatePhone,
+  validateUsername,
+} from "../../../lib/form-rules";
 
 type RegisterForm = {
   nama: string;
@@ -24,21 +37,6 @@ type RegisterForm = {
 };
 
 type FormIcon = "user" | "mail" | "phone" | "profile" | "lock";
-type AvailabilityStatus =
-  | "idle"
-  | "checking"
-  | "available"
-  | "unavailable"
-  | "error";
-
-type AvailabilityResponse = {
-  username_available?: boolean;
-  email_available?: boolean;
-  usernameAvailable?: boolean;
-  emailAvailable?: boolean;
-  message?: string;
-};
-
 const initialForm: RegisterForm = {
   nama: "",
   email: "",
@@ -66,109 +64,18 @@ const registerSteps = [
   },
 ];
 
-function normalizePhone(value: string) {
-  return value.replace(/[\s\-().]/g, "");
-}
-
-function isValidEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value);
-}
-
-function validateName(value: string) {
-  const clean = value.trim();
-  if (!clean) return "Nama lengkap wajib diisi.";
-  if (clean.length < 3) return "Nama minimal 3 karakter.";
-  if (clean.length > 80) return "Nama maksimal 80 karakter.";
-  if (!/^[A-Za-zÀ-ÿ\s.'-]+$/.test(clean))
-    return "Nama hanya boleh berisi huruf, spasi, titik, petik, atau tanda hubung.";
-  return "";
-}
-
-function validateEmail(value: string) {
-  const clean = value.trim().toLowerCase();
-  if (!clean) return "Email wajib diisi.";
-  if (clean.length > 120) return "Email maksimal 120 karakter.";
-  if (!isValidEmail(clean))
-    return "Format email tidak valid. Contoh: admin@sekolah.sch.id";
-  return "";
-}
-
-function validatePhone(value: string) {
-  const clean = normalizePhone(value.trim());
-  const digitOnly = clean.replace(/^\+/, "");
-  if (!clean) return "Nomor HP wajib diisi.";
-  if (!/^(\+62|62|08)[0-9]+$/.test(clean))
-    return "Nomor HP harus diawali 08, 62, atau +62.";
-  if (!/^[0-9]+$/.test(digitOnly)) return "Nomor HP hanya boleh berisi angka.";
-  if (digitOnly.length < 10) return "Nomor HP terlalu pendek, minimal 10 digit.";
-  if (digitOnly.length > 15) return "Nomor HP terlalu panjang, maksimal 15 digit.";
-  return "";
-}
-
-function validateUsername(value: string) {
-  const clean = value.trim().toLowerCase();
-  if (!clean) return "Username wajib diisi.";
-  if (clean.length < 5) return "Username minimal 5 karakter.";
-  if (clean.length > 24) return "Username maksimal 24 karakter.";
-  if (!/^[a-z]/.test(clean)) return "Username harus diawali huruf.";
-  if (!/[0-9]/.test(clean)) return "Username harus memiliki minimal 1 angka.";
-  if (!/^[a-z0-9._]+$/.test(clean))
-    return "Username hanya boleh huruf kecil, angka, titik, dan underscore.";
-  if (/[._]{2,}/.test(clean))
-    return "Username tidak boleh memakai titik/underscore berurutan.";
-  if (/[._]$/.test(clean))
-    return "Username tidak boleh diakhiri titik atau underscore.";
-  return "";
-}
-
-function getPasswordChecks(
-  password: string,
-  username: string,
-  email: string,
-  nama: string
-) {
-  const lowerPassword = password.toLowerCase();
-  const usernameClean = username.trim().toLowerCase();
-  const emailName = email.split("@")[0]?.toLowerCase() || "";
-  const firstName = nama.trim().split(/\s+/)[0]?.toLowerCase() || "";
-  return [
-    { label: "Minimal 8 karakter", valid: password.length >= 8 },
-    { label: "Mengandung huruf kecil", valid: /[a-z]/.test(password) },
-    { label: "Mengandung huruf besar", valid: /[A-Z]/.test(password) },
-    { label: "Mengandung angka", valid: /[0-9]/.test(password) },
-    { label: "Mengandung simbol", valid: /[^A-Za-z0-9]/.test(password) },
-    { label: "Tidak mengandung spasi", valid: password.length > 0 && !/\s/.test(password) },
-    {
-      label: "Tidak mirip username/email/nama",
-      valid:
-        password.length > 0 &&
-        (!usernameClean || !lowerPassword.includes(usernameClean)) &&
-        (!emailName || !lowerPassword.includes(emailName)) &&
-        (!firstName || !lowerPassword.includes(firstName)),
-    },
-  ];
-}
-
-function passwordStrengthInfo(score: number) {
-  if (score <= 2) return { label: "Lemah", bar: "bg-rose-500", text: "text-rose-400" };
-  if (score <= 4) return { label: "Cukup", bar: "bg-amber-500", text: "text-amber-400" };
-  if (score <= 6) return { label: "Baik", bar: "bg-blue-500", text: "text-blue-400" };
-  return { label: "Sangat aman", bar: "bg-emerald-500", text: "text-emerald-400" };
-}
-
 function validateForm(form: RegisterForm) {
-  const passwordChecks = getPasswordChecks(
-    form.password,
-    form.username,
-    form.email,
-    form.nama
-  );
+  const passwordChecks = getPasswordChecks(form.password, {
+    username: form.username,
+    email: form.email,
+    name: form.nama,
+  });
   const passwordScore = passwordChecks.filter((item) => item.valid).length;
   const errors = {
     nama: validateName(form.nama),
-    email: validateEmail(form.email),
-    no_hp: validatePhone(form.no_hp),
-    username: validateUsername(form.username),
+    email: validateEmail(form.email, "admin@sekolah.sch.id"),
+    no_hp: validatePhone(form.no_hp, { required: true }),
+    username: validateUsername(form.username, { requireNumber: true }),
     password: "",
     password_confirmation: "",
   };
@@ -186,7 +93,7 @@ function validateForm(form: RegisterForm) {
     errors,
     passwordChecks,
     passwordScore,
-    strength: passwordStrengthInfo(passwordScore),
+    strength: getPasswordStrength(passwordScore, passwordChecks.length),
     isValid:
       !errors.nama &&
       !errors.email &&
@@ -307,8 +214,7 @@ export default function RegisterPage() {
           `/auth/check-availability?username=${encodeURIComponent(usernameClean)}`,
           { method: "GET", skipAuth: true }
         );
-        const available = result.username_available ?? result.usernameAvailable ?? false;
-        setUsernameStatus(available ? "available" : "unavailable");
+        setUsernameStatus(getAvailabilityValue(result, "username") ? "available" : "unavailable");
       } catch {
         setUsernameStatus("error");
       }
@@ -328,8 +234,7 @@ export default function RegisterPage() {
           `/auth/check-availability?email=${encodeURIComponent(emailClean)}`,
           { method: "GET", skipAuth: true }
         );
-        const available = result.email_available ?? result.emailAvailable ?? false;
-        setEmailStatus(available ? "available" : "unavailable");
+        setEmailStatus(getAvailabilityValue(result, "email") ? "available" : "unavailable");
       } catch {
         setEmailStatus("error");
       }
@@ -349,20 +254,12 @@ export default function RegisterPage() {
 
   function getUsernameStatus() {
     if (!touched.username || validation.errors.username) return {};
-    if (usernameStatus === "checking") return { loading: "Mengecek username..." };
-    if (usernameStatus === "available") return { success: "Username tersedia." };
-    if (usernameStatus === "unavailable") return { error: "Username sudah digunakan." };
-    if (usernameStatus === "error") return { error: "Gagal mengecek username." };
-    return {};
+    return availabilityMessage(usernameStatus, "username");
   }
 
   function getEmailStatus() {
     if (!touched.email || validation.errors.email) return {};
-    if (emailStatus === "checking") return { loading: "Mengecek email..." };
-    if (emailStatus === "available") return { success: "Email tersedia." };
-    if (emailStatus === "unavailable") return { error: "Email sudah digunakan." };
-    if (emailStatus === "error") return { error: "Gagal mengecek email." };
-    return {};
+    return availabilityMessage(emailStatus, "email");
   }
 
   const hasAvailabilityProblem =
@@ -454,7 +351,6 @@ export default function RegisterPage() {
 
       <section className="relative z-10 mx-auto flex min-h-screen w-[min(1080px,calc(100%-32px))] items-center justify-center pb-12 pt-32">
         <div className="grid w-full overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.08] shadow-2xl shadow-black/30 backdrop-blur-xl lg:grid-cols-[0.92fr_1.08fr]">
-          {/* Left side - Informasi pendaftaran */}
           <aside className="relative hidden border-r border-white/10 p-8 lg:block">
             <div className="absolute -left-16 -top-16 h-52 w-52 rounded-full bg-cyan-300/20 blur-3xl" />
             <div className="relative flex h-full flex-col justify-between">
@@ -497,7 +393,6 @@ export default function RegisterPage() {
             </div>
           </aside>
 
-          {/* Right side - Form pendaftaran */}
           <section className="relative p-6 md:p-8 lg:p-10">
             <div className="absolute -right-20 -top-20 h-52 w-52 rounded-full bg-cyan-300/20 blur-3xl" />
             <div className="relative mx-auto max-w-md">
@@ -596,7 +491,6 @@ export default function RegisterPage() {
                   />
                 </div>
 
-                {/* Bagian keamanan password (hanya satu) */}
                 <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4">
                   <div className="mb-3 flex items-center justify-between text-xs font-medium text-slate-300">
                     <span>Keamanan password</span>

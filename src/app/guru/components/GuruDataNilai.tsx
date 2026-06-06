@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { TableSkeleton } from "@/components/ui/LoadingSkeleton";
 
 import { apiFetch } from "../../../lib/axios";
 import { getGuidanceCases, type GuidanceCase } from "../../../features/guru/api";
@@ -193,10 +194,7 @@ export function GuruDataNilai() {
         </div>
 
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white/70 py-14">
-            <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600" />
-            <p className="mt-3 text-sm font-medium text-slate-500">Memuat data siswa dan nilai...</p>
-          </div>
+          <TableSkeleton rows={6} columns={6} />
         ) : (
           <>
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/70">

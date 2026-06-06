@@ -5,6 +5,7 @@ import type React from "react";
 
 import { DashboardShell } from "../../components/layout/DashboardShell";
 import { FeedbackModal } from "../../components/ui/FeedbackModal";
+import { PageSkeleton } from "../../components/ui/LoadingSkeleton";
 import { adminSekolahNav } from "../../config/navigation";
 import { apiFetch } from "../../lib/axios";
 import { uploadWithProgress, type UploadProgressState } from "../../lib/upload";
@@ -24,6 +25,7 @@ import { LockedFeatureCard } from "./components/AdminSchoolShared";
 import { initialSchoolForm, initialTeacherForm } from "./constants";
 
 import {
+  buildTeacherUsername,
   cleanPhone,
   hasErrors,
   validateSchool,
@@ -66,6 +68,7 @@ export default function AdminSekolahPage() {
   const [teacherSearch, setTeacherSearch] = useState("");
   const [teacherRoleFilter, setTeacherRoleFilter] = useState("semua");
   const [teacherModalOpen, setTeacherModalOpen] = useState(false);
+  const [teacherUsernameEdited, setTeacherUsernameEdited] = useState(false);
 
   const [jurusanRows, setJurusanRows] = useState<JurusanRow[]>([]);
   const [jurusanName, setJurusanName] = useState("");
@@ -281,14 +284,43 @@ export default function AdminSekolahPage() {
   }
 
   function updateTeacher(key: keyof TeacherForm, value: string) {
-    const nextValue =
-      key === "username" || key === "email" ? value.toLowerCase() : value;
+    let nextValue = value;
 
-    setTeacherForm((current) => ({ ...current, [key]: nextValue }));
+    if (key === "email") {
+      nextValue = value.trim().toLowerCase();
+    } else if (key === "username") {
+      nextValue = value
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9._]/g, "")
+        .replace(/[._]{2,}/g, ".")
+        .slice(0, 24);
+      setTeacherUsernameEdited(true);
+    } else if (key === "nip") {
+      nextValue = value.replace(/\D/g, "").slice(0, 40);
+    } else if (key === "no_hp") {
+      nextValue = value.replace(/[^\d+]/g, "").replace(/(?!^)\+/g, "").slice(0, 16);
+    } else if (key === "nama") {
+      nextValue = value.replace(/[<>]/g, "").slice(0, 80);
+    }
+
+    setTeacherForm((current) => {
+      const next = { ...current, [key]: nextValue };
+
+      if ((key === "nama" || key === "nip") && !teacherUsernameEdited) {
+        next.username = buildTeacherUsername({
+          nama: key === "nama" ? nextValue : current.nama,
+          nip: key === "nip" ? nextValue : current.nip,
+        });
+      }
+
+      return next;
+    });
   }
 
   function openCreateTeacher() {
     setTeacherForm(initialTeacherForm);
+    setTeacherUsernameEdited(false);
     setTeacherTouched(false);
     setTeacherError("");
     setTeacherMessage("");
@@ -332,9 +364,6 @@ export default function AdminSekolahPage() {
       setSchoolForm(initialSchoolForm);
       setSchoolTouched(false);
 
-      // Jangan pindah halaman dan jangan buka FeedbackModal di sini.
-      // Komponen AdminSchoolDataSekolah sudah punya modal proses/sukses sendiri,
-      // sehingga tampilan pengajuan tidak bentrok atau hilang terlalu cepat.
       await loadSchoolStatus();
     } catch (err) {
       setSchoolError(
@@ -481,7 +510,6 @@ export default function AdminSekolahPage() {
     formData.append("file", selectedFile);
     formData.append("jenis_sekolah", isSma ? "SMA" : "SMK");
 
-    // Mode baru: 1 file Excel multi-sheet
     formData.append("multi_semester", "true");
     if (!isSma && !importJurusanId) {
       setImportError("Pilih jurusan SMK terlebih dahulu sebelum import nilai.");
@@ -557,25 +585,7 @@ export default function AdminSekolahPage() {
 
   function renderContent() {
     if (loadingStatus) {
-      return (
-        <div className="relative overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-br from-white via-cyan-50/45 to-sky-50/70 p-8 text-center shadow-sm shadow-sky-100/60">
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(14,165,233,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(14,165,233,0.04)_1px,transparent_1px)] bg-[size:34px_34px]" />
-          <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-cyan-200/25 blur-3xl" />
-          <div className="pointer-events-none absolute -left-20 bottom-0 h-44 w-44 rounded-full bg-sky-200/20 blur-3xl" />
-
-          <div className="relative mx-auto grid h-14 w-14 place-items-center rounded-3xl border border-sky-100 bg-white text-sky-700 shadow-sm shadow-sky-100/60">
-            <div className="h-7 w-7 animate-spin rounded-full border-[3px] border-sky-200 border-t-sky-700" />
-          </div>
-
-          <h2 className="relative mt-5 text-xl font-black tracking-tight text-slate-950">
-            Memuat dashboard admin sekolah
-          </h2>
-
-          <p className="relative mt-2 text-sm font-medium leading-6 text-slate-600">
-            Mohon tunggu, sistem sedang mengambil status sekolah dan data awal.
-          </p>
-        </div>
-      );
+      return <PageSkeleton title stats />;
     }
 
     if (active === "sekolah") {
