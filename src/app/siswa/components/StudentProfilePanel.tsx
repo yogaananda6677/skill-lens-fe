@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "../../../components/ui/icons";
 import {
@@ -231,8 +231,8 @@ function ChoiceWizardStep({
   const maxReached = config.selected.length >= config.maximum;
 
   return (
-    <div key={config.id} className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_270px] skilllens-page-enter">
-      <div className="relative overflow-hidden rounded-[1.8rem] p-4 shadow-xl shadow-sky-950/7 skilllens-smooth-card">
+    <div key={config.id} className="mt-5 grid gap-4 lg:mt-6 lg:grid-cols-[minmax(0,1fr)_270px] skilllens-page-enter">
+      <div className="relative overflow-hidden rounded-[1.35rem] p-3 shadow-xl shadow-sky-950/7 skilllens-smooth-card sm:rounded-[1.8rem] sm:p-4">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#08224f_0%,#0a54c7_58%,#39d9ff_100%)]" />
         <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-cyan-200/35 blur-3xl" />
         <div className="relative">
@@ -254,7 +254,7 @@ function ChoiceWizardStep({
           </span>
         </div>
 
-        <div className="mt-5 rounded-3xl border border-sky-100 bg-[linear-gradient(180deg,#ffffff_0%,#edf8ff_100%)] p-3 shadow-sm shadow-sky-950/5 ring-1 ring-sky-50 backdrop-blur">
+        <div className="mt-4 rounded-[1.35rem] border border-sky-100 bg-[linear-gradient(180deg,#ffffff_0%,#edf8ff_100%)] p-3 shadow-sm shadow-sky-950/5 ring-1 ring-sky-50 backdrop-blur sm:mt-5 sm:rounded-3xl">
           <label className="relative block">
             <Icon name="search" className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
@@ -265,13 +265,13 @@ function ChoiceWizardStep({
             />
           </label>
 
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
             {config.suggestions.map((suggestion) => (
               <button
                 key={suggestion}
                 type="button"
                 onClick={() => handleSearch(suggestion)}
-                className={`rounded-full px-3 py-1.5 text-xs font-bold ring-1 skilllens-smooth hover:-translate-y-0.5 ${accent.button}`}
+                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ring-1 skilllens-smooth hover:-translate-y-0.5 ${accent.button}`}
               >
                 {suggestion}
               </button>
@@ -316,7 +316,7 @@ function ChoiceWizardStep({
           <span>Pilih minimal {config.minimum} dan maksimal {config.maximum}</span>
         </div>
 
-        <div className="mt-3 grid max-h-[430px] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3 skilllens-page-enter">
+        <div className="mt-3 grid max-h-[55vh] gap-2 overflow-y-auto pr-1 sm:max-h-[430px] sm:grid-cols-2 xl:grid-cols-3 skilllens-page-enter">
           {visibleOptions.map((option) => {
             const active = config.selected.includes(option);
             const disabled = !active && maxReached;
@@ -382,7 +382,7 @@ function ChoiceWizardStep({
         </div>
       </div>
 
-      <aside className="relative overflow-hidden rounded-[1.8rem] border border-sky-200/80 bg-[linear-gradient(180deg,#f0faff_0%,#ffffff_58%,#eef8ff_100%)] p-5 shadow-xl shadow-sky-950/7 ring-1 ring-sky-50 backdrop-blur-md skilllens-smooth-card">
+      <aside className="relative overflow-hidden rounded-[1.35rem] border border-sky-200/80 bg-[linear-gradient(180deg,#f0faff_0%,#ffffff_58%,#eef8ff_100%)] p-4 shadow-xl shadow-sky-950/7 ring-1 ring-sky-50 backdrop-blur-md skilllens-smooth-card sm:rounded-[1.8rem] sm:p-5">
         <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-cyan-200/35 blur-3xl" />
         <div className="relative">
         <div className={`grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br ${accent.gradient} text-white shadow-lg shadow-slate-950/20`}>
@@ -629,7 +629,24 @@ function AchievementStep({
 
 
 function StudentModalPortal({ children }: { children: ReactNode }) {
-  if (typeof document === "undefined") return null;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mounted]);
+
+  if (!mounted || typeof document === "undefined") return null;
 
   return createPortal(children, document.body);
 }
@@ -954,7 +971,7 @@ export function StudentProfilePanel({
         </span>
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-[1.7rem] border border-sky-200 bg-white p-4 shadow-xl shadow-sky-950/5 ring-1 ring-sky-50 backdrop-blur skilllens-fade-slide">
+      <div className="mt-5 overflow-hidden rounded-[1.35rem] border border-sky-200 bg-white p-3 shadow-xl shadow-sky-950/5 ring-1 ring-sky-50 backdrop-blur skilllens-fade-slide sm:mt-6 sm:rounded-[1.7rem] sm:p-4">
         <div className="-mx-4 -mt-4 mb-4 h-1 bg-[linear-gradient(90deg,#08224f_0%,#0a54c7_58%,#39d9ff_100%)]" />        
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
@@ -985,7 +1002,7 @@ export function StudentProfilePanel({
           />
         </div>
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-3 xl:grid-cols-6">
+        <div className="mt-4 flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0 xl:grid-cols-6">
           {steps.map((step, index) => {
             const active = step.id === activeStep;
             const done = stepIsFilled(step.id) || index < currentStepIndex;
@@ -996,7 +1013,7 @@ export function StudentProfilePanel({
                 key={step.id}
                 type="button"
                 onClick={() => setActiveStep(step.id)}
-                className={`rounded-2xl border p-3 text-left skilllens-smooth hover:-translate-y-1 ${
+                className={`min-w-[132px] rounded-2xl border p-3 text-left skilllens-smooth hover:-translate-y-1 sm:min-w-0 ${
                   active
                     ? "border-sky-300 bg-[linear-gradient(180deg,#ffffff_0%,#e8f6ff_100%)] text-sky-800 shadow-md shadow-sky-950/7"
                     : done
@@ -1039,7 +1056,7 @@ export function StudentProfilePanel({
         <GoalStep profile={profile} onChangeProfile={onChangeProfile} />
       )}
 
-      <div className="mt-6 flex flex-col gap-3 rounded-[1.6rem] border border-sky-200 bg-white p-4 shadow-lg shadow-sky-950/5 ring-1 ring-sky-50 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+      <div className="sticky bottom-3 z-20 mt-6 flex flex-col gap-3 rounded-[1.35rem] border border-sky-200 bg-white/95 p-3 shadow-2xl shadow-sky-950/10 ring-1 ring-sky-50 backdrop-blur sm:static sm:rounded-[1.6rem] sm:p-4 sm:shadow-lg sm:flex-row sm:items-center sm:justify-between">
         <button
           type="button"
           onClick={goBack}
@@ -1088,7 +1105,7 @@ export function StudentProfilePanel({
 
       {deleteAchievementTarget ? (
         <StudentModalPortal>
-          <div className="fixed inset-0 z-[240] grid place-items-center bg-slate-950/58 px-4 py-6 backdrop-blur-[4px]">
+          <div className="fixed inset-0 z-[1240] grid place-items-center bg-slate-950/58 px-4 py-6 backdrop-blur-[4px]">
             <button
               type="button"
               onClick={() => (achievementSaving ? undefined : setDeleteAchievementTarget(null))}
@@ -1131,10 +1148,10 @@ export function StudentProfilePanel({
 
       {achievementModalOpen ? (
         <StudentModalPortal>
-          <div className="fixed inset-0 z-[230] flex items-center justify-center bg-slate-950/58 px-4 py-6 backdrop-blur-[4px]">
+          <div className="fixed inset-0 z-[1230] flex items-center justify-center bg-slate-950/58 px-4 py-6 backdrop-blur-[4px]">
             <form
               onSubmit={submitAchievement}
-              className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-[1.9rem] bg-white/[0.96] p-6 shadow-2xl skilllens-page-enter"
+              className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-[1.45rem] bg-white/[0.98] p-4 shadow-2xl skilllens-page-enter sm:rounded-[1.9rem] sm:p-6"
             >
             <div className="flex items-start justify-between gap-4">
               <div>

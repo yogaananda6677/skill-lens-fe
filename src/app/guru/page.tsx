@@ -346,7 +346,7 @@ export default function GuruDashboardPage() {
                 {notificationCases.map((item) => (
                   <Link
                     key={`notif-${item.id}`}
-                    href={`/guru/siswa/${item.studentId}/progress`}
+                    href={`/guru/siswa/progress-detail?id=${item.studentId}`}
                     className="group relative overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-br from-white via-cyan-50/30 to-sky-50/60 p-5 shadow-sm shadow-sky-100/50 transition hover:-translate-y-0.5 hover:shadow-md"
                   >
                     <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#0b2450] via-sky-500 to-cyan-300 opacity-80" />
@@ -477,7 +477,7 @@ export default function GuruDashboardPage() {
                       </td>
                       <td className="px-5 py-4 text-right">
                         <Link
-                          href={`/guru/siswa/${item.studentId}/progress`}
+                          href={`/guru/siswa/progress-detail?id=${item.studentId}`}
                           className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-3 py-2 text-xs font-extrabold text-white shadow-md shadow-sky-600/20 transition hover:-translate-y-0.5"
                         >
                           Detail

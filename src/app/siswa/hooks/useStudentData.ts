@@ -47,6 +47,7 @@ function preserveStudentProfileDraft(loaded: StudentProfileForm, draft: StudentP
 
 const FIRST_PREPARING_SESSION_KEY = "skilllens_student_preparing_seen";
 const MIN_FIRST_PREPARING_TIME = 800;
+const STUDENT_SESSION_CACHE_TTL = 5 * 60_000;
 
 type LoadedStudent = {
   cacheKey: string;
@@ -76,6 +77,45 @@ function getStudentCacheKey() {
   ].join(":");
 }
 
+function studentSessionCacheKey(cacheKey: string) {
+  return `skilllens_student_data_cache:${cacheKey}`;
+}
+
+function readStudentSessionCache(cacheKey: string): LoadedStudent | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.sessionStorage.getItem(studentSessionCacheKey(cacheKey));
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as { savedAt?: number; value?: LoadedStudent };
+    if (!parsed?.savedAt || Date.now() - parsed.savedAt > STUDENT_SESSION_CACHE_TTL) return null;
+    if (!parsed.value?.data || !parsed.value?.profile) return null;
+
+    return { ...parsed.value, cacheKey };
+  } catch {
+    return null;
+  }
+}
+
+function writeStudentSessionCache(value: LoadedStudent | null) {
+  if (typeof window === "undefined" || !value) return;
+
+  try {
+    window.sessionStorage.setItem(
+      studentSessionCacheKey(value.cacheKey),
+      JSON.stringify({ savedAt: Date.now(), value }),
+    );
+  } catch {
+    // Abaikan ketika storage penuh/private mode.
+  }
+}
+
+function setCachedStudent(value: LoadedStudent | null) {
+  cachedStudent = value;
+  writeStudentSessionCache(value);
+}
+
 function getCachedStudentForCurrentUser() {
   const cacheKey = getStudentCacheKey();
 
@@ -84,7 +124,15 @@ function getCachedStudentForCurrentUser() {
     return null;
   }
 
-  return cachedStudent;
+  if (cachedStudent) return cachedStudent;
+
+  const stored = readStudentSessionCache(cacheKey);
+  if (stored) {
+    cachedStudent = stored;
+    return stored;
+  }
+
+  return null;
 }
 
 function shouldUsePreparingDelay() {
@@ -139,7 +187,7 @@ async function requestStudent(force = false) {
         prestasiRows: normalizeStudentAchievements(data),
       };
 
-      cachedStudent = loaded;
+      setCachedStudent(loaded);
       return loaded;
     })
     .finally(() => {
@@ -151,9 +199,14 @@ async function requestStudent(force = false) {
 }
 
 export function resetStudentDataCache() {
+  const cacheKey = getStudentCacheKey();
   cachedStudent = null;
   pendingStudentRequest = null;
   pendingStudentCacheKey = "";
+
+  if (typeof window !== "undefined") {
+    window.sessionStorage.removeItem(studentSessionCacheKey(cacheKey));
+  }
 }
 
 export function useStudentData() {
@@ -202,7 +255,7 @@ export function useStudentData() {
         const cache = getCachedStudentForCurrentUser();
 
         if (cache) {
-          cachedStudent = { ...cache, profile: nextProfile, data: loaded.data, prestasiRows: loaded.prestasiRows };
+          setCachedStudent({ ...cache, profile: nextProfile, data: loaded.data, prestasiRows: loaded.prestasiRows });
         }
 
         return nextProfile;
@@ -264,7 +317,7 @@ export function useStudentData() {
       const cache = getCachedStudentForCurrentUser();
 
       if (cache && next) {
-        cachedStudent = { ...cache, data: next };
+        setCachedStudent({ ...cache, data: next });
       }
 
       return next;
@@ -279,7 +332,7 @@ export function useStudentData() {
         const cache = getCachedStudentForCurrentUser();
 
         if (cache) {
-          cachedStudent = { ...cache, profile: next };
+          setCachedStudent({ ...cache, profile: next });
         }
 
         return next;

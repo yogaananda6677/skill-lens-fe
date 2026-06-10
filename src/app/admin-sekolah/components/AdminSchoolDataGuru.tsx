@@ -11,12 +11,9 @@ import {
   getAvailabilityValue,
 } from "../../../lib/form-rules";
 import { jabatanOptions } from "../constants";
+import { AdminSchoolModalPortal } from "./AdminSchoolModalPortal";
 import type { FieldErrors, TeacherForm, TeacherRow } from "../types";
-import {
-  Field,
-  StatusMessage,
-  getInitials,
-} from "./AdminSchoolShared";
+import { Field, StatusMessage, getInitials } from "./AdminSchoolShared";
 
 const TEACHER_ITEMS_PER_PAGE = 10;
 
@@ -152,11 +149,7 @@ function TeacherStatusBadge({ status }: { status?: string | null }) {
 function getTeacherId(teacher: TeacherRow) {
   const record = teacher as unknown as Record<string, unknown>;
   return String(
-    record.id_guru ??
-      record.id_teacher ??
-      record.id_user ??
-      record.id ??
-      "",
+    record.id_guru ?? record.id_teacher ?? record.id_user ?? record.id ?? "",
   );
 }
 
@@ -259,7 +252,8 @@ export function AdminSchoolDataGuru({
   ).length;
 
   const [emailStatus, setEmailStatus] = useState<AvailabilityStatus>("idle");
-  const [usernameStatus, setUsernameStatus] = useState<AvailabilityStatus>("idle");
+  const [usernameStatus, setUsernameStatus] =
+    useState<AvailabilityStatus>("idle");
   const [editingTeacher, setEditingTeacher] = useState<TeacherRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TeacherRow | null>(null);
   const [savingTeacherAction, setSavingTeacherAction] = useState(false);
@@ -292,12 +286,17 @@ export function AdminSchoolDataGuru({
     const timeout = window.setTimeout(async () => {
       setEmailStatus("checking");
       try {
-        const result = await apiFetch<AvailabilityResponse>(`/auth/check-availability?email=${encodeURIComponent(email)}`, {
-          method: "GET",
-          alert: false,
-        });
+        const result = await apiFetch<AvailabilityResponse>(
+          `/auth/check-availability?email=${encodeURIComponent(email)}`,
+          {
+            method: "GET",
+            alert: false,
+          },
+        );
         if (!alive) return;
-        setEmailStatus(getAvailabilityValue(result, "email") ? "available" : "unavailable");
+        setEmailStatus(
+          getAvailabilityValue(result, "email") ? "available" : "unavailable",
+        );
       } catch {
         if (alive) setEmailStatus("error");
       }
@@ -321,12 +320,19 @@ export function AdminSchoolDataGuru({
     const timeout = window.setTimeout(async () => {
       setUsernameStatus("checking");
       try {
-        const result = await apiFetch<AvailabilityResponse>(`/auth/check-availability?username=${encodeURIComponent(username)}`, {
-          method: "GET",
-          alert: false,
-        });
+        const result = await apiFetch<AvailabilityResponse>(
+          `/auth/check-availability?username=${encodeURIComponent(username)}`,
+          {
+            method: "GET",
+            alert: false,
+          },
+        );
         if (!alive) return;
-        setUsernameStatus(getAvailabilityValue(result, "username") ? "available" : "unavailable");
+        setUsernameStatus(
+          getAvailabilityValue(result, "username")
+            ? "available"
+            : "unavailable",
+        );
       } catch {
         if (alive) setUsernameStatus("error");
       }
@@ -338,10 +344,20 @@ export function AdminSchoolDataGuru({
     };
   }, [isEditMode, teacherForm.username, teacherModalOpen, usernameLocalError]);
 
-  const emailHint = useMemo(() => availabilityMessage(emailStatus, "email"), [emailStatus]);
-  const usernameHint = useMemo(() => availabilityMessage(usernameStatus, "username"), [usernameStatus]);
-  const isCheckingIdentity = !isEditMode && (emailStatus === "checking" || usernameStatus === "checking");
-  const isIdentityUnavailable = !isEditMode && (emailStatus === "unavailable" || usernameStatus === "unavailable");
+  const emailHint = useMemo(
+    () => availabilityMessage(emailStatus, "email"),
+    [emailStatus],
+  );
+  const usernameHint = useMemo(
+    () => availabilityMessage(usernameStatus, "username"),
+    [usernameStatus],
+  );
+  const isCheckingIdentity =
+    !isEditMode &&
+    (emailStatus === "checking" || usernameStatus === "checking");
+  const isIdentityUnavailable =
+    !isEditMode &&
+    (emailStatus === "unavailable" || usernameStatus === "unavailable");
 
   const totalTeacherPages = Math.max(
     1,
@@ -620,7 +636,10 @@ export function AdminSchoolDataGuru({
               <tbody className="divide-y divide-slate-100">
                 {filteredTeachers.length > 0 ? (
                   paginatedTeachers.map((teacher) => (
-                    <tr key={getTeacherId(teacher) || teacher.id} className="transition hover:bg-sky-50/50">
+                    <tr
+                      key={getTeacherId(teacher) || teacher.id}
+                      className="transition hover:bg-sky-50/50"
+                    >
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sm font-black text-sky-700 ring-1 ring-sky-200/70">
@@ -712,370 +731,378 @@ export function AdminSchoolDataGuru({
             </table>
           </div>
 
-          {!loadingTeacher && filteredTeachers.length > TEACHER_ITEMS_PER_PAGE && (
-            <div className="flex flex-col items-center gap-3 border-t border-sky-100 bg-gradient-to-r from-white via-cyan-50/35 to-sky-50/60 px-5 py-4 sm:flex-row sm:justify-between">
-              <p className="text-xs font-semibold text-slate-500 sm:text-sm">
-                Menampilkan {visibleStartNumber} - {visibleEndNumber} dari{" "}
-                {filteredTeachers.length} guru
-              </p>
+          {!loadingTeacher &&
+            filteredTeachers.length > TEACHER_ITEMS_PER_PAGE && (
+              <div className="flex flex-col items-center gap-3 border-t border-sky-100 bg-gradient-to-r from-white via-cyan-50/35 to-sky-50/60 px-5 py-4 sm:flex-row sm:justify-between">
+                <p className="text-xs font-semibold text-slate-500 sm:text-sm">
+                  Menampilkan {visibleStartNumber} - {visibleEndNumber} dari{" "}
+                  {filteredTeachers.length} guru
+                </p>
 
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => goToTeacherPage(currentPage - 1)}
-                  disabled={currentPage <= 1}
-                  className="inline-flex min-w-[108px] items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45"
-                >
-                  Sebelumnya
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => goToTeacherPage(currentPage - 1)}
+                    disabled={currentPage <= 1}
+                    className="inline-flex min-w-[108px] items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    Sebelumnya
+                  </button>
 
-                <span className="inline-flex min-w-[78px] justify-center rounded-2xl border border-sky-100 bg-sky-50 px-4 py-2.5 text-sm font-black text-sky-700 shadow-sm shadow-sky-100/70">
-                  {currentPage} / {totalTeacherPages}
-                </span>
+                  <span className="inline-flex min-w-[78px] justify-center rounded-2xl border border-sky-100 bg-sky-50 px-4 py-2.5 text-sm font-black text-sky-700 shadow-sm shadow-sky-100/70">
+                    {currentPage} / {totalTeacherPages}
+                  </span>
 
-                <button
-                  type="button"
-                  onClick={() => goToTeacherPage(currentPage + 1)}
-                  disabled={currentPage >= totalTeacherPages}
-                  className="inline-flex min-w-[108px] items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45"
-                >
-                  Berikutnya
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => goToTeacherPage(currentPage + 1)}
+                    disabled={currentPage >= totalTeacherPages}
+                    className="inline-flex min-w-[108px] items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    Berikutnya
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
         </section>
       </div>
 
       {teacherModalOpen && (
-        <div className="fixed inset-0 z-[80] grid place-items-center bg-slate-950/35 px-4 py-6 backdrop-blur-[3px]">
-          <button
-            type="button"
-            className="absolute inset-0 cursor-default"
-            onClick={closeTeacherModal}
-            aria-label="Tutup modal guru"
-            disabled={loadingTeacher || savingTeacherAction}
-          />
+        <AdminSchoolModalPortal>
+          <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/50 px-4 py-5 backdrop-blur-[3px] sm:py-6">
+            <button
+              type="button"
+              className="absolute inset-0 cursor-default"
+              onClick={closeTeacherModal}
+              aria-label="Tutup modal guru"
+              disabled={loadingTeacher || savingTeacherAction}
+            />
 
-          <form
-            onSubmit={handleSubmitTeacher}
-            className="relative flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-[1.7rem] border border-sky-100 bg-white shadow-2xl shadow-slate-950/20"
-          >
-            <div className="relative overflow-hidden border-b border-sky-100 bg-gradient-to-br from-white via-cyan-50/45 to-sky-50/70 px-6 py-5 text-slate-900">
-              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(14,165,233,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(14,165,233,0.04)_1px,transparent_1px)] bg-[size:34px_34px]" />
-              <div className="pointer-events-none absolute -right-20 -top-20 h-52 w-52 rounded-full bg-cyan-200/25 blur-3xl" />
+            <form
+              onSubmit={handleSubmitTeacher}
+              className="relative flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-[1.85rem] border border-sky-100 bg-white shadow-[0_28px_90px_rgba(15,23,42,0.24)]"
+            >
+              <div className="relative overflow-hidden border-b border-sky-100 bg-gradient-to-br from-white via-cyan-50/45 to-sky-50/70 px-6 py-5 text-slate-900">
+                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(14,165,233,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(14,165,233,0.04)_1px,transparent_1px)] bg-[size:34px_34px]" />
+                <div className="pointer-events-none absolute -right-20 -top-20 h-52 w-52 rounded-full bg-cyan-200/25 blur-3xl" />
 
-              <div className="relative flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-sky-100 bg-white text-sky-700 shadow-sm shadow-sky-100/70">
-                    <Icon name="users" className="h-5 w-5" />
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-sky-700">
-                      Data Guru
-                    </p>
-
-                    <h3 className="mt-1 text-xl font-black tracking-tight text-slate-950">
-                      {isEditMode ? "Edit Akun Guru" : "Tambah Akun Guru"}
-                    </h3>
-
-                    <p className="mt-1 text-sm font-medium leading-6 text-slate-600">
-                      {isEditMode
-                        ? "Perbarui informasi akun guru yang sudah terdaftar."
-                        : "Lengkapi data guru. Password awal otomatis sama dengan NIP/NUPTK."}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  disabled={loadingTeacher || savingTeacherAction}
-                  onClick={closeTeacherModal}
-                  className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50"
-                  aria-label="Tutup modal"
-                >
-                  <Icon name="x" className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-y-auto bg-gradient-to-br from-white via-slate-50/40 to-sky-50/35 px-6 py-5">
-              <StatusMessage
-                message={teacherMessage || actionMessage}
-                error={teacherError || actionError}
-              />
-
-              {!isEditMode && (
-                <div className="mb-5 rounded-2xl border border-sky-100 bg-white px-4 py-3 shadow-sm">
+                <div className="relative flex items-start justify-between gap-4">
                   <div className="flex items-start gap-3">
-                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sky-50 text-sky-700 ring-1 ring-sky-100">
-                      <Icon name="shield" className="h-4 w-4" />
+                    <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-sky-100 bg-white text-sky-700 shadow-sm shadow-sky-100/70">
+                      <Icon name="users" className="h-5 w-5" />
                     </div>
 
                     <div>
-                      <p className="text-sm font-black text-slate-900">
-                        Informasi akun guru
+                      <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-sky-700">
+                        Data Guru
                       </p>
-                      <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
-                        Username dapat dibuat otomatis dari nama dan NIP/NUPTK. Guru
-                        bisa mengganti password setelah login.
+
+                      <h3 className="mt-1 text-xl font-black tracking-tight text-slate-950">
+                        {isEditMode ? "Edit Akun Guru" : "Tambah Akun Guru"}
+                      </h3>
+
+                      <p className="mt-1 text-sm font-medium leading-6 text-slate-600">
+                        {isEditMode
+                          ? "Perbarui informasi akun guru yang sudah terdaftar."
+                          : "Lengkapi data guru. Password awal otomatis sama dengan NIP/NUPTK."}
                       </p>
                     </div>
                   </div>
+
+                  <button
+                    type="button"
+                    disabled={loadingTeacher || savingTeacherAction}
+                    onClick={closeTeacherModal}
+                    className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50"
+                    aria-label="Tutup modal"
+                  >
+                    <Icon name="x" className="h-4 w-4" />
+                  </button>
                 </div>
-              )}
+              </div>
 
-              <div className="rounded-[1.4rem] border border-sky-100 bg-white p-5 shadow-sm shadow-sky-100/50">
-                <div className="mb-5 flex items-center gap-2 border-b border-slate-100 pb-4">
-                  <div className="grid h-9 w-9 place-items-center rounded-xl bg-sky-50 text-sky-700 ring-1 ring-sky-100">
-                    <Icon name="profile" className="h-4 w-4" />
+              <div className="min-h-0 flex-1 overflow-y-auto bg-gradient-to-br from-white via-slate-50/40 to-sky-50/35 px-6 py-5">
+                <StatusMessage
+                  message={teacherMessage || actionMessage}
+                  error={teacherError || actionError}
+                />
+
+                {!isEditMode && (
+                  <div className="mb-5 rounded-2xl border border-sky-100 bg-white px-4 py-3 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sky-50 text-sky-700 ring-1 ring-sky-100">
+                        <Icon name="shield" className="h-4 w-4" />
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-black text-slate-900">
+                          Informasi akun guru
+                        </p>
+                        <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
+                          Username dapat dibuat otomatis dari nama dan
+                          NIP/NUPTK. Guru bisa mengganti password setelah login.
+                        </p>
+                      </div>
+                    </div>
                   </div>
+                )}
 
-                  <div>
-                    <p className="text-sm font-black text-slate-950">
-                      Form Data Guru
-                    </p>
-                    <p className="text-xs font-semibold text-slate-500">
-                      Pastikan email, username, dan NIP/NUPTK benar.
-                    </p>
-                  </div>
-                </div>
+                <div className="rounded-[1.4rem] border border-sky-100 bg-white p-5 shadow-sm shadow-sky-100/50">
+                  <div className="mb-5 flex items-center gap-2 border-b border-slate-100 pb-4">
+                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-sky-50 text-sky-700 ring-1 ring-sky-100">
+                      <Icon name="profile" className="h-4 w-4" />
+                    </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Field
-                    label="Nama guru"
-                    value={teacherForm.nama}
-                    placeholder="Contoh: Budi Santoso"
-                    error={
-                      teacherTouched || teacherForm.nama
-                        ? teacherErrors.nama
-                        : undefined
-                    }
-                    onChange={(value) => onUpdateTeacher("nama", value)}
-                  />
-
-                  <Field
-                    label="Email"
-                    value={teacherForm.email}
-                    placeholder="guru@email.com"
-                    type="email"
-                    autoComplete="email"
-                    maxLength={120}
-                    error={
-                      teacherTouched || teacherForm.email
-                        ? teacherErrors.email || emailHint.error
-                        : undefined
-                    }
-                    success={
-                      !isEditMode && !teacherErrors.email
-                        ? emailHint.success
-                        : undefined
-                    }
-                    loading={
-                      !isEditMode && !teacherErrors.email
-                        ? emailHint.loading
-                        : undefined
-                    }
-                    helper="Email digunakan guru untuk login dan pemulihan akun."
-                    onChange={(value) => onUpdateTeacher("email", value)}
-                  />
-
-                  <Field
-                    label="Username"
-                    value={teacherForm.username}
-                    placeholder="otomatis dari nama dan NIP"
-                    maxLength={24}
-                    autoComplete="username"
-                    error={
-                      teacherTouched || teacherForm.username
-                        ? teacherErrors.username || usernameHint.error
-                        : undefined
-                    }
-                    success={
-                      !isEditMode && !teacherErrors.username
-                        ? usernameHint.success
-                        : undefined
-                    }
-                    loading={
-                      !isEditMode && !teacherErrors.username
-                        ? usernameHint.loading
-                        : undefined
-                    }
-                    helper="Bisa diedit jika username otomatis kurang sesuai."
-                    onChange={(value) => onUpdateTeacher("username", value)}
-                  />
-
-                  <Field
-                    label="NIP/NUPTK"
-                    value={teacherForm.nip}
-                    placeholder="1234567890"
-                    inputMode="numeric"
-                    maxLength={40}
-                    error={
-                      teacherTouched || teacherForm.nip
-                        ? teacherErrors.nip
-                        : undefined
-                    }
-                    helper="Hanya angka. Password awal otomatis sama dengan NIP/NUPTK."
-                    onChange={(value) => onUpdateTeacher("nip", value)}
-                  />
-
-                  <Field
-                    label="No HP"
-                    value={teacherForm.no_hp}
-                    placeholder="081234567890"
-                    type="tel"
-                    inputMode="tel"
-                    maxLength={16}
-                    error={
-                      teacherTouched || teacherForm.no_hp
-                        ? teacherErrors.no_hp
-                        : undefined
-                    }
-                    helper="Boleh diawali 08, 62, atau +62."
-                    onChange={(value) => onUpdateTeacher("no_hp", value)}
-                  />
-
-                  <label className="block">
-                    <span className="mb-1.5 block text-sm font-bold text-slate-700">
-                      Jabatan
-                    </span>
-
-                    <select
-                      value={teacherForm.jabatan}
-                      onChange={(event) =>
-                        onUpdateTeacher("jabatan", event.target.value)
-                      }
-                      className={`w-full rounded-2xl border bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition focus:ring-4 ${
-                        teacherTouched && teacherErrors.jabatan
-                          ? "border-rose-300 focus:border-rose-500 focus:ring-rose-100"
-                          : "border-slate-200 focus:border-sky-300 focus:ring-sky-100"
-                      }`}
-                    >
-                      {jabatanOptions.map((jabatan) => (
-                        <option key={jabatan} value={jabatan}>
-                          {jabatan}
-                        </option>
-                      ))}
-                    </select>
-
-                    {teacherTouched && teacherErrors.jabatan && (
-                      <p className="mt-1.5 text-xs font-semibold text-rose-600">
-                        {teacherErrors.jabatan}
+                    <div>
+                      <p className="text-sm font-black text-slate-950">
+                        Form Data Guru
                       </p>
-                    )}
-                  </label>
+                      <p className="text-xs font-semibold text-slate-500">
+                        Pastikan email, username, dan NIP/NUPTK benar.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Field
+                      label="Nama guru"
+                      value={teacherForm.nama}
+                      placeholder="Contoh: Budi Santoso"
+                      error={
+                        teacherTouched || teacherForm.nama
+                          ? teacherErrors.nama
+                          : undefined
+                      }
+                      onChange={(value) => onUpdateTeacher("nama", value)}
+                    />
+
+                    <Field
+                      label="Email"
+                      value={teacherForm.email}
+                      placeholder="guru@email.com"
+                      type="email"
+                      autoComplete="email"
+                      maxLength={120}
+                      error={
+                        teacherTouched || teacherForm.email
+                          ? teacherErrors.email || emailHint.error
+                          : undefined
+                      }
+                      success={
+                        !isEditMode && !teacherErrors.email
+                          ? emailHint.success
+                          : undefined
+                      }
+                      loading={
+                        !isEditMode && !teacherErrors.email
+                          ? emailHint.loading
+                          : undefined
+                      }
+                      helper="Email digunakan guru untuk login dan pemulihan akun."
+                      onChange={(value) => onUpdateTeacher("email", value)}
+                    />
+
+                    <Field
+                      label="Username"
+                      value={teacherForm.username}
+                      placeholder="otomatis dari nama dan NIP"
+                      maxLength={24}
+                      autoComplete="username"
+                      error={
+                        teacherTouched || teacherForm.username
+                          ? teacherErrors.username || usernameHint.error
+                          : undefined
+                      }
+                      success={
+                        !isEditMode && !teacherErrors.username
+                          ? usernameHint.success
+                          : undefined
+                      }
+                      loading={
+                        !isEditMode && !teacherErrors.username
+                          ? usernameHint.loading
+                          : undefined
+                      }
+                      helper="Bisa diedit jika username otomatis kurang sesuai."
+                      onChange={(value) => onUpdateTeacher("username", value)}
+                    />
+
+                    <Field
+                      label="NIP/NUPTK"
+                      value={teacherForm.nip}
+                      placeholder="1234567890"
+                      inputMode="numeric"
+                      maxLength={40}
+                      error={
+                        teacherTouched || teacherForm.nip
+                          ? teacherErrors.nip
+                          : undefined
+                      }
+                      helper="Hanya angka. Password awal otomatis sama dengan NIP/NUPTK."
+                      onChange={(value) => onUpdateTeacher("nip", value)}
+                    />
+
+                    <Field
+                      label="No HP"
+                      value={teacherForm.no_hp}
+                      placeholder="081234567890"
+                      type="tel"
+                      inputMode="tel"
+                      maxLength={16}
+                      error={
+                        teacherTouched || teacherForm.no_hp
+                          ? teacherErrors.no_hp
+                          : undefined
+                      }
+                      helper="Boleh diawali 08, 62, atau +62."
+                      onChange={(value) => onUpdateTeacher("no_hp", value)}
+                    />
+
+                    <label className="block">
+                      <span className="mb-1.5 block text-sm font-bold text-slate-700">
+                        Jabatan
+                      </span>
+
+                      <select
+                        value={teacherForm.jabatan}
+                        onChange={(event) =>
+                          onUpdateTeacher("jabatan", event.target.value)
+                        }
+                        className={`w-full rounded-2xl border bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition focus:ring-4 ${
+                          teacherTouched && teacherErrors.jabatan
+                            ? "border-rose-300 focus:border-rose-500 focus:ring-rose-100"
+                            : "border-slate-200 focus:border-sky-300 focus:ring-sky-100"
+                        }`}
+                      >
+                        {jabatanOptions.map((jabatan) => (
+                          <option key={jabatan} value={jabatan}>
+                            {jabatan}
+                          </option>
+                        ))}
+                      </select>
+
+                      {teacherTouched && teacherErrors.jabatan && (
+                        <p className="mt-1.5 text-xs font-semibold text-rose-600">
+                          {teacherErrors.jabatan}
+                        </p>
+                      )}
+                    </label>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="shrink-0 border-t border-slate-100 bg-white px-6 py-4 shadow-[0_-12px_30px_rgba(15,23,42,0.05)]">
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  disabled={loadingTeacher || savingTeacherAction}
-                  onClick={closeTeacherModal}
-                  className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
-                >
-                  Batal
-                </button>
+              <div className="shrink-0 border-t border-slate-100 bg-white px-6 py-4 shadow-[0_-12px_30px_rgba(15,23,42,0.05)]">
+                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    disabled={loadingTeacher || savingTeacherAction}
+                    onClick={closeTeacherModal}
+                    className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    Batal
+                  </button>
 
-                <button
-                  type="submit"
-                  disabled={
-                    loadingTeacher ||
-                    savingTeacherAction ||
-                    isCheckingIdentity ||
-                    isIdentityUnavailable
-                  }
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-sky-600/20 transition hover:-translate-y-0.5 disabled:opacity-50"
-                >
-                  <Icon name={isEditMode ? "edit" : "users"} className="h-4 w-4" />
-                  {loadingTeacher || savingTeacherAction
-                    ? "Menyimpan..."
-                    : isEditMode
-                      ? "Update Guru"
-                      : "Simpan Guru"}
-                </button>
+                  <button
+                    type="submit"
+                    disabled={
+                      loadingTeacher ||
+                      savingTeacherAction ||
+                      isCheckingIdentity ||
+                      isIdentityUnavailable
+                    }
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-sky-600/20 transition hover:-translate-y-0.5 disabled:opacity-50"
+                  >
+                    <Icon
+                      name={isEditMode ? "edit" : "users"}
+                      className="h-4 w-4"
+                    />
+                    {loadingTeacher || savingTeacherAction
+                      ? "Menyimpan..."
+                      : isEditMode
+                        ? "Update Guru"
+                        : "Simpan Guru"}
+                  </button>
+                </div>
               </div>
-            </div>
-          </form>
-        </div>
+            </form>
+          </div>
+        </AdminSchoolModalPortal>
       )}
-      
+
       {deleteTarget && (
-        <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-950/38 px-4 py-6 backdrop-blur-[3px]">
-          <button
-            type="button"
-            className="absolute inset-0 cursor-default"
-            onClick={() => !deleteLoading && setDeleteTarget(null)}
-            aria-label="Tutup konfirmasi hapus"
-          />
+        <AdminSchoolModalPortal>
+          <div className="fixed inset-0 z-[1210] flex items-center justify-center bg-slate-950/50 px-4 py-6 backdrop-blur-[3px]">
+            <button
+              type="button"
+              className="absolute inset-0 cursor-default"
+              onClick={() => !deleteLoading && setDeleteTarget(null)}
+              aria-label="Tutup konfirmasi hapus"
+            />
 
-          <section className="relative w-full max-w-md overflow-hidden rounded-3xl border border-rose-100 bg-white shadow-2xl shadow-slate-950/20">
-            <div className="relative overflow-hidden border-b border-rose-100 bg-gradient-to-br from-white via-rose-50/70 to-white px-6 py-5">
-              <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-rose-100/70 blur-3xl" />
+            <section className="relative w-full max-w-md overflow-hidden rounded-3xl border border-rose-100 bg-white shadow-2xl shadow-slate-950/20">
+              <div className="relative overflow-hidden border-b border-rose-100 bg-gradient-to-br from-white via-rose-50/70 to-white px-6 py-5">
+                <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-rose-100/70 blur-3xl" />
 
-              <div className="relative flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-rose-600">
-                    Konfirmasi Hapus
+                <div className="relative flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-rose-600">
+                      Konfirmasi Hapus
+                    </p>
+                    <h3 className="mt-2 text-xl font-black text-slate-950">
+                      Hapus data guru?
+                    </h3>
+                    <p className="mt-1 text-sm font-medium leading-6 text-slate-500">
+                      Data guru akan dihapus dari daftar. Pastikan data ini
+                      memang tidak digunakan lagi.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={deleteLoading}
+                    onClick={() => setDeleteTarget(null)}
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-white text-slate-500 ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:opacity-50"
+                    aria-label="Batal hapus"
+                  >
+                    <Icon name="x" className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="text-sm font-black text-slate-900">
+                    {deleteTarget.nama}
                   </p>
-                  <h3 className="mt-2 text-xl font-black text-slate-950">
-                    Hapus data guru?
-                  </h3>
-                  <p className="mt-1 text-sm font-medium leading-6 text-slate-500">
-                    Data guru akan dihapus dari daftar. Pastikan data ini memang
-                    tidak digunakan lagi.
+                  <p className="mt-1 text-xs font-semibold text-slate-500">
+                    {deleteTarget.email} · {deleteTarget.jabatan}
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  disabled={deleteLoading}
-                  onClick={() => setDeleteTarget(null)}
-                  className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-white text-slate-500 ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:opacity-50"
-                  aria-label="Batal hapus"
-                >
-                  <Icon name="x" className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
+                <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    disabled={deleteLoading}
+                    onClick={() => setDeleteTarget(null)}
+                    className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    Batal
+                  </button>
 
-            <div className="p-6">
-              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                <p className="text-sm font-black text-slate-900">
-                  {deleteTarget.nama}
-                </p>
-                <p className="mt-1 text-xs font-semibold text-slate-500">
-                  {deleteTarget.email} · {deleteTarget.jabatan}
-                </p>
+                  <button
+                    type="button"
+                    disabled={deleteLoading}
+                    onClick={handleDeleteTeacher}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-600 px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-rose-600/20 transition hover:-translate-y-0.5 hover:bg-rose-700 disabled:opacity-50"
+                  >
+                    <TrashIcon />
+                    {deleteLoading ? "Menghapus..." : "Hapus Guru"}
+                  </button>
+                </div>
               </div>
-
-              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  disabled={deleteLoading}
-                  onClick={() => setDeleteTarget(null)}
-                  className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
-                >
-                  Batal
-                </button>
-
-                <button
-                  type="button"
-                  disabled={deleteLoading}
-                  onClick={handleDeleteTeacher}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-600 px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-rose-600/20 transition hover:-translate-y-0.5 hover:bg-rose-700 disabled:opacity-50"
-                >
-                  <TrashIcon />
-                  {deleteLoading ? "Menghapus..." : "Hapus Guru"}
-                </button>
-              </div>
-            </div>
-          </section>
-        </div>
+            </section>
+          </div>
+        </AdminSchoolModalPortal>
       )}
     </section>
   );

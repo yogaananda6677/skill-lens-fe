@@ -1,0 +1,16 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/siswa/layout,_N_T_/siswa/roadmap/layout,_N_T_/siswa/roadmap/page,_N_T_/siswa/roadmap"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/siswa/roadmap/__PAGE__",
+    "/siswa/roadmap",
+    "/siswa",
+    "/_index",
+    "/_head"
+  ]
+}

@@ -480,3 +480,56 @@ body {
     animation: none;
   }
 }
+
+@keyframes skilllens-route-progress {
+  0% {
+    transform: translateX(-110%);
+  }
+  55% {
+    transform: translateX(85%);
+  }
+  100% {
+    transform: translateX(260%);
+  }
+}
+
+@media (max-width: 640px) {
+  html {
+    scroll-padding-top: 72px;
+  }
+
+  body {
+    background:
+      radial-gradient(circle at 20% 0%, rgba(56, 189, 248, 0.08), transparent 24%),
+      linear-gradient(180deg, #f8fbff 0%, #eef6ff 52%, #fbfdff 100%);
+  }
+
+  .skilllens-blue-page {
+    background:
+      radial-gradient(circle at 18% 0%, rgba(56, 189, 248, .08), transparent 22%),
+      linear-gradient(180deg, #f8fbff 0%, #eef6ff 52%, #fbfdff 100%);
+  }
+
+  .skilllens-hero-grid {
+    background-size: 38px 38px, 38px 38px, auto;
+  }
+
+  .skilllens-page-enter,
+  .skilllens-fade-slide {
+    animation-duration: 180ms;
+  }
+}
+
+@media (prefers-reduced-data: reduce) {
+  .skilllens-orbit-glow,
+  .skilllens-soft-pulse,
+  .animate-pulse-slow,
+  .skilllens-white-sheen::before {
+    animation: none !important;
+  }
+
+  .glass-card,
+  .skilllens-smooth-card {
+    backdrop-filter: none;
+  }
+}

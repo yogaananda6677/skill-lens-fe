@@ -205,21 +205,23 @@ export function PublicNavbar() {
   return (
     <>
       <nav className="fixed left-0 right-0 top-0 z-[999] border-b border-white/10 bg-[#0a0f2a]/80 backdrop-blur-xl">
-        <div className="mx-auto flex w-[min(1220px,calc(100%-32px))] items-center justify-between gap-4 py-4">
-          <Link href="/" className="group flex items-center gap-3">
-            <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-sky-100">
+        <div className="mx-auto flex w-[min(1220px,calc(100%-24px))] items-center justify-between gap-2 py-3 sm:w-[min(1220px,calc(100%-32px))] sm:gap-4 sm:py-4">
+          <Link href="/" className="group flex min-w-0 items-center gap-2 sm:gap-3">
+            <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-sky-100 sm:h-12 sm:w-12">
               <img
                 src="/images/logo-skillens.png"
                 alt="SkillLens Logo"
-                className="h-10 w-10 object-contain"
+                loading="eager"
+                decoding="async"
+                className="h-8 w-8 object-contain sm:h-10 sm:w-10"
               />
             </div>
 
-            <div>
-              <p className="text-lg font-bold tracking-tight text-white transition group-hover:text-cyan-200">
+            <div className="min-w-0">
+              <p className="truncate text-base font-bold tracking-tight text-white transition group-hover:text-cyan-200 sm:text-lg">
                 SkillLens
               </p>
-              <p className="text-xs font-medium uppercase tracking-[0.22em] text-cyan-100/80">
+              <p className="hidden text-[10px] font-medium uppercase tracking-[0.18em] text-cyan-100/80 min-[420px]:block sm:text-xs sm:tracking-[0.22em]">
                 Career Decision Support
               </p>
             </div>
@@ -242,7 +244,7 @@ export function PublicNavbar() {
           </div>
 
           {!auth ? (
-            <div className="flex items-center gap-3">
+            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
               <Link
                 href="/auth/login"
                 className={`hidden rounded-full border px-5 py-2.5 text-sm font-medium backdrop-blur-sm transition duration-300 sm:inline-block ${
@@ -256,7 +258,7 @@ export function PublicNavbar() {
 
               <Link
                 href="/auth/register"
-                className={`rounded-full px-5 py-2.5 text-sm font-semibold shadow-lg transition duration-300 hover:-translate-y-0.5 ${
+                className={`rounded-full px-4 py-2.5 text-center text-xs font-semibold leading-tight shadow-lg transition duration-300 hover:-translate-y-0.5 sm:px-5 sm:text-sm ${
                   pathname === "/auth/register"
                     ? "bg-white text-slate-950 shadow-cyan-400/30 ring-2 ring-cyan-300/50"
                     : "bg-gradient-to-r from-cyan-300 to-sky-400 text-slate-950 hover:shadow-cyan-400/30"

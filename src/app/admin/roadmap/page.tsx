@@ -590,7 +590,7 @@ export default function AdminRoadmapPage() {
                       </div>
 
                         <div className="mt-5 flex flex-wrap gap-2 border-t border-sky-100/70 pt-4">
-                          <ActionButton onClick={() => router.push(`/admin/roadmap/${roadmap.id_roadmap}`)}>
+                          <ActionButton onClick={() => router.push(`/admin/roadmap/detail?id=${roadmap.id_roadmap}`)}>
                             <Icon name="eye" className="h-4 w-4" />
                             Kelola
                           </ActionButton>

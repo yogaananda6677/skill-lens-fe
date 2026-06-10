@@ -722,33 +722,19 @@ export default function RoadmapClient() {
 
   async function refresh() {
     setLoading(true);
-    setLoadingHistory(true);
     setError("");
 
     try {
-      const [activeResult, historyResult] = await Promise.allSettled([
-        getActiveStudentRoadmap(),
-        getStudentRoadmapHistory(),
-      ]);
+      const active = await getActiveStudentRoadmap();
+      setRoadmap(active);
 
-      if (activeResult.status === "fulfilled") {
-        const active = activeResult.value;
-        setRoadmap(active);
+      const allDetails = active?.steps.flatMap((step) => step.details) ?? [];
+      const recommendedDetail = getNextDetail(allDetails);
 
-        const allDetails = active?.steps.flatMap((step) => step.details) ?? [];
-        const recommendedDetail = getNextDetail(allDetails);
-
-        setActiveDetailId(recommendedDetail?.id ?? null);
-      } else {
-        setRoadmap(null);
-      }
-
-      if (historyResult.status === "fulfilled") {
-        setHistory(historyResult.value);
-      } else {
-        setHistory([]);
-      }
+      setActiveDetailId(recommendedDetail?.id ?? null);
     } catch (err) {
+      setRoadmap(null);
+
       const errMessage =
         err instanceof Error ? err.message : "Gagal memuat roadmap.";
 
@@ -756,6 +742,16 @@ export default function RoadmapClient() {
       showError("Gagal memuat roadmap", errMessage);
     } finally {
       setLoading(false);
+    }
+
+    setLoadingHistory(true);
+
+    try {
+      const rows = await getStudentRoadmapHistory();
+      setHistory(rows);
+    } catch {
+      setHistory([]);
+    } finally {
       setLoadingHistory(false);
     }
   }
@@ -844,13 +840,13 @@ export default function RoadmapClient() {
               </div>
 
               <h1 className="mt-4 max-w-5xl text-3xl font-extrabold tracking-tight text-white md:text-5xl">
-                Belajar lebih rapi dengan alur tahap yang menurun
+                Ikuti roadmap belajar yang jelas dan bertahap
               </h1>
 
               <p className="mt-4 max-w-4xl text-sm font-semibold leading-7 text-sky-100/80">
-                Setiap tahap dibuat seperti learning path: mulai dari tahap besar,
-                turun ke detail tugas, lalu siswa bisa menandai progres langsung
-                dari tiap aktivitas.
+                Roadmap ini menampilkan urutan belajar dari tahap utama,
+                detail aktivitas, sampai status progres. Siswa bisa melihat arahan
+                yang perlu dikerjakan dan menandai progresnya secara mandiri.
               </p>
 
               <div className="mt-6 flex flex-wrap gap-3">
@@ -990,13 +986,13 @@ export default function RoadmapClient() {
                       </p>
 
                       <h2 className="mt-4 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
-                        Learning path menurun per tahap
+                        Urutan belajar per tahap
                       </h2>
 
                       <p className="mt-2 max-w-5xl text-sm font-semibold leading-6 text-slate-500">
-                        Roadmap dibuat turun dari tahap besar ke detail aktivitas.
-                        Referensi belajar hanya tampil pada detail yang memang memiliki link
-                        dari database.
+                        Setiap tahap berisi aktivitas yang lebih rinci agar siswa tahu
+                        apa yang harus dikerjakan, diproses, dan diselesaikan. Referensi
+                        belajar hanya tampil pada detail yang memiliki link dari database.
                       </p>
                     </div>
 

@@ -11,8 +11,22 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "SkillLens - Career Planning System",
+  title: {
+    default: "SkillLens - Career Decision Support",
+    template: "%s | SkillLens",
+  },
   description: "Sistem pendukung perencanaan karier siswa berbasis web.",
+icons: {
+  icon: [
+    {
+      url: "/images/logo-skilllens.png",
+      type: "image/png",
+    },
+  ],
+  shortcut: "/images/logo-skilllens.png",
+  apple: "/images/logo-skilllens.png",
+},
+  applicationName: "SkillLens",
 };
 
 export const viewport: Viewport = {

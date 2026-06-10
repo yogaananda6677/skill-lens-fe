@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import { clearAuth, getStoredUser } from "../../lib/auth";
 import { studentNav } from "../../config/navigation";
 import { getActiveStudentRoadmap } from "../../features/siswa/api";
@@ -14,20 +14,83 @@ function getCurrentHash() {
   return window.location.hash || "";
 }
 
+function normalizePathname(value?: string | null) {
+  const cleanPath = (value || "/")
+    .split("?")[0]
+    .replace(/\/+$/, "");
+
+  return cleanPath || "/";
+}
+
 function normalizeHref(href?: string) {
   return href || "/siswa";
 }
 
+function splitStudentTarget(href: string, fallbackPathname = "/siswa") {
+  const [targetPath, targetHash] = href.split("#");
+
+  return {
+    path: normalizePathname(targetPath || fallbackPathname),
+    hash: targetHash ? `#${targetHash}` : "",
+  };
+}
+
 function isItemActive(href: string, pathname: string, hash: string) {
+  const currentPath = normalizePathname(pathname);
+
   if (href.includes("#")) {
-    const [path, targetHash] = href.split("#");
-    const expectedPath = path || "/siswa";
-    return pathname === expectedPath && hash === `#${targetHash}`;
+    const target = splitStudentTarget(href);
+    return currentPath === target.path && hash === target.hash;
   }
 
-  if (href === "/siswa") return pathname === "/siswa";
+  const targetPath = normalizePathname(href);
 
-  return pathname === href || pathname.startsWith(`${href}/`);
+  if (targetPath === "/siswa") return currentPath === "/siswa";
+
+  return currentPath === targetPath || currentPath.startsWith(`${targetPath}/`);
+}
+
+function getStudentConnection() {
+  if (typeof window === "undefined") return null;
+
+  return (navigator as Navigator & {
+    connection?: { saveData?: boolean; effectiveType?: string };
+    deviceMemory?: number;
+  }).connection ?? null;
+}
+
+function isStudentSmallViewport() {
+  return typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
+}
+
+function isStudentConstrainedDevice() {
+  if (typeof window === "undefined") return true;
+
+  const connection = getStudentConnection();
+  const deviceMemory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
+
+  if (connection?.saveData) return true;
+  if (connection?.effectiveType && ["slow-2g", "2g", "3g"].includes(connection.effectiveType)) return true;
+  if (typeof deviceMemory === "number" && deviceMemory <= 3) return true;
+
+  return false;
+}
+
+function runWhenIdle(callback: () => void) {
+  if (typeof window === "undefined") return () => {};
+
+  const win = window as Window & {
+    requestIdleCallback?: (callback: () => void, options?: { timeout?: number }) => number;
+    cancelIdleCallback?: (id: number) => void;
+  };
+
+  if (win.requestIdleCallback) {
+    const id = win.requestIdleCallback(callback, { timeout: 1800 });
+    return () => win.cancelIdleCallback?.(id);
+  }
+
+  const id = window.setTimeout(callback, 900);
+  return () => window.clearTimeout(id);
 }
 
 function getInitials(name: string) {
@@ -48,6 +111,49 @@ type GuidanceNotification = RoadmapNote & {
 
 function guidanceSeenKey(userId?: number | null) {
   return `skilllens_student_guidance_seen_at:${userId ?? "unknown"}`;
+}
+
+const GUIDANCE_CACHE_TTL = 3 * 60_000;
+
+function guidanceCacheKey(userId?: number | null) {
+  return `skilllens_student_guidance_cache:${userId ?? "unknown"}`;
+}
+
+function readGuidanceCache(userId?: number | null) {
+  if (typeof window === "undefined" || !userId) return null;
+
+  try {
+    const raw = window.sessionStorage.getItem(guidanceCacheKey(userId));
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as { savedAt?: number; notes?: GuidanceNotification[] };
+    if (!parsed?.savedAt || Date.now() - parsed.savedAt > GUIDANCE_CACHE_TTL) return null;
+    if (!Array.isArray(parsed.notes)) return null;
+
+    return parsed.notes;
+  } catch {
+    return null;
+  }
+}
+
+function writeGuidanceCache(userId: number | null, notes: GuidanceNotification[]) {
+  if (typeof window === "undefined" || !userId) return;
+
+  try {
+    window.sessionStorage.setItem(
+      guidanceCacheKey(userId),
+      JSON.stringify({ savedAt: Date.now(), notes }),
+    );
+  } catch {
+    // Abaikan ketika storage penuh/private mode.
+  }
+}
+
+function shouldAutoLoadGuidance() {
+  if (typeof window === "undefined") return false;
+  if (isStudentSmallViewport()) return false;
+  if (isStudentConstrainedDevice()) return false;
+  return true;
 }
 
 function noteTimestamp(note: GuidanceNotification) {
@@ -99,7 +205,12 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<number | null>(null);
   const [hash, setHash] = useState("");
   const [guidanceNotes, setGuidanceNotes] = useState<GuidanceNotification[]>([]);
+  const [guidanceLoading, setGuidanceLoading] = useState(false);
   const [guidanceSeenAt, setGuidanceSeenAt] = useState("");
+  const [routeLoading, setRouteLoading] = useState(false);
+  const [slowRoute, setSlowRoute] = useState(false);
+  const slowRouteTimerRef = useRef<number | null>(null);
+  const routeDoneTimerRef = useRef<number | null>(null);
 
   const pathname = usePathname();
   const router = useRouter();
@@ -114,13 +225,6 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
 
     setName(user.nama || "Siswa");
     setUserId(user.id ?? null);
-  }, [router]);
-
-  useEffect(() => {
-    for (const item of studentNav) {
-      const href = normalizeHref(item.href).split("#")[0];
-      if (href) router.prefetch(href);
-    }
   }, [router]);
 
   useEffect(() => {
@@ -142,34 +246,98 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
     setGuidanceSeenAt(window.localStorage.getItem(guidanceSeenKey(userId)) || "");
   }, [userId]);
 
+  const loadGuidanceNotifications = useCallback(
+    async (options?: { force?: boolean; silent?: boolean }) => {
+      if (!userId) return;
+
+      const force = Boolean(options?.force);
+      const silent = Boolean(options?.silent);
+
+      if (!force) {
+        const cached = readGuidanceCache(userId);
+        if (cached) {
+          setGuidanceNotes(cached);
+          return;
+        }
+      }
+
+      if (!silent) setGuidanceLoading(true);
+
+      try {
+        const activeRoadmap = await getActiveStudentRoadmap();
+        const notes = collectGuidanceNotes(activeRoadmap);
+        setGuidanceNotes(notes);
+        writeGuidanceCache(userId, notes);
+      } catch {
+        setGuidanceNotes((current) => current);
+      } finally {
+        if (!silent) setGuidanceLoading(false);
+      }
+    },
+    [userId],
+  );
+
   useEffect(() => {
     if (!userId) return;
 
+    const cached = readGuidanceCache(userId);
+    if (cached) setGuidanceNotes(cached);
+
+    if (!shouldAutoLoadGuidance()) return;
+
     let active = true;
+    let timer: number | null = null;
 
-    async function loadGuidanceNotifications() {
-      try {
-        const activeRoadmap = await getActiveStudentRoadmap();
-        if (!active) return;
-        setGuidanceNotes(collectGuidanceNotes(activeRoadmap));
-      } catch {
-        if (active) setGuidanceNotes([]);
-      }
-    }
-
-    loadGuidanceNotifications();
-
-    const timer = window.setInterval(loadGuidanceNotifications, 60000);
+    const cancelIdle = runWhenIdle(() => {
+      if (!active) return;
+      void loadGuidanceNotifications({ silent: true });
+      timer = window.setInterval(() => {
+        void loadGuidanceNotifications({ silent: true });
+      }, 180000);
+    });
 
     return () => {
       active = false;
-      window.clearInterval(timer);
+      cancelIdle();
+      if (timer !== null) window.clearInterval(timer);
     };
-  }, [pathname, userId]);
+  }, [loadGuidanceNotifications, userId]);
 
   useEffect(() => {
     setMenuOpen(false);
     setGuidanceOpen(false);
+  }, [pathname, hash]);
+
+  useEffect(() => {
+    return () => {
+      if (slowRouteTimerRef.current !== null) window.clearTimeout(slowRouteTimerRef.current);
+      if (routeDoneTimerRef.current !== null) window.clearTimeout(routeDoneTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (slowRouteTimerRef.current !== null) {
+      window.clearTimeout(slowRouteTimerRef.current);
+      slowRouteTimerRef.current = null;
+    }
+
+    if (routeDoneTimerRef.current !== null) {
+      window.clearTimeout(routeDoneTimerRef.current);
+      routeDoneTimerRef.current = null;
+    }
+
+    routeDoneTimerRef.current = window.setTimeout(() => {
+      setRouteLoading(false);
+      setSlowRoute(false);
+      routeDoneTimerRef.current = null;
+    }, 180);
+
+    return () => {
+      if (routeDoneTimerRef.current !== null) {
+        window.clearTimeout(routeDoneTimerRef.current);
+        routeDoneTimerRef.current = null;
+      }
+    };
   }, [pathname, hash]);
 
   const currentInitials = useMemo(() => getInitials(name), [name]);
@@ -181,8 +349,61 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
   }, [guidanceNotes, guidanceSeenAt]);
   const guidanceCountLabel = unreadGuidanceNotes.length > 9 ? "9+" : String(unreadGuidanceNotes.length);
 
-  function handleNavClick(href?: string) {
+  function isSameStudentLocation(target: string) {
+    const next = splitStudentTarget(target, pathname);
+    return next.path === normalizePathname(pathname) && next.hash === hash;
+  }
+
+  function stopRouteLoading() {
+    if (slowRouteTimerRef.current !== null) {
+      window.clearTimeout(slowRouteTimerRef.current);
+      slowRouteTimerRef.current = null;
+    }
+
+    if (routeDoneTimerRef.current !== null) {
+      window.clearTimeout(routeDoneTimerRef.current);
+      routeDoneTimerRef.current = null;
+    }
+
+    setRouteLoading(false);
+    setSlowRoute(false);
+  }
+
+  function beginRouteLoading(target: string) {
+    if (isSameStudentLocation(target)) return false;
+
+    if (slowRouteTimerRef.current !== null) {
+      window.clearTimeout(slowRouteTimerRef.current);
+    }
+
+    if (routeDoneTimerRef.current !== null) {
+      window.clearTimeout(routeDoneTimerRef.current);
+      routeDoneTimerRef.current = null;
+    }
+
+    setRouteLoading(true);
+    setSlowRoute(false);
+
+    slowRouteTimerRef.current = window.setTimeout(() => {
+      setSlowRoute(true);
+    }, 450);
+
+    return true;
+  }
+
+  function handleNavClick(href?: string, event?: ReactMouseEvent<HTMLAnchorElement>) {
     const target = normalizeHref(href);
+    const sameLocation = isSameStudentLocation(target);
+
+    if (sameLocation) {
+      event?.preventDefault();
+      stopRouteLoading();
+      setMenuOpen(false);
+      setGuidanceOpen(false);
+      return;
+    }
+
+    beginRouteLoading(target);
 
     if (target.includes("#")) {
       const [, targetHash] = target.split("#");
@@ -200,6 +421,55 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
     setMenuOpen(false);
   }
 
+  useEffect(() => {
+    function handleStudentLinkClick(event: MouseEvent) {
+      if (
+        event.defaultPrevented ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
+        return;
+      }
+
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+
+      const anchor = target.closest("a[href]") as HTMLAnchorElement | null;
+      if (!anchor || anchor.target || anchor.hasAttribute("download")) return;
+
+      let url: URL;
+
+      try {
+        url = new URL(anchor.href, window.location.href);
+      } catch {
+        return;
+      }
+
+      if (url.origin !== window.location.origin) return;
+      if (!url.pathname.startsWith("/siswa")) return;
+
+      const targetHref = `${url.pathname}${url.hash}`;
+
+      if (isSameStudentLocation(targetHref)) {
+        event.preventDefault();
+        stopRouteLoading();
+        setMenuOpen(false);
+        setGuidanceOpen(false);
+        return;
+      }
+
+      beginRouteLoading(targetHref);
+    }
+
+    document.addEventListener("click", handleStudentLinkClick, true);
+
+    return () => {
+      document.removeEventListener("click", handleStudentLinkClick, true);
+    };
+  }, [hash, pathname]);
+
   function markGuidanceAsRead() {
     const latestTimestamp = guidanceNotes[0]?.createdAt || new Date().toISOString();
     window.localStorage.setItem(guidanceSeenKey(userId), latestTimestamp);
@@ -213,25 +483,54 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen text-slate-950 skilllens-blue-page">
-      <header className="sticky top-0 z-[90] overflow-visible border-b border-sky-100/15 bg-[#07142f]/95 text-white shadow-sm shadow-blue-950/10 backdrop-blur-xl">
+    <div className="min-h-screen overflow-x-hidden text-slate-950 skilllens-blue-page">
+      {routeLoading ? (
+        <div className="fixed inset-x-0 top-0 z-[1400] text-white" aria-live="polite">
+          <div className="h-1 overflow-hidden bg-cyan-950/20">
+            <div className="h-full w-2/5 animate-[skilllens-route-progress_1.15s_ease-in-out_infinite] rounded-r-full bg-gradient-to-r from-cyan-200 via-sky-400 to-cyan-100 shadow-[0_0_22px_rgba(56,189,248,0.75)]" />
+          </div>
+          {slowRoute ? (
+            <div className="mx-auto mt-2 w-[min(92vw,22rem)] rounded-full border border-white/15 bg-[#07142f]/92 px-4 py-2 text-center text-xs font-extrabold shadow-2xl shadow-slate-950/30 backdrop-blur-xl">
+              Memuat halaman, tunggu sebentar...
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {slowRoute ? (
+        <div className="pointer-events-none fixed inset-0 z-[1390] grid place-items-center bg-slate-950/28 px-4 text-white backdrop-blur-[2px]">
+          <div className="w-full max-w-sm rounded-[1.6rem] border border-white/15 bg-[#07142f]/94 p-4 text-center shadow-2xl shadow-slate-950/35">
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-white/10 ring-1 ring-white/15">
+              <span className="h-6 w-6 animate-spin rounded-full border-2 border-cyan-100/35 border-t-cyan-100" />
+            </div>
+            <p className="mt-3 text-sm font-extrabold">Resource sedang dimuat</p>
+            <p className="mt-1 text-xs font-semibold leading-5 text-cyan-100/75">
+              Koneksi sedang lambat. Tunggu sebentar, halaman siswa akan terbuka otomatis.
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      <header className="sticky top-0 z-[90] overflow-visible border-b border-sky-100/15 bg-[#07142f]/95 text-white shadow-sm shadow-blue-950/10 backdrop-blur-xl supports-[backdrop-filter]:bg-[#07142f]/88">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.18),transparent_34%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.16),transparent_30%)]" />
 
-        <div className="relative mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3.5">
+        <div className="relative mx-auto flex max-w-7xl items-center justify-between gap-3 px-3 py-3 sm:px-5 sm:py-3.5">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-sky-100">
+            <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-sky-100 sm:h-12 sm:w-12">
               <img
                 src="/images/logo-skillens.png"
                 alt="SkillLens Logo"
-                className="h-10 w-10 object-contain"
+                loading="eager"
+                decoding="async"
+                className="h-8 w-8 object-contain sm:h-10 sm:w-10"
               />
             </div>
 
             <div className="min-w-0 leading-tight">
-              <p className="truncate text-base font-black tracking-tight text-white">
+              <p className="truncate text-sm font-black tracking-tight text-white sm:text-base">
                 SkillLens
               </p>
-              <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-cyan-200">
+              <p className="hidden text-[10px] font-extrabold uppercase tracking-[0.16em] text-cyan-200 min-[380px]:block sm:text-[11px] sm:tracking-[0.2em]">
                 Ruang Siswa
               </p>
             </div>
@@ -247,8 +546,8 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
                 <Link
                   key={item.key}
                   href={href}
-                  prefetch
-                  onClick={() => handleNavClick(href)}
+                  prefetch={false}
+                  onClick={(event) => handleNavClick(href, event)}
                   className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-bold transition duration-200 ${
                     active
                       ? "bg-white text-[#0a2f73] shadow-sm ring-1 ring-white/50"
@@ -267,7 +566,11 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setGuidanceOpen((value) => !value)}
+                onClick={() => {
+                  const nextOpen = !guidanceOpen;
+                  setGuidanceOpen(nextOpen);
+                  if (nextOpen) void loadGuidanceNotifications({ force: true });
+                }}
                 className="relative inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2.5 text-sm font-bold text-cyan-100 shadow-sm backdrop-blur-md transition hover:bg-white/15 hover:text-white"
                 aria-label="Notifikasi bimbingan"
                 aria-expanded={guidanceOpen}
@@ -303,7 +606,11 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
                   </div>
 
                   <div className="max-h-80 space-y-2 overflow-y-auto bg-white p-3">
-                    {guidanceNotes.length ? (
+                    {guidanceLoading ? (
+                      <div className="rounded-2xl border border-dashed border-sky-200 bg-sky-50 p-4 text-sm font-semibold leading-6 text-sky-700">
+                        Memuat catatan bimbingan...
+                      </div>
+                    ) : guidanceNotes.length ? (
                       guidanceNotes.slice(0, 4).map((note, index) => {
                         const unread = unreadGuidanceNotes.some(
                           (item) => item.id === note.id,
@@ -358,9 +665,11 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
 
                     <Link
                       href="/siswa/roadmap"
-                      onClick={() => {
+                      prefetch={false}
+                      onClick={(event) => {
                         markGuidanceAsRead();
                         setGuidanceOpen(false);
+                        handleNavClick("/siswa/roadmap", event);
                       }}
                       className="rounded-full bg-[#07142f] px-3.5 py-2 text-center text-xs font-extrabold text-white transition hover:bg-slate-800"
                     >
@@ -373,6 +682,8 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
 
             <Link
               href="/siswa/akun"
+              prefetch={false}
+              onClick={(event) => handleNavClick("/siswa/akun", event)}
               className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2.5 text-sm font-bold text-cyan-100 shadow-sm backdrop-blur-md transition hover:bg-white/15 hover:text-white"
             >
               <Icon name="settings" className="h-4 w-4" />
@@ -406,7 +717,7 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
           <button
             type="button"
             onClick={() => setMenuOpen((value) => !value)}
-            className="grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/10 text-white shadow-sm transition hover:bg-white/20 lg:hidden"
+            className="grid h-10 w-10 place-items-center rounded-2xl border border-white/10 bg-white/10 text-white shadow-sm transition hover:bg-white/20 sm:h-11 sm:w-11 lg:hidden"
             aria-label="Menu siswa"
             aria-expanded={menuOpen}
           >
@@ -415,7 +726,7 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
         </div>
 
         {menuOpen && (
-          <div className="relative border-t border-white/10 bg-[#07142f]/95 px-5 py-4 shadow-lg shadow-blue-950/20 backdrop-blur-xl lg:hidden">
+          <div className="relative border-t border-white/10 bg-[#07142f]/98 px-3 py-3 shadow-lg shadow-blue-950/20 backdrop-blur-xl sm:px-5 sm:py-4 lg:hidden">
             <div className="mx-auto max-w-7xl">
               <div className="mb-4 flex items-center gap-3 rounded-3xl border border-white/10 bg-white/10 p-3 shadow-sm">
                 <div className="grid h-10 w-10 place-items-center rounded-full bg-cyan-100 text-sm font-black text-[#07142f]">
@@ -432,7 +743,7 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
                 </div>
               </div>
 
-              <div className="grid gap-2">
+              <div className="grid max-h-[min(72vh,34rem)] gap-2 overflow-y-auto pr-1 overscroll-contain">
                 {studentNav.map((item) => {
                   const href = normalizeHref(item.href);
                   const active = isItemActive(href, pathname, hash);
@@ -441,8 +752,8 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
                     <Link
                       key={item.key}
                       href={href}
-                      prefetch
-                      onClick={() => handleNavClick(href)}
+                      prefetch={false}
+                      onClick={(event) => handleNavClick(href, event)}
                       className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition ${
                         active
                           ? "bg-white text-[#0a2f73] shadow-lg shadow-cyan-400/10"
@@ -460,9 +771,10 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
 
                 <Link
                   href="/siswa/roadmap"
-                  onClick={() => {
+                  prefetch={false}
+                  onClick={(event) => {
                     markGuidanceAsRead();
-                    setMenuOpen(false);
+                    handleNavClick("/siswa/roadmap", event);
                   }}
                   className="flex items-center justify-between gap-3 rounded-2xl bg-white/[0.08] px-4 py-3 text-sm font-bold text-sky-100/80 transition hover:bg-white/[0.14] hover:text-white"
                 >
@@ -477,11 +789,12 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
 
                 <Link
                   href="/siswa/akun"
-                  onClick={() => setMenuOpen(false)}
+                  prefetch={false}
+                  onClick={(event) => handleNavClick("/siswa/akun", event)}
                   className="flex items-center gap-3 rounded-2xl bg-white/[0.08] px-4 py-3 text-sm font-bold text-sky-100/80 transition hover:bg-white/[0.14] hover:text-white"
                 >
                   <Icon name="settings" className="h-4 w-4" />
-                  akun
+                  Akun
                 </Link>
 
                 <button
@@ -504,7 +817,7 @@ export function StudentTopNav({ children }: { children: ReactNode }) {
       {children}
 
       {logoutOpen && (
-        <div className="fixed inset-0 z-[80] grid place-items-center bg-slate-950/58 px-4 py-6 text-slate-950 backdrop-blur-[4px]">
+        <div className="fixed inset-0 z-[1250] grid place-items-center bg-slate-950/58 px-4 py-6 text-slate-950 backdrop-blur-[4px]">
           <button
             type="button"
             onClick={() => setLogoutOpen(false)}

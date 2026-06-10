@@ -1,0 +1,16 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/siswa/layout,_N_T_/siswa/profil/layout,_N_T_/siswa/profil/page,_N_T_/siswa/profil"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/siswa/profil/__PAGE__",
+    "/siswa/profil",
+    "/siswa",
+    "/_index",
+    "/_head"
+  ]
+}

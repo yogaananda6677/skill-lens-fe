@@ -113,7 +113,7 @@ export default function Home() {
     <main className="min-h-screen overflow-x-hidden bg-white text-slate-950">
       <PublicNavbar />
 
-      <section className="relative overflow-hidden pt-24 text-white">
+      <section className="relative overflow-hidden pt-20 text-white sm:pt-24">
         <div className="absolute inset-0 bg-gradient-to-br from-[#0a0f2a] via-[#0d1b3e] to-[#0a2a4a]" />
         <div className="absolute top-[-20%] left-[-40%] h-[45%] w-[70%] rounded-full bg-cyan-600 opacity-25 blur-[120px] animate-pulse-slow" />
         <div className="absolute bottom-[-30%] right-[-15%] h-[80%] w-[80%] rounded-full bg-blue-600 opacity-30 blur-[150px] animate-pulse-slow animation-delay-2000" />
@@ -121,19 +121,19 @@ export default function Home() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(34,211,238,0.11)_1px,transparent_1px),linear-gradient(to_bottom,rgba(34,211,238,0.11)_1px,transparent_1px)] bg-[size:64px_64px]" />
         <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0a0f2a] to-transparent" />
 
-        <div className="relative z-10 mx-auto grid w-[min(1220px,calc(100%-32px))] gap-12 pb-24 pt-10 lg:grid-cols-2 lg:pb-32 lg:pt-16">
+        <div className="relative z-10 mx-auto grid w-[min(1220px,calc(100%-24px))] gap-7 pb-14 pt-7 sm:w-[min(1220px,calc(100%-32px))] sm:gap-10 sm:pb-20 sm:pt-10 lg:grid-cols-2 lg:gap-12 lg:pb-28 lg:pt-16">
           <div className="animate-fade-up">
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-cyan-200/30 bg-white/10 px-3 py-1 text-sm font-semibold text-cyan-100 backdrop-blur-sm">
               <span className="h-2 w-2 rounded-full bg-cyan-300"></span>
               Untuk SMA/SMK
             </div>
 
-            <h1 className="text-4xl font-bold leading-tight tracking-tight text-white md:text-6xl lg:text-7xl">
+            <h1 className="max-w-2xl text-[2rem] font-bold leading-[1.14] tracking-tight text-white sm:text-4xl md:text-6xl lg:text-7xl">
               Arahkan Masa Depan{" "}
               <span className="text-cyan-300">Siswa</span> Lebih Jelas
             </h1>
 
-            <p className="mt-5 max-w-xl text-base text-slate-200 md:text-lg">
+            <p className="mt-4 max-w-xl text-sm leading-6 text-slate-200 sm:mt-5 sm:text-base sm:leading-7 md:text-lg">
               SkillLens adalah sistem pendukung keputusan karier yang memadukan
               nilai akademik dan profil pribadi siswa. <br />
               Hasilnya: rekomendasi
@@ -141,10 +141,10 @@ export default function Home() {
               monitoring penuh dari guru.
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-7 grid gap-3 min-[420px]:flex min-[420px]:flex-wrap sm:mt-8">
               <Link
                 href="/auth/login"
-                className="inline-flex items-center gap-2 rounded-full bg-cyan-300 px-6 py-3 font-semibold text-slate-950 shadow-md transition hover:-translate-y-0.5 hover:bg-white"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-cyan-300 px-6 py-3 font-semibold text-slate-950 shadow-md transition hover:-translate-y-0.5 hover:bg-white"
               >
                 Mulai Sekarang
                 <Icon name="chevronRight" className="h-4 w-4" />
@@ -152,13 +152,13 @@ export default function Home() {
 
               <Link
                 href="#alur"
-                className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-6 py-3 font-medium backdrop-blur-sm transition hover:bg-white hover:text-slate-950"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-6 py-3 font-medium backdrop-blur-sm transition hover:bg-white hover:text-slate-950"
               >
                 Lihat Alur
               </Link>
             </div>
 
-            <div className="mt-8 flex flex-wrap gap-4 text-xs text-cyan-100/80">
+            <div className="mt-7 flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-cyan-100/80 sm:mt-8 sm:text-xs">
               <span className="flex items-center gap-1">
                 <Icon name="check" className="h-3 w-3" /> Mudah diakses
               </span>
@@ -171,18 +171,19 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="relative flex animate-fade-up items-center justify-center w-full overflow-visible">
+          <div className="relative flex animate-fade-up items-center justify-center overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/[0.03] px-1 pt-4 shadow-2xl shadow-blue-950/20 sm:overflow-visible sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none lg:w-full">
             <img
               src={HERO_IMAGE}
               alt="Preview tampilan SkillLens"
-              className="w-[135%] max-w-none h-auto object-contain"
-              style={{ transform: 'translateX(-8%)' }}
+              loading="eager"
+              decoding="async"
+              className="h-auto w-full max-w-[36rem] object-contain sm:max-w-[42rem] lg:w-[135%] lg:max-w-none lg:-translate-x-[8%]"
             />
           </div>
         </div>
       </section>
 
-      <section className="relative -mt-8 z-20 mx-auto w-[min(1220px,calc(100%-32px))]">
+      <section className="relative -mt-5 z-20 mx-auto w-[min(1220px,calc(100%-24px))] sm:-mt-8 sm:w-[min(1220px,calc(100%-32px))]">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {metrics.map((item) => (
             <SoftCard key={item.label} className="bg-white/95 p-4 backdrop-blur-sm">
@@ -205,7 +206,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="tentang" className="scroll-mt-24 mx-auto w-[min(1220px,calc(100%-32px))] py-20">
+      <section id="tentang" className="scroll-mt-24 mx-auto w-[min(1220px,calc(100%-24px))] py-14 sm:w-[min(1220px,calc(100%-32px))] sm:py-20">
         <div className="grid items-center gap-12 md:grid-cols-2">
           <div>
             <SectionHeader
@@ -273,7 +274,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="kelebihan" className="scroll-mt-24 mx-auto w-[min(1220px,calc(100%-32px))] py-20">
+      <section id="kelebihan" className="scroll-mt-24 mx-auto w-[min(1220px,calc(100%-24px))] py-14 sm:w-[min(1220px,calc(100%-32px))] sm:py-20">
         <SectionHeader
           eyebrow="Keunggulan"
           title={<>Mengapa <span className="text-cyan-600">SkillLens</span> Lebih Unggul?</>}
@@ -337,7 +338,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="keamanan" className="scroll-mt-24 mx-auto w-[min(1220px,calc(100%-32px))] py-20">
+      <section id="keamanan" className="scroll-mt-24 mx-auto w-[min(1220px,calc(100%-24px))] py-14 sm:w-[min(1220px,calc(100%-32px))] sm:py-20">
         <div className="grid items-center gap-8 md:grid-cols-2">
           <div>
             <SectionHeader
@@ -412,7 +413,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mx-auto w-[min(1220px,calc(100%-32px))] py-20">
+      <section className="mx-auto w-[min(1220px,calc(100%-24px))] py-14 sm:w-[min(1220px,calc(100%-32px))] sm:py-20">
         <div className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-r from-[#0f2a5f] to-[#1e3a8a] p-8 text-white shadow-xl md:p-10">
           <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-cyan-300/20 blur-3xl" />
           <div className="relative flex flex-col items-center justify-between gap-6 md:flex-row">

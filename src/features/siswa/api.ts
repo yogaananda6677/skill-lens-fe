@@ -1,6 +1,64 @@
 import { apiFetch, API_BASE_URL } from "../../lib/axios";
 import type { AcademicScores, CareerRoadmap, PublishedRoadmap, Recommendation, RoadmapDetail, RoadmapStep, StudentProfileForm, StudentAchievement, StudentAcademicDetailResponse, StudentRoadmapHistoryItem, StudentSpkHistoryItem } from "./types";
 
+const STUDENT_RESOURCE_CACHE_TTL = 60_000;
+const STUDENT_MASTER_OPTIONS_TTL = 10 * 60_000;
+
+type StudentResourceCacheEntry<T> = {
+  expiresAt: number;
+  data?: T;
+  promise?: Promise<T>;
+};
+
+const studentResourceCache = new Map<string, StudentResourceCacheEntry<any>>();
+
+function canUseStudentResourceCache() {
+  return typeof window !== "undefined";
+}
+
+function cachedStudentResource<T>(
+  key: string,
+  loader: () => Promise<T>,
+  ttl = STUDENT_RESOURCE_CACHE_TTL,
+): Promise<T> {
+  if (!canUseStudentResourceCache()) return loader();
+
+  const now = Date.now();
+  const existing = studentResourceCache.get(key) as StudentResourceCacheEntry<T> | undefined;
+
+  if (existing?.data !== undefined && existing.expiresAt > now) {
+    return Promise.resolve(existing.data);
+  }
+
+  if (existing?.promise) return existing.promise;
+
+  const promise = loader()
+    .then((data) => {
+      studentResourceCache.set(key, { data, expiresAt: Date.now() + ttl });
+      return data;
+    })
+    .catch((error) => {
+      studentResourceCache.delete(key);
+      throw error;
+    });
+
+  studentResourceCache.set(key, { promise, expiresAt: now + ttl });
+  return promise;
+}
+
+export function clearStudentResourceCache(prefix = "") {
+  if (!prefix) {
+    studentResourceCache.clear();
+    return;
+  }
+
+  for (const key of Array.from(studentResourceCache.keys())) {
+    if (key.startsWith(prefix)) {
+      studentResourceCache.delete(key);
+    }
+  }
+}
+
 function asArray(value: unknown): string[] {
   if (Array.isArray(value)) return value.map((item) => String(item ?? "").trim()).filter(Boolean);
   if (typeof value === "string") return value.split(",").map((item) => item.trim()).filter(Boolean);
@@ -61,14 +119,20 @@ function uniqueLabels(rows: unknown): string[] {
 }
 
 export async function getMasterProfileOptions() {
-  const response = await apiFetch<MasterTagsGroupedResponse>("/master-tags");
+  return cachedStudentResource(
+    "master-tags:profile-options",
+    async () => {
+      const response = await apiFetch<MasterTagsGroupedResponse>("/master-tags");
 
-  return {
-    interestOptions: uniqueLabels(response?.minat),
-    hobbyOptions: uniqueLabels(response?.hobi),
-    talentOptions: uniqueLabels(response?.bakat),
-    experienceOptions: uniqueLabels(response?.pengalaman),
-  };
+      return {
+        interestOptions: uniqueLabels(response?.minat),
+        hobbyOptions: uniqueLabels(response?.hobi),
+        talentOptions: uniqueLabels(response?.bakat),
+        experienceOptions: uniqueLabels(response?.pengalaman),
+      };
+    },
+    STUDENT_MASTER_OPTIONS_TTL,
+  );
 }
 
 export type SiswaMeResponse = {
@@ -112,10 +176,12 @@ export async function getSiswaMe() {
 }
 
 export async function getSiswaNilai() {
-  return apiFetch<StudentAcademicDetailResponse>("/siswa/nilai", {
-    method: "GET",
-    alert: false,
-  });
+  return cachedStudentResource("siswa:nilai", () =>
+    apiFetch<StudentAcademicDetailResponse>("/siswa/nilai", {
+      method: "GET",
+      alert: false,
+    }),
+  );
 }
 
 export type CreateStudentAchievementPayload = {
@@ -268,6 +334,9 @@ export async function processSiswaSpk(payload: any) {
     alert: false,
   });
 
+  clearStudentResourceCache("siswa:spk");
+  clearStudentResourceCache("roadmaps:student");
+
   return {
     ...response,
     recommendations: normalizeRecommendations(response),
@@ -370,30 +439,43 @@ function normalizeActiveRoadmap(raw: any): CareerRoadmap | null {
 }
 
 export async function getPublishedRoadmaps(): Promise<PublishedRoadmap[]> {
-  const response = await apiFetch<any>("/roadmaps/published");
-  const rows = Array.isArray(response) ? response : response?.data ?? [];
-  return rows.map((item: any) => ({
-    id: Number(firstDefined(item?.id, item?.id_roadmap, 0)),
-    title: String(firstDefined(item?.title, item?.headline, item?.nama, "Roadmap")),
-    description: firstDefined(item?.description, item?.deskripsi, null) as string | null,
-    category: firstDefined(item?.category, item?.kategori, null) as string | null,
-  }));
+  return cachedStudentResource(
+    "roadmaps:published",
+    async () => {
+      const response = await apiFetch<any>("/roadmaps/published");
+      const rows = Array.isArray(response) ? response : response?.data ?? [];
+      return rows.map((item: any) => ({
+        id: Number(firstDefined(item?.id, item?.id_roadmap, 0)),
+        title: String(firstDefined(item?.title, item?.headline, item?.nama, "Roadmap")),
+        description: firstDefined(item?.description, item?.deskripsi, null) as string | null,
+        category: firstDefined(item?.category, item?.kategori, null) as string | null,
+      }));
+    },
+    5 * 60_000,
+  );
 }
 
 export async function selectStudentRoadmap(roadmapId: number) {
-  return apiFetch<{ message: string; data?: any }>("/roadmaps/student/select", {
+  const response = await apiFetch<{ message: string; data?: any }>("/roadmaps/student/select", {
     method: "POST",
     body: JSON.stringify({ id_roadmap: roadmapId }),
     alert: false,
   });
+
+  clearStudentResourceCache("roadmaps:student");
+  clearStudentResourceCache("siswa:spk");
+
+  return response;
 }
 
 export async function getActiveStudentRoadmap() {
-  const response = await apiFetch<any>("/roadmaps/student/active", {
-    method: "GET",
-    alert: false,
+  return cachedStudentResource("roadmaps:student:active", async () => {
+    const response = await apiFetch<any>("/roadmaps/student/active", {
+      method: "GET",
+      alert: false,
+    });
+    return normalizeActiveRoadmap(response);
   });
-  return normalizeActiveRoadmap(response);
 }
 
 function normalizeStudentRoadmapHistoryItem(raw: any): StudentRoadmapHistoryItem {
@@ -417,20 +499,24 @@ function normalizeStudentRoadmapHistoryItem(raw: any): StudentRoadmapHistoryItem
 }
 
 export async function getStudentRoadmapHistory(): Promise<StudentRoadmapHistoryItem[]> {
-  const response = await apiFetch<any>("/roadmaps/student/history", {
-    method: "GET",
-    alert: false,
+  return cachedStudentResource("roadmaps:student:history", async () => {
+    const response = await apiFetch<any>("/roadmaps/student/history", {
+      method: "GET",
+      alert: false,
+    });
+
+    const rows = Array.isArray(response)
+      ? response
+      : Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response?.history)
+          ? response.history
+          : [];
+
+    return rows
+      .map(normalizeStudentRoadmapHistoryItem)
+      .filter((item: { id: number }) => item.id > 0);
   });
-
-  const rows = Array.isArray(response)
-    ? response
-    : Array.isArray(response?.data)
-      ? response.data
-      : Array.isArray(response?.history)
-        ? response.history
-        : [];
-
-  return rows.map(normalizeStudentRoadmapHistoryItem).filter((item) => item.id > 0);
 }
 
 function normalizeSelectedSpkRoadmap(raw: any) {
@@ -461,40 +547,50 @@ function normalizeStudentSpkHistoryItem(raw: any): StudentSpkHistoryItem {
 }
 
 export async function getStudentSpkHistory(): Promise<StudentSpkHistoryItem[]> {
-  const response = await apiFetch<any>("/siswa/spk/history", {
-    method: "GET",
-    alert: false,
+  return cachedStudentResource("siswa:spk:history", async () => {
+    const response = await apiFetch<any>("/siswa/spk/history", {
+      method: "GET",
+      alert: false,
+    });
+
+    const rows = Array.isArray(response)
+      ? response
+      : Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response?.history)
+          ? response.history
+          : [];
+
+    return rows
+      .map(normalizeStudentSpkHistoryItem)
+      .filter((item: { id: number | string }) => Number(item.id) > 0);
   });
-
-  const rows = Array.isArray(response)
-    ? response
-    : Array.isArray(response?.data)
-      ? response.data
-      : Array.isArray(response?.history)
-        ? response.history
-        : [];
-
-  return rows.map(normalizeStudentSpkHistoryItem).filter((item) => item.id > 0);
 }
 
 export async function updateStudentRoadmapProgress(progressId: number, status: "belum" | "proses" | "selesai") {
-  return apiFetch<{ message: string; data?: any }>(`/roadmaps/student/progress/${progressId}`, {
+  const response = await apiFetch<{ message: string; data?: any }>(`/roadmaps/student/progress/${progressId}`, {
     method: "PATCH",
     body: JSON.stringify({ status }),
     alert: false,
   });
+
+  clearStudentResourceCache("roadmaps:student");
+
+  return response;
 }
 
 
 export async function getLatestSiswaSpk() {
-  const response = await apiFetch<any>("/siswa/spk/latest", {
-    method: "GET",
-  });
+  return cachedStudentResource("siswa:spk:latest", async () => {
+    const response = await apiFetch<any>("/siswa/spk/latest", {
+      method: "GET",
+    });
 
-  return {
-    ...response,
-    recommendations: normalizeRecommendations(response),
-  };
+    return {
+      ...response,
+      recommendations: normalizeRecommendations(response),
+    };
+  });
 }
 
 

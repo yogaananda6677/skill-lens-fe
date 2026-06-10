@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
 import { DashboardShell } from "../../../components/layout/DashboardShell";
@@ -128,6 +128,7 @@ export default function GuruProgressPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const restoreScrollYRef = useRef<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -198,6 +199,25 @@ export default function GuruProgressPage() {
     const avgProgress = filtered.length ? Math.round(filtered.reduce((sum, item) => sum + Number(item.progress || 0), 0) / filtered.length) : 0;
     return { aktif, belumPilih, belumGenerate, avgProgress };
   }, [filtered]);
+
+  useEffect(() => {
+    if (restoreScrollYRef.current === null) return;
+
+    const y = restoreScrollYRef.current;
+    restoreScrollYRef.current = null;
+
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: y, behavior: "auto" });
+    });
+  }, [safePage, pageRows.length]);
+
+  function changePage(nextPage: number) {
+    const targetPage = Math.min(Math.max(nextPage, 1), totalPages);
+    if (targetPage === safePage) return;
+
+    restoreScrollYRef.current = window.scrollY;
+    setCurrentPage(targetPage);
+  }
 
   return (
     <GuruOnbordaProvider>
@@ -299,7 +319,7 @@ export default function GuruProgressPage() {
                         {item.recommendations?.length ? <p className="mt-1 text-xs font-semibold text-slate-400">Rekomendasi tersedia: {item.recommendations.length}</p> : null}
                       </div>
 
-                      <Link href={`/guru/siswa/${item.studentId}/progress`} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-4 py-3 text-sm font-extrabold text-white shadow-lg shadow-sky-600/20 transition hover:-translate-y-0.5 hover:shadow-xl">
+                      <Link href={`/guru/siswa/progress-detail?id=${item.studentId}`} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-4 py-3 text-sm font-extrabold text-white shadow-lg shadow-sky-600/20 transition hover:-translate-y-0.5 hover:shadow-xl">
                         Lihat Detail
                         <Icon name="chevronRight" className="h-4 w-4" />
                       </Link>
@@ -315,9 +335,9 @@ export default function GuruProgressPage() {
               <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm font-semibold text-slate-500">Maksimal {PAGE_SIZE} data per halaman</p>
                 <div className="flex items-center justify-end gap-2">
-                  <button type="button" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={safePage <= 1} className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">Sebelumnya</button>
+                  <button type="button" onClick={() => changePage(safePage - 1)} disabled={safePage <= 1} className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">Sebelumnya</button>
                   <span className="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-2 text-sm font-black text-sky-700">{safePage}/{totalPages}</span>
-                  <button type="button" onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} disabled={safePage >= totalPages} className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">Berikutnya</button>
+                  <button type="button" onClick={() => changePage(safePage + 1)} disabled={safePage >= totalPages} className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">Berikutnya</button>
                 </div>
               </div>
             ) : null}

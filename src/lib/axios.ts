@@ -57,7 +57,7 @@ function shouldAutoNotify(method: string, options: ApiFetchOptions) {
 
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   const {
-    timeoutMs = 20000,
+    timeoutMs = 120000,
     skipAuth: _skipAuth,
     alert: _alert,
     loadingMessage,

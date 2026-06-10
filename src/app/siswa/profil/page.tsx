@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -12,7 +13,6 @@ import {
   getMasterProfileOptions,
   saveSiswaProfile,
 } from "../../../features/siswa/api";
-import { StudentProfilePanel } from "../components/StudentProfilePanel";
 import { type ArrayField } from "../components/StudentShared";
 import { useStudentData } from "../hooks/useStudentData";
 import { buildStudentPayload } from "../utils/buildStudentPayload";
@@ -20,6 +20,14 @@ import { buildStudentPayload } from "../utils/buildStudentPayload";
 const PROFILE_CHOICE_MIN = 1;
 const PROFILE_CHOICE_MAX = 4;
 const MIN_SAVE_LOADING_MS = 250;
+
+const StudentProfilePanel = dynamic(
+  () => import("../components/StudentProfilePanel").then((mod) => mod.StudentProfilePanel),
+  {
+    ssr: false,
+    loading: () => <FormSkeleton />,
+  },
+);
 
 const PROFILE_CHOICE_LABELS: Record<ArrayField, string> = {
   interests: "Minat",
@@ -213,12 +221,12 @@ export default function SiswaProfilPage() {
 
   return (
     <main className="min-h-screen skilllens-blue-page">
-      <section className="mx-auto max-w-7xl px-5 py-8 skilllens-page-enter">
+      <section className="mx-auto max-w-7xl px-3 py-5 skilllens-page-enter sm:px-5 sm:py-8">
         <section
           id="student-profile-hero"
-          className="scroll-mt-32 overflow-hidden rounded-[2rem] border border-white/10 skilllens-hero-grid text-white shadow-2xl shadow-blue-950/20"
+          className="scroll-mt-28 overflow-hidden rounded-[1.45rem] border border-white/10 skilllens-hero-grid text-white shadow-2xl shadow-blue-950/20 sm:scroll-mt-32 sm:rounded-[2rem]"
         >
-          <div className="relative grid gap-8 p-6 md:p-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center">
+          <div className="relative grid gap-6 p-4 sm:p-6 md:p-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center">
             <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(57,217,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,255,0.08)_1px,transparent_1px)] bg-[size:48px_48px]" />
             <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-cyan-300/[0.35] blur-3xl skilllens-orbit-glow" />
             <div className="pointer-events-none absolute -bottom-24 left-16 h-60 w-60 rounded-full bg-blue-500/30 blur-3xl skilllens-orbit-glow" />
@@ -230,26 +238,27 @@ export default function SiswaProfilPage() {
                   <Icon name="profile" className="h-4 w-4" />
                 </div>
 
-                <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-cyan-100">
+                <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-cyan-100 sm:text-xs sm:tracking-[0.22em]">
                   Profil Potensi
                 </p>
               </div>
 
-              <h1 className="mt-4 max-w-3xl text-3xl font-extrabold tracking-tight text-white md:text-5xl">
+              <h1 className="mt-4 max-w-3xl text-2xl font-extrabold tracking-tight text-white sm:text-3xl md:text-5xl">
                 Kelola profil potensi siswa
               </h1>
 
-              <p className="mt-4 max-w-2xl text-sm font-semibold leading-7 text-sky-100/80">
+              <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-sky-100/80 sm:mt-4 sm:leading-7">
                 Lengkapi data minat, hobi, bakat, pengalaman, prestasi, dan
                 tujuan karir agar sistem dapat memproses rekomendasi yang
                 sesuai.
               </p>
 
-              <div className="mt-6 flex flex-wrap gap-3">
+              <div className="mt-5 grid gap-3 sm:mt-6 sm:flex sm:flex-wrap">
                 <Link
                   id="student-tour-recommendation-action"
                   href="/siswa"
-                  className="inline-flex scroll-mt-32 items-center gap-2 rounded-full border border-white/[0.15] bg-white/10 px-5 py-3 text-sm font-bold text-white backdrop-blur-md skilllens-smooth hover:-translate-y-0.5 hover:bg-white hover:text-[#07142f]"
+                  prefetch={false}
+                  className="inline-flex w-full scroll-mt-32 items-center justify-center gap-2 rounded-full border border-white/[0.15] bg-white/10 px-5 py-3 text-sm font-bold text-white backdrop-blur-md skilllens-smooth hover:-translate-y-0.5 hover:bg-white hover:text-[#07142f] sm:w-auto"
                 >
                   <Icon name="home" className="h-4 w-4" />
                   Lihat beranda
@@ -258,7 +267,8 @@ export default function SiswaProfilPage() {
                 <Link
                   id="student-tour-profile-action"
                   href="/siswa/rekomendasi"
-                  className="inline-flex scroll-mt-32 items-center gap-2 rounded-full px-5 py-3 text-sm font-bold text-white skilllens-button-primary"
+                  prefetch={false}
+                  className="inline-flex w-full scroll-mt-32 items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold text-white skilllens-button-primary sm:w-auto"
                 >
                   Lanjut rekomendasi
                   <Icon name="chevronRight" className="h-4 w-4" />
@@ -282,7 +292,7 @@ export default function SiswaProfilPage() {
           </div>
         )}
 
-        <div className="mt-6">
+        <div className="mt-5 sm:mt-6">
           {loadingProfile ? (
             <FormSkeleton />
           ) : (

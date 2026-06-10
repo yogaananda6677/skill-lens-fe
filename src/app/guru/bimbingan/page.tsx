@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
 import { DashboardShell } from "../../../components/layout/DashboardShell";
@@ -166,6 +166,7 @@ export default function GuruRiwayatChatPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const restoreScrollYRef = useRef<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -245,6 +246,25 @@ export default function GuruRiwayatChatPage() {
 
     return { aktif, belumPilih, kosong, adaCatatan };
   }, [rows]);
+
+  useEffect(() => {
+    if (restoreScrollYRef.current === null) return;
+
+    const y = restoreScrollYRef.current;
+    restoreScrollYRef.current = null;
+
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: y, behavior: "auto" });
+    });
+  }, [safePage, paginatedRows.length]);
+
+  function changePage(nextPage: number) {
+    const targetPage = Math.min(Math.max(nextPage, 1), totalPages);
+    if (targetPage === safePage) return;
+
+    restoreScrollYRef.current = window.scrollY;
+    setCurrentPage(targetPage);
+  }
 
   return (
     <GuruOnbordaProvider>
@@ -407,7 +427,7 @@ export default function GuruRiwayatChatPage() {
 
                       <div className="flex flex-col gap-3 lg:items-end">
                         <Link
-                          href={`/guru/siswa/${item.studentId}/progress`}
+                          href={`/guru/siswa/progress-detail?id=${item.studentId}`}
                           className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-sky-600/20 transition hover:-translate-y-0.5 hover:shadow-xl lg:w-auto"
                         >
                           Buka Chat
@@ -435,7 +455,7 @@ export default function GuruRiwayatChatPage() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                    onClick={() => changePage(safePage - 1)}
                     disabled={safePage <= 1}
                     className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
@@ -448,9 +468,7 @@ export default function GuruRiwayatChatPage() {
 
                   <button
                     type="button"
-                    onClick={() =>
-                      setCurrentPage((page) => Math.min(totalPages, page + 1))
-                    }
+                    onClick={() => changePage(safePage + 1)}
                     disabled={safePage >= totalPages}
                     className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >

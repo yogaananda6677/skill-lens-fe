@@ -1,4 +1,4 @@
-export type AppAlertType = "success" | "error" | "info" | "processing";
+export type AppAlertType = "success" | "error" | "info" | "processing" | "warning";
 
 export type AppAlertPayload = {
   type?: AppAlertType;

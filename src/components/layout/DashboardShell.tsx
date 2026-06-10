@@ -107,14 +107,20 @@ function initials(name: string) {
   );
 }
 
+function normalizeDashboardPath(value?: string | null) {
+  const path = String(value || "").split("#")[0].split("?")[0] || "/";
+  if (path.length > 1) return path.replace(/\/+$/, "");
+  return path;
+}
+
 function navIsActive(
   item: DashboardNavItem,
   activeKey: string,
   pathname: string,
 ) {
   if (item.key === activeKey) return true;
-  if (item.href && !item.href.includes("#") && item.href === pathname) {
-    return true;
+  if (item.href && !item.href.includes("#")) {
+    return normalizeDashboardPath(item.href) === normalizeDashboardPath(pathname);
   }
   return false;
 }
@@ -530,7 +536,7 @@ function NavItem({
 }: {
   item: DashboardNavItem;
   active: boolean;
-  onClick: () => void;
+  onClick: (event: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => void;
 }) {
   const icon = item.icon ?? "dashboard";
 
@@ -607,9 +613,10 @@ function NavItem({
     return (
       <Link
         href={item.href}
-        prefetch
-        onClick={onClick}
+        prefetch={false}
+        onClick={(event) => onClick(event)}
         id={`dashboard-nav-${item.key}`}
+        aria-current={active ? "page" : undefined}
         className={className}
       >
         {content}
@@ -620,7 +627,8 @@ function NavItem({
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={(event) => onClick(event)}
+      aria-current={active ? "page" : undefined}
       id={`dashboard-nav-${item.key}`}
       className={className}
     >
@@ -839,11 +847,33 @@ export function DashboardShell({
     router.replace("/auth/login");
   }
 
-  function navigate(item: DashboardNavItem) {
-    onNavigate?.(item.key);
+  function navigate(
+    item: DashboardNavItem,
+    event?: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>,
+  ) {
+    const currentPath = normalizeDashboardPath(pathname);
+    const targetPath = normalizeDashboardPath(item.href);
+    const hasRealRoute = Boolean(item.href && !item.href.includes("#"));
+    const isSameRoute = hasRealRoute && targetPath === currentPath;
+    const isSameTab = !item.href && item.key === activeKey;
+
+    if (isSameRoute || isSameTab) {
+      event?.preventDefault();
+      setOpen(false);
+      setRouteSwitching(false);
+      return;
+    }
 
     if (item.href?.includes("#")) {
       const hash = item.href.split("#")[1];
+      const hashBasePath = normalizeDashboardPath(item.href.split("#")[0] || pathname);
+
+      if (hashBasePath === currentPath) {
+        event?.preventDefault();
+      }
+
+      setOpen(false);
+      onNavigate?.(item.key);
 
       window.setTimeout(() => {
         document
@@ -854,9 +884,9 @@ export function DashboardShell({
       return;
     }
 
-    if (item.href && item.href !== pathname) {
-      setRouteSwitching(true);
-    }
+    setRouteSwitching(true);
+    setOpen(false);
+    onNavigate?.(item.key);
   }
 
   if (!ready) {
@@ -917,7 +947,7 @@ export function DashboardShell({
             key={item.key}
             item={item}
             active={navIsActive(item, activeKey, pathname)}
-            onClick={() => navigate(item)}
+            onClick={(event) => navigate(item, event)}
           />
         ))}
       </nav>
@@ -941,9 +971,14 @@ export function DashboardShell({
         <div className="pointer-events-none fixed inset-0 bg-[repeating-linear-gradient(45deg,_rgba(14,116,144,0.018)_0px,_rgba(14,116,144,0.018)_1px,_transparent_1px,_transparent_24px)]" />
 
         {routeSwitching && (
-          <div className="fixed left-0 right-0 top-0 z-[100] h-1 overflow-hidden bg-sky-100">
-            <div className="h-full w-1/2 animate-[routeProgress_720ms_ease-in-out_infinite] rounded-r-full bg-gradient-to-r from-sky-500 to-cyan-400" />
-          </div>
+          <>
+            <div className="fixed left-0 right-0 top-0 z-[100] h-1 overflow-hidden bg-sky-100">
+              <div className="h-full w-1/2 animate-[routeProgress_720ms_ease-in-out_infinite] rounded-r-full bg-gradient-to-r from-sky-500 to-cyan-400" />
+            </div>
+            <div className="pointer-events-none fixed right-5 top-5 z-[101] hidden rounded-2xl border border-sky-100 bg-white/92 px-4 py-2 text-xs font-black text-sky-700 shadow-lg shadow-sky-100/70 backdrop-blur md:inline-flex">
+              Memuat halaman...
+            </div>
+          </>
         )}
 
         <div className="hidden lg:block">

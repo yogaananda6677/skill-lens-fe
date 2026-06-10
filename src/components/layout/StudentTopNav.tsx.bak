@@ -1,0 +1,738 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { clearAuth, getStoredUser } from "../../lib/auth";
+import { studentNav } from "../../config/navigation";
+import { getActiveStudentRoadmap } from "../../features/siswa/api";
+import type { CareerRoadmap, RoadmapNote } from "../../features/siswa/types";
+import { Icon } from "../ui/icons";
+
+function getCurrentHash() {
+  if (typeof window === "undefined") return "";
+  return window.location.hash || "";
+}
+
+function normalizeHref(href?: string) {
+  return href || "/siswa";
+}
+
+function isItemActive(href: string, pathname: string, hash: string) {
+  if (href.includes("#")) {
+    const [path, targetHash] = href.split("#");
+    const expectedPath = path || "/siswa";
+    return pathname === expectedPath && hash === `#${targetHash}`;
+  }
+
+  if (href === "/siswa") return pathname === "/siswa";
+
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function supportsStudentPrefetch() {
+  if (typeof window === "undefined") return false;
+
+  const connection = (navigator as Navigator & {
+    connection?: { saveData?: boolean; effectiveType?: string };
+  }).connection;
+
+  if (connection?.saveData) return false;
+  if (connection?.effectiveType && ["slow-2g", "2g"].includes(connection.effectiveType)) {
+    return false;
+  }
+
+  return true;
+}
+
+function runWhenIdle(callback: () => void) {
+  if (typeof window === "undefined") return () => {};
+
+  const win = window as Window & {
+    requestIdleCallback?: (callback: () => void, options?: { timeout?: number }) => number;
+    cancelIdleCallback?: (id: number) => void;
+  };
+
+  if (win.requestIdleCallback) {
+    const id = win.requestIdleCallback(callback, { timeout: 1800 });
+    return () => win.cancelIdleCallback?.(id);
+  }
+
+  const id = window.setTimeout(callback, 900);
+  return () => window.clearTimeout(id);
+}
+
+function getInitials(name: string) {
+  return (
+    name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((word) => word[0]?.toUpperCase())
+      .join("") || "S"
+  );
+}
+
+type GuidanceNotification = RoadmapNote & {
+  stepTitle?: string;
+  detailTitle?: string;
+};
+
+function guidanceSeenKey(userId?: number | null) {
+  return `skilllens_student_guidance_seen_at:${userId ?? "unknown"}`;
+}
+
+function noteTimestamp(note: GuidanceNotification) {
+  const value = note.createdAt ? new Date(note.createdAt).getTime() : 0;
+  return Number.isNaN(value) ? 0 : value;
+}
+
+function formatGuidanceDate(value?: string | null) {
+  if (!value) return "Baru saja";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Baru saja";
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function collectGuidanceNotes(roadmap: CareerRoadmap | null): GuidanceNotification[] {
+  if (!roadmap) return [];
+
+  const notes: GuidanceNotification[] = [];
+
+  for (const step of roadmap.steps ?? []) {
+    for (const note of step.notes ?? []) {
+      if (!note.note?.trim()) continue;
+      notes.push({ ...note, stepTitle: step.title });
+    }
+
+    for (const detail of step.details ?? []) {
+      for (const note of detail.notes ?? []) {
+        if (!note.note?.trim()) continue;
+        notes.push({ ...note, stepTitle: step.title, detailTitle: detail.title });
+      }
+    }
+  }
+
+  return notes.sort((a, b) => noteTimestamp(b) - noteTimestamp(a));
+}
+
+export function StudentTopNav({ children }: { children: ReactNode }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [guidanceOpen, setGuidanceOpen] = useState(false);
+  const [name, setName] = useState("Siswa");
+  const [userId, setUserId] = useState<number | null>(null);
+  const [hash, setHash] = useState("");
+  const [guidanceNotes, setGuidanceNotes] = useState<GuidanceNotification[]>([]);
+  const [guidanceSeenAt, setGuidanceSeenAt] = useState("");
+  const [allowPrefetch, setAllowPrefetch] = useState(false);
+  const [routeLoading, setRouteLoading] = useState(false);
+  const [slowRoute, setSlowRoute] = useState(false);
+  const slowRouteTimerRef = useRef<number | null>(null);
+  const routeDoneTimerRef = useRef<number | null>(null);
+
+  const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    const user = getStoredUser();
+
+    if (!user || user.role !== "siswa") {
+      router.replace("/auth/login");
+      return;
+    }
+
+    setName(user.nama || "Siswa");
+    setUserId(user.id ?? null);
+  }, [router]);
+
+  useEffect(() => {
+    if (!supportsStudentPrefetch()) {
+      setAllowPrefetch(false);
+      return;
+    }
+
+    const cancel = runWhenIdle(() => {
+      setAllowPrefetch(true);
+
+      for (const item of studentNav) {
+        const href = normalizeHref(item.href).split("#")[0];
+        if (href) router.prefetch(href);
+      }
+    });
+
+    return cancel;
+  }, [router]);
+
+  useEffect(() => {
+    setHash(getCurrentHash());
+
+    function handleHashChange() {
+      setHash(getCurrentHash());
+    }
+
+    window.addEventListener("hashchange", handleHashChange);
+
+    return () => {
+      window.removeEventListener("hashchange", handleHashChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!userId) return;
+    setGuidanceSeenAt(window.localStorage.getItem(guidanceSeenKey(userId)) || "");
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    let active = true;
+    let timer: number | null = null;
+
+    async function loadGuidanceNotifications() {
+      try {
+        const activeRoadmap = await getActiveStudentRoadmap();
+        if (!active) return;
+        setGuidanceNotes(collectGuidanceNotes(activeRoadmap));
+      } catch {
+        if (active) setGuidanceNotes([]);
+      }
+    }
+
+    const cancelIdle = runWhenIdle(() => {
+      if (!active) return;
+      loadGuidanceNotifications();
+      timer = window.setInterval(loadGuidanceNotifications, 90000);
+    });
+
+    return () => {
+      active = false;
+      cancelIdle();
+      if (timer) window.clearInterval(timer);
+    };
+  }, [pathname, userId]);
+
+  useEffect(() => {
+    setMenuOpen(false);
+    setGuidanceOpen(false);
+  }, [pathname, hash]);
+
+  useEffect(() => {
+    return () => {
+      if (slowRouteTimerRef.current) window.clearTimeout(slowRouteTimerRef.current);
+      if (routeDoneTimerRef.current) window.clearTimeout(routeDoneTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (slowRouteTimerRef.current) {
+      window.clearTimeout(slowRouteTimerRef.current);
+      slowRouteTimerRef.current = null;
+    }
+
+    if (routeDoneTimerRef.current) {
+      window.clearTimeout(routeDoneTimerRef.current);
+    }
+
+    routeDoneTimerRef.current = window.setTimeout(() => {
+      setRouteLoading(false);
+      setSlowRoute(false);
+    }, 180);
+
+    return () => {
+      if (routeDoneTimerRef.current) {
+        window.clearTimeout(routeDoneTimerRef.current);
+      }
+    };
+  }, [pathname, hash]);
+
+  const currentInitials = useMemo(() => getInitials(name), [name]);
+  const unreadGuidanceNotes = useMemo(() => {
+    const seenAt = guidanceSeenAt ? new Date(guidanceSeenAt).getTime() : 0;
+    const safeSeenAt = Number.isNaN(seenAt) ? 0 : seenAt;
+
+    return guidanceNotes.filter((note) => noteTimestamp(note) > safeSeenAt);
+  }, [guidanceNotes, guidanceSeenAt]);
+  const guidanceCountLabel = unreadGuidanceNotes.length > 9 ? "9+" : String(unreadGuidanceNotes.length);
+
+  function beginRouteLoading(target: string) {
+    const [targetPath, targetHash] = target.split("#");
+    const nextPath = targetPath || pathname;
+    const nextHash = targetHash ? `#${targetHash}` : "";
+    const sameLocation = nextPath === pathname && nextHash === hash;
+
+    if (sameLocation) return;
+
+    if (slowRouteTimerRef.current) {
+      window.clearTimeout(slowRouteTimerRef.current);
+    }
+
+    setRouteLoading(true);
+    setSlowRoute(false);
+
+    slowRouteTimerRef.current = window.setTimeout(() => {
+      setSlowRoute(true);
+    }, 850);
+  }
+
+  function handleNavClick(href?: string) {
+    const target = normalizeHref(href);
+
+    beginRouteLoading(target);
+
+    if (target.includes("#")) {
+      const [, targetHash] = target.split("#");
+
+      window.setTimeout(() => {
+        setHash(getCurrentHash());
+        document
+          .querySelector(`#${targetHash}`)
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 80);
+    } else {
+      setHash("");
+    }
+
+    setMenuOpen(false);
+  }
+
+  useEffect(() => {
+    function handleStudentLinkClick(event: MouseEvent) {
+      if (
+        event.defaultPrevented ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
+        return;
+      }
+
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+
+      const anchor = target.closest("a[href]") as HTMLAnchorElement | null;
+      if (!anchor || anchor.target || anchor.hasAttribute("download")) return;
+
+      let url: URL;
+
+      try {
+        url = new URL(anchor.href, window.location.href);
+      } catch {
+        return;
+      }
+
+      if (url.origin !== window.location.origin) return;
+      if (!url.pathname.startsWith("/siswa")) return;
+
+      beginRouteLoading(`${url.pathname}${url.hash}`);
+    }
+
+    document.addEventListener("click", handleStudentLinkClick, true);
+
+    return () => {
+      document.removeEventListener("click", handleStudentLinkClick, true);
+    };
+  }, [hash, pathname]);
+
+  function markGuidanceAsRead() {
+    const latestTimestamp = guidanceNotes[0]?.createdAt || new Date().toISOString();
+    window.localStorage.setItem(guidanceSeenKey(userId), latestTimestamp);
+    setGuidanceSeenAt(latestTimestamp);
+  }
+
+  function logout() {
+    clearAuth();
+    setLogoutOpen(false);
+    router.replace("/auth/login");
+  }
+
+  return (
+    <div className="min-h-screen overflow-x-hidden text-slate-950 skilllens-blue-page">
+      {routeLoading ? (
+        <div className="fixed inset-x-0 top-0 z-[1400] text-white" aria-live="polite">
+          <div className="h-1 overflow-hidden bg-cyan-950/20">
+            <div className="h-full w-2/5 animate-[skilllens-route-progress_1.15s_ease-in-out_infinite] rounded-r-full bg-gradient-to-r from-cyan-200 via-sky-400 to-cyan-100 shadow-[0_0_22px_rgba(56,189,248,0.75)]" />
+          </div>
+          {slowRoute ? (
+            <div className="mx-auto mt-2 w-[min(92vw,22rem)] rounded-full border border-white/15 bg-[#07142f]/92 px-4 py-2 text-center text-xs font-extrabold shadow-2xl shadow-slate-950/30 backdrop-blur-xl">
+              Memuat halaman, tunggu sebentar...
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      <header className="sticky top-0 z-[90] overflow-visible border-b border-sky-100/15 bg-[#07142f]/95 text-white shadow-sm shadow-blue-950/10 backdrop-blur-xl supports-[backdrop-filter]:bg-[#07142f]/88">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.18),transparent_34%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.16),transparent_30%)]" />
+
+        <div className="relative mx-auto flex max-w-7xl items-center justify-between gap-3 px-3 py-3 sm:px-5 sm:py-3.5">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-sky-100 sm:h-12 sm:w-12">
+              <img
+                src="/images/logo-skillens.png"
+                alt="SkillLens Logo"
+                loading="eager"
+                decoding="async"
+                className="h-8 w-8 object-contain sm:h-10 sm:w-10"
+              />
+            </div>
+
+            <div className="min-w-0 leading-tight">
+              <p className="truncate text-sm font-black tracking-tight text-white sm:text-base">
+                SkillLens
+              </p>
+              <p className="hidden text-[10px] font-extrabold uppercase tracking-[0.16em] text-cyan-200 min-[380px]:block sm:text-[11px] sm:tracking-[0.2em]">
+                Ruang Siswa
+              </p>
+            </div>
+          </div>
+
+          {/* Desktop Nav */}
+          <nav className="hidden items-center gap-1 rounded-full border border-white/10 bg-white/[0.08] p-1 shadow-sm backdrop-blur-md lg:flex">
+            {studentNav.map((item) => {
+              const href = normalizeHref(item.href);
+              const active = isItemActive(href, pathname, hash);
+
+              return (
+                <Link
+                  key={item.key}
+                  href={href}
+                  prefetch={allowPrefetch}
+                  onClick={() => handleNavClick(href)}
+                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-bold transition duration-200 ${
+                    active
+                      ? "bg-white text-[#0a2f73] shadow-sm ring-1 ring-white/50"
+                      : "text-sky-100/80 hover:bg-white/[0.12] hover:text-white"
+                  }`}
+                >
+                  <Icon name={item.icon ?? "dashboard"} className="h-4 w-4" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Desktop Right */}
+          <div className="hidden items-center gap-3 sm:flex">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setGuidanceOpen((value) => !value)}
+                className="relative inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2.5 text-sm font-bold text-cyan-100 shadow-sm backdrop-blur-md transition hover:bg-white/15 hover:text-white"
+                aria-label="Notifikasi bimbingan"
+                aria-expanded={guidanceOpen}
+              >
+                <Icon name="bell" className="h-4 w-4" />
+
+                {unreadGuidanceNotes.length ? (
+                  <span className="absolute -right-1 -top-1 grid min-h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1.5 text-[10px] font-black text-white ring-2 ring-[#07142f]">
+                    {guidanceCountLabel}
+                  </span>
+                ) : null}
+              </button>
+
+              {guidanceOpen ? (
+                <div className="absolute right-0 top-[calc(100%+0.75rem)] z-[220] w-[min(92vw,22rem)] overflow-hidden rounded-[1.35rem] border border-slate-200 bg-white text-slate-950 shadow-2xl shadow-slate-950/25 ring-1 ring-white/70">
+                  <div className="flex items-start justify-between gap-3 border-b border-slate-100 bg-gradient-to-br from-white via-cyan-50/45 to-sky-50/70 px-4 py-3.5">
+                    <div>
+                      <p className="text-sm font-extrabold text-slate-950">
+                        Bimbingan guru
+                      </p>
+                      <p className="mt-0.5 text-xs font-semibold text-slate-500">
+                        {guidanceNotes.length
+                          ? `${guidanceNotes.length} catatan pada roadmap aktif.`
+                          : "Belum ada catatan baru."}
+                      </p>
+                    </div>
+
+                    {unreadGuidanceNotes.length ? (
+                      <span className="rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-black text-rose-600 ring-1 ring-rose-100">
+                        {guidanceCountLabel}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div className="max-h-80 space-y-2 overflow-y-auto bg-white p-3">
+                    {guidanceNotes.length ? (
+                      guidanceNotes.slice(0, 4).map((note, index) => {
+                        const unread = unreadGuidanceNotes.some(
+                          (item) => item.id === note.id,
+                        );
+
+                        return (
+                          <article
+                            key={`${note.id}-${index}`}
+                            className="rounded-2xl border border-slate-100 bg-slate-50/70 p-3"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-extrabold text-slate-900">
+                                  {note.title ||
+                                    note.detailTitle ||
+                                    note.stepTitle ||
+                                    "Catatan bimbingan"}
+                                </p>
+                                <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400">
+                                  {note.guruName || "Guru BK"} •{" "}
+                                  {formatGuidanceDate(note.createdAt)}
+                                </p>
+                              </div>
+
+                              {unread ? (
+                                <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-rose-500" />
+                              ) : null}
+                            </div>
+
+                            <p className="mt-2 line-clamp-2 text-xs font-semibold leading-5 text-slate-500">
+                              {note.note}
+                            </p>
+                          </article>
+                        );
+                      })
+                    ) : (
+                      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm font-semibold leading-6 text-slate-500">
+                        Belum ada bimbingan dari guru BK pada roadmap aktif.
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-2 border-t border-slate-100 bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
+                    <button
+                      type="button"
+                      onClick={markGuidanceAsRead}
+                      disabled={!guidanceNotes.length}
+                      className="rounded-full border border-slate-200 bg-white px-3.5 py-2 text-xs font-extrabold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Tandai dibaca
+                    </button>
+
+                    <Link
+                      href="/siswa/roadmap"
+                      prefetch={allowPrefetch}
+                      onClick={() => {
+                        markGuidanceAsRead();
+                        setGuidanceOpen(false);
+                        handleNavClick("/siswa/roadmap");
+                      }}
+                      className="rounded-full bg-[#07142f] px-3.5 py-2 text-center text-xs font-extrabold text-white transition hover:bg-slate-800"
+                    >
+                      Lihat roadmap
+                    </Link>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <Link
+              href="/siswa/akun"
+              prefetch={allowPrefetch}
+              onClick={() => handleNavClick("/siswa/akun")}
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2.5 text-sm font-bold text-cyan-100 shadow-sm backdrop-blur-md transition hover:bg-white/15 hover:text-white"
+            >
+              <Icon name="settings" className="h-4 w-4" />
+            </Link>
+
+            <div className="flex items-center gap-3 rounded-full border border-white/10 bg-white/10 py-1.5 pl-2 pr-3 shadow-sm backdrop-blur-md">
+              <div className="grid h-9 w-9 place-items-center rounded-full bg-cyan-100 text-xs font-black text-[#07142f] ring-1 ring-white/40">
+                {currentInitials}
+              </div>
+
+              <div className="leading-tight">
+                <p className="max-w-32 truncate text-sm font-extrabold text-white">
+                  {name}
+                </p>
+                <p className="text-[11px] font-bold text-cyan-100/70">
+                  Siswa aktif
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setLogoutOpen(true)}
+              className="rounded-full border border-white/10 bg-white/10 px-4 py-2.5 text-sm font-bold text-white transition hover:border-rose-400/30 hover:bg-rose-500 hover:text-white"
+            >
+              Keluar
+            </button>
+          </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            type="button"
+            onClick={() => setMenuOpen((value) => !value)}
+            className="grid h-10 w-10 place-items-center rounded-2xl border border-white/10 bg-white/10 text-white shadow-sm transition hover:bg-white/20 sm:h-11 sm:w-11 lg:hidden"
+            aria-label="Menu siswa"
+            aria-expanded={menuOpen}
+          >
+            <Icon name={menuOpen ? "x" : "menu"} className="h-5 w-5" />
+          </button>
+        </div>
+
+        {menuOpen && (
+          <div className="relative border-t border-white/10 bg-[#07142f]/98 px-3 py-3 shadow-lg shadow-blue-950/20 backdrop-blur-xl sm:px-5 sm:py-4 lg:hidden">
+            <div className="mx-auto max-w-7xl">
+              <div className="mb-4 flex items-center gap-3 rounded-3xl border border-white/10 bg-white/10 p-3 shadow-sm">
+                <div className="grid h-10 w-10 place-items-center rounded-full bg-cyan-100 text-sm font-black text-[#07142f]">
+                  {currentInitials}
+                </div>
+
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-extrabold text-white">
+                    {name}
+                  </p>
+                  <p className="text-xs font-bold text-cyan-100/70">
+                    Ruang siswa SkillLens
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid max-h-[min(72vh,34rem)] gap-2 overflow-y-auto pr-1 overscroll-contain">
+                {studentNav.map((item) => {
+                  const href = normalizeHref(item.href);
+                  const active = isItemActive(href, pathname, hash);
+
+                  return (
+                    <Link
+                      key={item.key}
+                      href={href}
+                      prefetch={allowPrefetch}
+                      onClick={() => handleNavClick(href)}
+                      className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition ${
+                        active
+                          ? "bg-white text-[#0a2f73] shadow-lg shadow-cyan-400/10"
+                          : "bg-white/[0.08] text-sky-100/80 hover:bg-white/[0.14] hover:text-white"
+                      }`}
+                    >
+                      <Icon
+                        name={item.icon ?? "dashboard"}
+                        className="h-4 w-4"
+                      />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+
+                <Link
+                  href="/siswa/roadmap"
+                  prefetch={allowPrefetch}
+                  onClick={() => {
+                    markGuidanceAsRead();
+                    handleNavClick("/siswa/roadmap");
+                  }}
+                  className="flex items-center justify-between gap-3 rounded-2xl bg-white/[0.08] px-4 py-3 text-sm font-bold text-sky-100/80 transition hover:bg-white/[0.14] hover:text-white"
+                >
+                  <span className="inline-flex items-center gap-3">
+                    <Icon name="bell" className="h-4 w-4" />
+                    Bimbingan guru
+                  </span>
+                  {unreadGuidanceNotes.length ? (
+                    <span className="rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-black text-white">{guidanceCountLabel}</span>
+                  ) : null}
+                </Link>
+
+                <Link
+                  href="/siswa/akun"
+                  prefetch={allowPrefetch}
+                  onClick={() => handleNavClick("/siswa/akun")}
+                  className="flex items-center gap-3 rounded-2xl bg-white/[0.08] px-4 py-3 text-sm font-bold text-sky-100/80 transition hover:bg-white/[0.14] hover:text-white"
+                >
+                  <Icon name="settings" className="h-4 w-4" />
+                  Akun
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setLogoutOpen(true);
+                  }}
+                  className="mt-2 flex items-center gap-3 rounded-2xl bg-rose-500/12 px-4 py-3 text-left text-sm font-bold text-rose-100 transition hover:bg-rose-500 hover:text-white"
+                >
+                  <Icon name="logout" className="h-4 w-4" />
+                  Keluar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </header>
+
+      {children}
+
+      {logoutOpen && (
+        <div className="fixed inset-0 z-[1250] grid place-items-center bg-slate-950/58 px-4 py-6 text-slate-950 backdrop-blur-[4px]">
+          <button
+            type="button"
+            onClick={() => setLogoutOpen(false)}
+            className="absolute inset-0 cursor-default"
+            aria-label="Tutup konfirmasi keluar"
+          />
+
+          <section className="relative w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_28px_90px_rgba(15,23,42,0.22)]">
+            <div className="relative overflow-hidden border-b border-rose-100 bg-gradient-to-br from-white via-slate-50 to-rose-50/60 px-6 py-5 text-slate-950">
+              <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-rose-100/70 blur-3xl" />
+              <div className="pointer-events-none absolute -left-16 bottom-0 h-36 w-36 rounded-full bg-slate-100/80 blur-3xl" />
+
+              <div className="relative flex items-start justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-600 ring-1 ring-rose-100">
+                    <Icon name="logout" className="h-5 w-5" />
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-rose-600">
+                      Konfirmasi Logout
+                    </p>
+
+                    <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
+                      Keluar dari SkillLens?
+                    </h2>
+
+                    <p className="mt-2 max-w-md text-sm font-medium leading-6 text-slate-500">
+                      Sesi akan diakhiri dan kamu perlu login kembali untuk mengakses roadmap.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setLogoutOpen(false)}
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-800"
+                  aria-label="Tutup konfirmasi keluar"
+                >
+                  <Icon name="x" className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <div className="border-t border-slate-100 bg-white px-6 py-4 shadow-[0_-12px_30px_rgba(15,23,42,0.04)]">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setLogoutOpen(false)}
+                  className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-extrabold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                >
+                  Batal
+                </button>
+
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="inline-flex items-center justify-center rounded-2xl bg-rose-600 px-5 py-3 text-sm font-extrabold text-white shadow-md shadow-rose-600/20 transition hover:-translate-y-0.5 hover:bg-rose-700"
+                >
+                  Ya, keluar
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+    </div>
+  );
+}

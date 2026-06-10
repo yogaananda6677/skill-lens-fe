@@ -4,6 +4,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import type { FieldErrors, SchoolForm, AdminSchoolStatus } from "../types";
 import { Field } from "./AdminSchoolShared";
 import { Icon } from "../../../components/ui/icons";
+import { AdminSchoolModalPortal } from "./AdminSchoolModalPortal";
 
 type SchoolDirectoryItem = {
   npsn: string;
@@ -32,10 +33,7 @@ type SchoolLookupData = {
   provinsi?: string | null;
 };
 
-const SCHOOL_TYPE_OPTIONS = [
-  "SMA",
-  "SMK",
-];
+const SCHOOL_TYPE_OPTIONS = ["SMA", "SMK"];
 
 function cleanText(value: unknown) {
   const text = String(value ?? "").trim();
@@ -63,7 +61,10 @@ function unique(values: string[]) {
   return result;
 }
 
-function normalizeSchoolType(value?: string | null, schoolName?: string | null) {
+function normalizeSchoolType(
+  value?: string | null,
+  schoolName?: string | null,
+) {
   const raw = `${value || ""} ${schoolName || ""}`.toUpperCase();
 
   if (raw.includes("SMK")) return "SMK";
@@ -81,7 +82,10 @@ function normalizeSchoolType(value?: string | null, schoolName?: string | null) 
   return trimmed || "";
 }
 
-function isAllowedSchoolType(value?: string | null, schoolName?: string | null) {
+function isAllowedSchoolType(
+  value?: string | null,
+  schoolName?: string | null,
+) {
   const normalized = normalizeSchoolType(value, schoolName);
   return SCHOOL_TYPE_OPTIONS.some((type) => normalized.includes(type));
 }
@@ -250,65 +254,73 @@ function SubmitProcessOverlay({
   const isSuccess = state === "success";
 
   return (
-    <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-950/58 px-4 py-6 backdrop-blur-[4px]">
-      <div className="w-full max-w-md overflow-hidden rounded-[2rem] border border-sky-100 bg-white shadow-2xl shadow-slate-950/20">
-        <div className="relative p-7">
-          {isSuccess && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="absolute right-5 top-5 grid h-10 w-10 place-items-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
-              aria-label="Tutup pesan berhasil"
-            >
-              <Icon name="x" className="h-4 w-4" />
-            </button>
-          )}
+    <AdminSchoolModalPortal>
+      <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/50 px-4 py-6 backdrop-blur-[3px]">
+        <div className="w-full max-w-md overflow-hidden rounded-[2rem] border border-sky-100 bg-white shadow-2xl shadow-slate-950/20">
+          <div className="relative p-7">
+            {isSuccess && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="absolute right-5 top-5 grid h-10 w-10 place-items-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
+                aria-label="Tutup pesan berhasil"
+              >
+                <Icon name="x" className="h-4 w-4" />
+              </button>
+            )}
 
-          <div className="grid h-14 w-14 place-items-center rounded-2xl bg-sky-50 text-sky-700 ring-1 ring-sky-100">
-            {isSuccess ? (
-              <Icon name="check" className="h-6 w-6" />
+            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-sky-50 text-sky-700 ring-1 ring-sky-100">
+              {isSuccess ? (
+                <Icon name="check" className="h-6 w-6" />
+              ) : (
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-sky-200 border-t-sky-700" />
+              )}
+            </div>
+
+            <h3 className="mt-4 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
+              {title}
+            </h3>
+
+            <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-600">
+              {description}
+            </p>
+
+            {!isSuccess ? (
+              <div className="mt-6">
+                <div className="h-2 overflow-hidden rounded-full bg-sky-100">
+                  <div className="h-full w-2/3 animate-[schoolSubmitProgress_1.35s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-[#0b2450] via-sky-500 to-cyan-300" />
+                </div>
+                <p className="mt-3 text-center text-xs font-semibold text-slate-500">
+                  Mohon tunggu, data sedang dikirim ke server.
+                </p>
+              </div>
             ) : (
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-sky-200 border-t-sky-700" />
+              <button
+                type="button"
+                onClick={onClose}
+                className="mt-7 inline-flex w-full items-center justify-center rounded-2xl bg-[#07142f] px-5 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-slate-950/10 transition hover:-translate-y-0.5 hover:bg-[#0b2450]"
+              >
+                Mengerti
+              </button>
             )}
           </div>
-
-          <h3 className="mt-4 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
-            {title}
-          </h3>
-
-          <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-600">
-            {description}
-          </p>
-
-          {!isSuccess ? (
-            <div className="mt-6">
-              <div className="h-2 overflow-hidden rounded-full bg-sky-100">
-                <div className="h-full w-2/3 animate-[schoolSubmitProgress_1.35s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-[#0b2450] via-sky-500 to-cyan-300" />
-              </div>
-              <p className="mt-3 text-center text-xs font-semibold text-slate-500">
-                Mohon tunggu, data sedang dikirim ke server.
-              </p>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={onClose}
-              className="mt-7 inline-flex w-full items-center justify-center rounded-2xl bg-[#07142f] px-5 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-slate-950/10 transition hover:-translate-y-0.5 hover:bg-[#0b2450]"
-            >
-              Mengerti
-            </button>
-          )}
         </div>
-      </div>
 
-      <style jsx global>{`
-        @keyframes schoolSubmitProgress {
-          0% { transform: translateX(-110%); }
-          50% { transform: translateX(25%); }
-          100% { transform: translateX(135%); }
-        }
-      `}</style>
-    </div>
+        <style jsx global>{`
+          @keyframes schoolSubmitProgress {
+            0% {
+              transform: translateX(-110%);
+            }
+            50% {
+              transform: translateX(25%);
+            }
+            100% {
+              transform: translateX(135%);
+            }
+          }
+        `}</style>
+      </div>
+    </AdminSchoolModalPortal>
   );
 }
 
@@ -345,8 +357,11 @@ export function AdminSchoolDataSekolah({
   const [lookupMessage, setLookupMessage] = useState("");
   const [lookupError, setLookupError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [submitOverlay, setSubmitOverlay] = useState<SubmitOverlayState>("idle");
-  const [submitOverlayTitle, setSubmitOverlayTitle] = useState("Menyimpan data sekolah");
+  const [submitOverlay, setSubmitOverlay] =
+    useState<SubmitOverlayState>("idle");
+  const [submitOverlayTitle, setSubmitOverlayTitle] = useState(
+    "Menyimpan data sekolah",
+  );
   const [submitOverlayDescription, setSubmitOverlayDescription] = useState(
     "Harap tunggu, sedang mengirim data...",
   );
@@ -387,7 +402,9 @@ export function AdminSchoolDataSekolah({
     () =>
       unique(
         normalizedDirectory
-          .filter((item) => !selectedProvince || item.provinsi === selectedProvince)
+          .filter(
+            (item) => !selectedProvince || item.provinsi === selectedProvince,
+          )
           .map((item) => item.kabupaten_kota || ""),
       ),
     [normalizedDirectory, selectedProvince],
@@ -396,8 +413,12 @@ export function AdminSchoolDataSekolah({
     () =>
       unique(
         normalizedDirectory
-          .filter((item) => !selectedProvince || item.provinsi === selectedProvince)
-          .filter((item) => !selectedCity || item.kabupaten_kota === selectedCity)
+          .filter(
+            (item) => !selectedProvince || item.provinsi === selectedProvince,
+          )
+          .filter(
+            (item) => !selectedCity || item.kabupaten_kota === selectedCity,
+          )
           .map((item) => item.kecamatan || ""),
       ),
     [normalizedDirectory, selectedProvince, selectedCity],
@@ -405,9 +426,13 @@ export function AdminSchoolDataSekolah({
   const filteredSchoolOptions = useMemo(
     () =>
       normalizedDirectory
-        .filter((item) => !selectedProvince || item.provinsi === selectedProvince)
+        .filter(
+          (item) => !selectedProvince || item.provinsi === selectedProvince,
+        )
         .filter((item) => !selectedCity || item.kabupaten_kota === selectedCity)
-        .filter((item) => !selectedDistrict || item.kecamatan === selectedDistrict),
+        .filter(
+          (item) => !selectedDistrict || item.kecamatan === selectedDistrict,
+        ),
     [normalizedDirectory, selectedProvince, selectedCity, selectedDistrict],
   );
   const hasDirectoryOptions = normalizedDirectory.length > 0;
@@ -462,7 +487,9 @@ export function AdminSchoolDataSekolah({
       setLookupMessage("Data sekolah berhasil ditemukan dan otomatis diisi.");
     } catch (error) {
       setLookupError(
-        error instanceof Error ? error.message : "Gagal mengambil data sekolah.",
+        error instanceof Error
+          ? error.message
+          : "Gagal mengambil data sekolah.",
       );
     } finally {
       setLookupLoading(false);
@@ -531,13 +558,17 @@ export function AdminSchoolDataSekolah({
     setSubmitLocalError("");
 
     if (!schoolForm.nama_sekolah || !schoolForm.npsn) {
-      setSubmitLocalError("Nama sekolah dan NPSN wajib diisi sebelum pengajuan dikirim.");
+      setSubmitLocalError(
+        "Nama sekolah dan NPSN wajib diisi sebelum pengajuan dikirim.",
+      );
       return;
     }
 
     setSubmitting(true);
     setSubmitOverlayTitle("Menyimpan data sekolah");
-    setSubmitOverlayDescription("Harap tunggu, sedang mengirim data pengajuan...");
+    setSubmitOverlayDescription(
+      "Harap tunggu, sedang mengirim data pengajuan...",
+    );
     setSubmitOverlay("processing");
 
     const startedAt = Date.now();
@@ -574,42 +605,44 @@ export function AdminSchoolDataSekolah({
       <>
         {submitProcessOverlay}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-blue-50/40 to-blue-100/20 p-[1px] shadow-md">
-        <div className="rounded-2xl bg-gradient-to-b from-blue-50/90 to-white p-6">
-          <div className="-mx-6 -mt-6 mb-6 rounded-t-2xl border-b border-sky-100 bg-gradient-to-br from-white via-cyan-50/50 to-sky-50/70 px-6 py-5">
-            <div className="flex items-center gap-2">
-              <div className="rounded-full bg-sky-100 p-1.5 text-sky-700 ring-1 ring-sky-200/70">
-                <Icon name="school" className="h-4 w-4" />
+          <div className="rounded-2xl bg-gradient-to-b from-blue-50/90 to-white p-6">
+            <div className="-mx-6 -mt-6 mb-6 rounded-t-2xl border-b border-sky-100 bg-gradient-to-br from-white via-cyan-50/50 to-sky-50/70 px-6 py-5">
+              <div className="flex items-center gap-2">
+                <div className="rounded-full bg-sky-100 p-1.5 text-sky-700 ring-1 ring-sky-200/70">
+                  <Icon name="school" className="h-4 w-4" />
+                </div>
+                <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-sky-700">
+                  Data Sekolah
+                </p>
               </div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-sky-700">
-                Data Sekolah
+              <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">
+                Sekolah sudah diverifikasi
+              </h2>
+              <p className="mt-1 text-sm font-medium leading-6 text-slate-600">
+                Data sekolah sudah disetujui. Pengajuan baru tidak diperlukan.
               </p>
             </div>
-            <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">
-              Sekolah sudah diverifikasi
-            </h2>
-            <p className="mt-1 text-sm font-medium leading-6 text-slate-600">
-              Data sekolah sudah disetujui. Pengajuan baru tidak diperlukan.
-            </p>
+            <div className="mt-2 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-5">
+              <p className="text-sm font-semibold text-emerald-700">
+                Status Aktif
+              </p>
+              <h3 className="mt-2 text-2xl font-bold text-slate-950">
+                {schoolStatus.nama_sekolah}
+              </h3>
+              <p className="mt-2 text-sm text-slate-600">
+                Sekolah sudah diverifikasi oleh superadmin. Fitur guru, jurusan,
+                import siswa, dan data siswa sudah aktif.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onBack}
+              className="mt-6 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            >
+              Kembali ke dashboard
+            </button>
           </div>
-          <div className="mt-2 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-5">
-            <p className="text-sm font-semibold text-emerald-700">Status Aktif</p>
-            <h3 className="mt-2 text-2xl font-bold text-slate-950">
-              {schoolStatus.nama_sekolah}
-            </h3>
-            <p className="mt-2 text-sm text-slate-600">
-              Sekolah sudah diverifikasi oleh superadmin. Fitur guru, jurusan,
-              import siswa, dan data siswa sudah aktif.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onBack}
-            className="mt-6 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-          >
-            Kembali ke dashboard
-          </button>
-        </div>
-        <div className="absolute bottom-0 left-0 h-0.5 w-full rounded-b-xl bg-gradient-to-r from-sky-400 to-cyan-300 opacity-70" />
+          <div className="absolute bottom-0 left-0 h-0.5 w-full rounded-b-xl bg-gradient-to-r from-sky-400 to-cyan-300 opacity-70" />
         </div>
       </>
     );
@@ -620,6 +653,55 @@ export function AdminSchoolDataSekolah({
       <>
         {submitProcessOverlay}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-blue-50/40 to-blue-100/20 p-[1px] shadow-md">
+          <div className="rounded-2xl bg-gradient-to-b from-blue-50/90 to-white p-6">
+            <div className="-mx-6 -mt-6 mb-6 rounded-t-2xl border-b border-sky-100 bg-gradient-to-br from-white via-cyan-50/50 to-sky-50/70 px-6 py-5">
+              <div className="flex items-center gap-2">
+                <div className="rounded-full bg-sky-100 p-1.5 text-sky-700 ring-1 ring-sky-200/70">
+                  <Icon name="school" className="h-4 w-4" />
+                </div>
+                <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-sky-700">
+                  Data Sekolah
+                </p>
+              </div>
+              <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">
+                Pengajuan sedang diverifikasi
+              </h2>
+              <p className="mt-1 text-sm font-medium leading-6 text-slate-600">
+                Data sekolah sudah dikirim dan sedang menunggu persetujuan
+                superadmin.
+              </p>
+            </div>
+            <div className="mt-2 rounded-2xl border border-amber-200 bg-amber-50/80 p-5">
+              <div className="flex items-center gap-2">
+                <div className="rounded-full bg-white/50 p-1.5 text-amber-600">
+                  <Icon name="clock" className="h-4 w-4" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-800">
+                  Menunggu verifikasi
+                </h3>
+              </div>
+              <p className="mt-2 text-sm text-amber-700">
+                {schoolStatus.message}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onBack}
+              className="mt-6 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            >
+              Kembali ke dashboard
+            </button>
+          </div>
+          <div className="absolute bottom-0 left-0 h-0.5 w-full rounded-b-xl bg-gradient-to-r from-sky-400 to-cyan-300 opacity-70" />
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {submitProcessOverlay}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-blue-50/40 to-blue-100/20 p-[1px] shadow-md">
         <div className="rounded-2xl bg-gradient-to-b from-blue-50/90 to-white p-6">
           <div className="-mx-6 -mt-6 mb-6 rounded-t-2xl border-b border-sky-100 bg-gradient-to-br from-white via-cyan-50/50 to-sky-50/70 px-6 py-5">
             <div className="flex items-center gap-2">
@@ -627,301 +709,273 @@ export function AdminSchoolDataSekolah({
                 <Icon name="school" className="h-4 w-4" />
               </div>
               <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-sky-700">
-                Data Sekolah
+                Pengajuan Sekolah
               </p>
             </div>
             <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">
-              Pengajuan sedang diverifikasi
+              Ajukan data sekolah
             </h2>
             <p className="mt-1 text-sm font-medium leading-6 text-slate-600">
-              Data sekolah sudah dikirim dan sedang menunggu persetujuan superadmin.
+              Pilih sekolah atau masukkan NPSN. Data sekolah akan diambil
+              otomatis, lalu masih bisa kamu koreksi jika ada data yang kosong.
             </p>
           </div>
-          <div className="mt-2 rounded-2xl border border-amber-200 bg-amber-50/80 p-5">
-            <div className="flex items-center gap-2">
-              <div className="rounded-full bg-white/50 p-1.5 text-amber-600">
-                <Icon name="clock" className="h-4 w-4" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-800">Menunggu verifikasi</h3>
-            </div>
-            <p className="mt-2 text-sm text-amber-700">{schoolStatus.message}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onBack}
-            className="mt-6 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-          >
-            Kembali ke dashboard
-          </button>
-        </div>
-        <div className="absolute bottom-0 left-0 h-0.5 w-full rounded-b-xl bg-gradient-to-r from-sky-400 to-cyan-300 opacity-70" />
-        </div>
-      </>
-    );
-  }
 
-
-  return (
-    <>
-      {submitProcessOverlay}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-blue-50/40 to-blue-100/20 p-[1px] shadow-md">
-      <div className="rounded-2xl bg-gradient-to-b from-blue-50/90 to-white p-6">
-        <div className="-mx-6 -mt-6 mb-6 rounded-t-2xl border-b border-sky-100 bg-gradient-to-br from-white via-cyan-50/50 to-sky-50/70 px-6 py-5">
-          <div className="flex items-center gap-2">
-            <div className="rounded-full bg-sky-100 p-1.5 text-sky-700 ring-1 ring-sky-200/70">
-              <Icon name="school" className="h-4 w-4" />
-            </div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-sky-700">
-              Pengajuan Sekolah
-            </p>
-          </div>
-          <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">Ajukan data sekolah</h2>
-          <p className="mt-1 text-sm font-medium leading-6 text-slate-600">
-            Pilih sekolah atau masukkan NPSN. Data sekolah akan diambil otomatis,
-            lalu masih bisa kamu koreksi jika ada data yang kosong.
-          </p>
-        </div>
-
-
-        {schoolStatus?.school_status === "rejected" && (
-          <div className="mb-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">
-            <p className="font-extrabold">Pengajuan sebelumnya ditolak</p>
-            <p className="mt-1">{schoolStatus.rejection_reason || schoolStatus.message || "Silakan perbaiki data sekolah lalu ajukan ulang."}</p>
-          </div>
-        )}
-
-        <form onSubmit={handleFormSubmit} className="space-y-5">
-          {hasDirectoryOptions && (
-            <div className="rounded-2xl border border-sky-100 bg-white/80 p-4">
-              <div className="mb-4">
-                <p className="text-sm font-bold text-slate-800">
-                  Pilih sekolah dari daftar
-                </p>
-                <p className="mt-1 text-xs font-medium text-slate-500">
-                  Filter dibuat bertahap: provinsi, kabupaten/kota, kecamatan,
-                  lalu sekolah. Setelah sekolah dipilih, detail akan dicari lagi
-                  lewat NPSN.
-                </p>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="block">
-                  <span className="mb-1 block text-sm font-medium text-slate-700">
-                    Provinsi
-                  </span>
-                  <select
-                    value={selectedProvince}
-                    onChange={(e) => handleProvinceChange(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
-                  >
-                    <option value="">Pilih provinsi</option>
-                    {provinceOptions.map((province) => (
-                      <option key={province} value={province}>
-                        {province}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="block">
-                  <span className="mb-1 block text-sm font-medium text-slate-700">
-                    Kabupaten/Kota
-                  </span>
-                  <select
-                    value={selectedCity}
-                    onChange={(e) => handleCityChange(e.target.value)}
-                    disabled={!selectedProvince}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:bg-slate-100 disabled:text-slate-400"
-                  >
-                    <option value="">Pilih kabupaten/kota</option>
-                    {cityOptions.map((city) => (
-                      <option key={city} value={city}>
-                        {city}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="block">
-                  <span className="mb-1 block text-sm font-medium text-slate-700">
-                    Kecamatan
-                  </span>
-                  <select
-                    value={selectedDistrict}
-                    onChange={(e) => handleDistrictChange(e.target.value)}
-                    disabled={!selectedCity}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:bg-slate-100 disabled:text-slate-400"
-                  >
-                    <option value="">Pilih kecamatan</option>
-                    {districtOptions.map((district) => (
-                      <option key={district} value={district}>
-                        {district}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="block">
-                  <span className="mb-1 block text-sm font-medium text-slate-700">
-                    Sekolah
-                  </span>
-                  <select
-                    value={selectedSchoolNpsn}
-                    onChange={(e) => handleDirectorySchoolChange(e.target.value)}
-                    disabled={!selectedDistrict}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:bg-slate-100 disabled:text-slate-400"
-                  >
-                    <option value="">Pilih sekolah</option>
-                    {filteredSchoolOptions.map((school) => (
-                      <option key={school.npsn} value={school.npsn}>
-                        {school.nama_sekolah}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
+          {schoolStatus?.school_status === "rejected" && (
+            <div className="mb-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">
+              <p className="font-extrabold">Pengajuan sebelumnya ditolak</p>
+              <p className="mt-1">
+                {schoolStatus.rejection_reason ||
+                  schoolStatus.message ||
+                  "Silakan perbaiki data sekolah lalu ajukan ulang."}
+              </p>
             </div>
           )}
 
-          <div className="rounded-2xl border border-sky-100 bg-white/80 p-4">
-            <div className="mb-4">
-              <p className="text-sm font-bold text-slate-800">
-                Cari otomatis berdasarkan NPSN
-              </p>
-              <p className="mt-1 text-xs font-medium text-slate-500">
-                Gunakan ini kalau data dropdown belum tersedia. Masukkan NPSN 8
-                digit, lalu klik Ambil Data.
-              </p>
+          <form onSubmit={handleFormSubmit} className="space-y-5">
+            {hasDirectoryOptions && (
+              <div className="rounded-2xl border border-sky-100 bg-white/80 p-4">
+                <div className="mb-4">
+                  <p className="text-sm font-bold text-slate-800">
+                    Pilih sekolah dari daftar
+                  </p>
+                  <p className="mt-1 text-xs font-medium text-slate-500">
+                    Filter dibuat bertahap: provinsi, kabupaten/kota, kecamatan,
+                    lalu sekolah. Setelah sekolah dipilih, detail akan dicari
+                    lagi lewat NPSN.
+                  </p>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="block">
+                    <span className="mb-1 block text-sm font-medium text-slate-700">
+                      Provinsi
+                    </span>
+                    <select
+                      value={selectedProvince}
+                      onChange={(e) => handleProvinceChange(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                    >
+                      <option value="">Pilih provinsi</option>
+                      {provinceOptions.map((province) => (
+                        <option key={province} value={province}>
+                          {province}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-1 block text-sm font-medium text-slate-700">
+                      Kabupaten/Kota
+                    </span>
+                    <select
+                      value={selectedCity}
+                      onChange={(e) => handleCityChange(e.target.value)}
+                      disabled={!selectedProvince}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:bg-slate-100 disabled:text-slate-400"
+                    >
+                      <option value="">Pilih kabupaten/kota</option>
+                      {cityOptions.map((city) => (
+                        <option key={city} value={city}>
+                          {city}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-1 block text-sm font-medium text-slate-700">
+                      Kecamatan
+                    </span>
+                    <select
+                      value={selectedDistrict}
+                      onChange={(e) => handleDistrictChange(e.target.value)}
+                      disabled={!selectedCity}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:bg-slate-100 disabled:text-slate-400"
+                    >
+                      <option value="">Pilih kecamatan</option>
+                      {districtOptions.map((district) => (
+                        <option key={district} value={district}>
+                          {district}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-1 block text-sm font-medium text-slate-700">
+                      Sekolah
+                    </span>
+                    <select
+                      value={selectedSchoolNpsn}
+                      onChange={(e) =>
+                        handleDirectorySchoolChange(e.target.value)
+                      }
+                      disabled={!selectedDistrict}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:bg-slate-100 disabled:text-slate-400"
+                    >
+                      <option value="">Pilih sekolah</option>
+                      {filteredSchoolOptions.map((school) => (
+                        <option key={school.npsn} value={school.npsn}>
+                          {school.nama_sekolah}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            <div className="rounded-2xl border border-sky-100 bg-white/80 p-4">
+              <div className="mb-4">
+                <p className="text-sm font-bold text-slate-800">
+                  Cari otomatis berdasarkan NPSN
+                </p>
+                <p className="mt-1 text-xs font-medium text-slate-500">
+                  Gunakan ini kalau data dropdown belum tersedia. Masukkan NPSN
+                  8 digit, lalu klik Ambil Data.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 md:flex-row md:items-start">
+                <label className="block flex-1">
+                  <span className="mb-1 block text-sm font-medium text-slate-700">
+                    NPSN
+                  </span>
+                  <input
+                    value={schoolForm.npsn}
+                    placeholder="Contoh: 20500435"
+                    onChange={(e) => updateNpsn(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                  />
+                  {schoolTouched && schoolErrors.npsn && (
+                    <p className="mt-1 text-xs text-rose-600">
+                      {schoolErrors.npsn}
+                    </p>
+                  )}
+                </label>
+                <button
+                  type="button"
+                  disabled={lookupLoading || !schoolForm.npsn}
+                  onClick={() => handleLookup()}
+                  className="mt-0 inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 md:mt-6"
+                >
+                  <Icon name="search" className="h-4 w-4" />
+                  {lookupLoading ? "Mengambil..." : "Ambil Data"}
+                </button>
+              </div>
+              {lookupMessage && (
+                <div className="mt-3 rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm font-medium text-sky-700">
+                  {lookupMessage}
+                </div>
+              )}
+              {lookupError && (
+                <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-medium text-rose-700">
+                  {lookupError}
+                </div>
+              )}
             </div>
-            <div className="flex flex-col gap-3 md:flex-row md:items-start">
-              <label className="block flex-1">
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field
+                label="Nama sekolah"
+                value={schoolForm.nama_sekolah}
+                placeholder="SMAN 1 Contoh"
+                error={schoolTouched ? schoolErrors.nama_sekolah : ""}
+                onChange={(value) => onUpdate("nama_sekolah", value)}
+              />
+              <label className="block">
                 <span className="mb-1 block text-sm font-medium text-slate-700">
-                  NPSN
+                  Jenis sekolah
                 </span>
-                <input
-                  value={schoolForm.npsn}
-                  placeholder="Contoh: 20500435"
-                  onChange={(e) => updateNpsn(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
-                />
-                {schoolTouched && schoolErrors.npsn && (
-                  <p className="mt-1 text-xs text-rose-600">{schoolErrors.npsn}</p>
+                <select
+                  value={schoolForm.jenis_sekolah}
+                  onChange={(e) => onUpdate("jenis_sekolah", e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                >
+                  <option value="">Pilih jenis sekolah</option>
+                  {SCHOOL_TYPE_OPTIONS.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+                {schoolTouched && schoolErrors.jenis_sekolah && (
+                  <p className="mt-1 text-xs text-rose-600">
+                    {schoolErrors.jenis_sekolah}
+                  </p>
                 )}
               </label>
+
+              <Field
+                label="Nomor telepon sekolah"
+                value={schoolForm.no_telp}
+                placeholder="Opsional, contoh: 0354xxxxxx"
+                error={schoolTouched ? schoolErrors.no_telp : ""}
+                onChange={(value) => onUpdate("no_telp", value)}
+              />
+
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                <p className="text-sm font-bold text-slate-700">
+                  Informasi pengisian
+                </p>
+                <p className="mt-2 text-xs leading-5 text-slate-500">
+                  Nomor telepon bisa kosong karena tidak semua data sekolah
+                  menyediakan nomor aktif. Alamat tetap boleh diedit jika data
+                  yang terisi belum lengkap.
+                </p>
+              </div>
+
+              <label className="block md:col-span-2">
+                <span className="mb-1 block text-sm font-medium text-slate-700">
+                  Alamat sekolah
+                </span>
+                <textarea
+                  value={schoolForm.alamat}
+                  placeholder="Contoh: Jl. Pendidikan No. 1, Desa/Kelurahan, Kecamatan, Kabupaten/Kota, Provinsi"
+                  onChange={(e) => onUpdate("alamat", e.target.value)}
+                  rows={3}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                />
+                {schoolTouched && schoolErrors.alamat && (
+                  <p className="mt-1 text-xs text-rose-600">
+                    {schoolErrors.alamat}
+                  </p>
+                )}
+              </label>
+            </div>
+
+            {submitLocalError ? (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+                {submitLocalError}
+              </div>
+            ) : null}
+
+            {schoolError ? (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+                {schoolError}
+              </div>
+            ) : null}
+
+            <div className="flex flex-wrap gap-3 pt-2">
+              <button
+                type="submit"
+                disabled={loadingSchool || lookupLoading || submitting}
+                className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-5 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-sky-600/20 transition hover:-translate-y-0.5 disabled:opacity-60"
+              >
+                <Icon name="spark" className="h-4 w-4" />
+                {submitting ? "Mengirim..." : "Ajukan Sekolah"}
+              </button>
               <button
                 type="button"
-                disabled={lookupLoading || !schoolForm.npsn}
-                onClick={() => handleLookup()}
-                className="mt-0 inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 md:mt-6"
+                onClick={onBack}
+                disabled={loadingSchool || lookupLoading || submitting}
+                className="rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
               >
-                <Icon name="search" className="h-4 w-4" />
-                {lookupLoading ? "Mengambil..." : "Ambil Data"}
+                Kembali
               </button>
             </div>
-            {lookupMessage && (
-              <div className="mt-3 rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm font-medium text-sky-700">
-                {lookupMessage}
-              </div>
-            )}
-            {lookupError && (
-              <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-medium text-rose-700">
-                {lookupError}
-              </div>
-            )}
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field
-              label="Nama sekolah"
-              value={schoolForm.nama_sekolah}
-              placeholder="SMAN 1 Contoh"
-              error={schoolTouched ? schoolErrors.nama_sekolah : ""}
-              onChange={(value) => onUpdate("nama_sekolah", value)}
-            />
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium text-slate-700">
-                Jenis sekolah
-              </span>
-              <select
-                value={schoolForm.jenis_sekolah}
-                onChange={(e) => onUpdate("jenis_sekolah", e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
-              >
-                <option value="">Pilih jenis sekolah</option>
-                {SCHOOL_TYPE_OPTIONS.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-              {schoolTouched && schoolErrors.jenis_sekolah && (
-                <p className="mt-1 text-xs text-rose-600">{schoolErrors.jenis_sekolah}</p>
-              )}
-            </label>
-
-            <Field
-              label="Nomor telepon sekolah"
-              value={schoolForm.no_telp}
-              placeholder="Opsional, contoh: 0354xxxxxx"
-              error={schoolTouched ? schoolErrors.no_telp : ""}
-              onChange={(value) => onUpdate("no_telp", value)}
-            />
-
-            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-              <p className="text-sm font-bold text-slate-700">Informasi pengisian</p>
-              <p className="mt-2 text-xs leading-5 text-slate-500">
-                Nomor telepon bisa kosong karena tidak semua data sekolah menyediakan nomor aktif. Alamat tetap boleh diedit jika data yang terisi belum lengkap.
-              </p>
-            </div>
-
-            <label className="block md:col-span-2">
-              <span className="mb-1 block text-sm font-medium text-slate-700">
-                Alamat sekolah
-              </span>
-              <textarea
-                value={schoolForm.alamat}
-                placeholder="Contoh: Jl. Pendidikan No. 1, Desa/Kelurahan, Kecamatan, Kabupaten/Kota, Provinsi"
-                onChange={(e) => onUpdate("alamat", e.target.value)}
-                rows={3}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
-              />
-              {schoolTouched && schoolErrors.alamat && (
-                <p className="mt-1 text-xs text-rose-600">{schoolErrors.alamat}</p>
-              )}
-            </label>
-          </div>
-
-          {submitLocalError ? (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
-              {submitLocalError}
-            </div>
-          ) : null}
-
-          {schoolError ? (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
-              {schoolError}
-            </div>
-          ) : null}
-
-          <div className="flex flex-wrap gap-3 pt-2">
-            <button
-              type="submit"
-              disabled={loadingSchool || lookupLoading || submitting}
-              className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-5 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-sky-600/20 transition hover:-translate-y-0.5 disabled:opacity-60"
-            >
-              <Icon name="spark" className="h-4 w-4" />
-              {submitting ? "Mengirim..." : "Ajukan Sekolah"}
-            </button>
-            <button
-              type="button"
-              onClick={onBack}
-              disabled={loadingSchool || lookupLoading || submitting}
-              className="rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-            >
-              Kembali
-            </button>
-          </div>
-        </form>
-      </div>
+          </form>
+        </div>
         <div className="absolute bottom-0 left-0 h-0.5 w-full rounded-b-xl bg-gradient-to-r from-sky-400 to-cyan-300 opacity-70" />
       </div>
     </>

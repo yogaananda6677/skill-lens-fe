@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "../../../components/ui/icons";
 import { TableSkeleton } from "../../../components/ui/LoadingSkeleton";
 import { apiFetch } from "../../../lib/axios";
@@ -14,7 +14,8 @@ type AcademicCategory =
   | "teknologi"
   | "agama"
   | "kreativitas"
-  | "softskill";
+  | "softskill"
+  | "praktik";
 
 type NilaiItem = {
   id_nilai?: number;
@@ -27,16 +28,18 @@ type NilaiItem = {
   id_jurusan?: number | string | null;
 };
 
-type NilaiResponse = {
-  data?: NilaiItem[];
+type NilaiMatrixStudent = SiswaRow & {
+  nilai?: NilaiItem[];
 };
 
-type SiswaListResponse = {
-  data?: SiswaRow[];
+type NilaiMatrixResponse = {
+  data?: NilaiMatrixStudent[];
   total?: number;
+  page?: number;
+  limit?: number;
+  semester?: number;
+  mapel_columns?: string[];
 };
-
-type NilaiBySiswa = Record<string, NilaiItem[]>;
 
 type Props = {
   siswaRows: SiswaRow[];
@@ -46,8 +49,27 @@ type Props = {
 };
 
 const ITEMS_PER_PAGE = 10;
-const FETCH_LIMIT = 100;
 const SEMESTER_OPTIONS = ["1", "2", "3", "4", "5", "6"];
+
+type KelasFilter = "semua" | "10" | "11" | "12";
+
+const KELAS_OPTIONS: Array<{ value: KelasFilter; label: string }> = [
+  { value: "semua", label: "Semua kelas" },
+  { value: "10", label: "Kelas 10" },
+  { value: "11", label: "Kelas 11" },
+  { value: "12", label: "Kelas 12" },
+];
+
+function useDebouncedValue<T>(value: T, delay = 450) {
+  const [debounced, setDebounced] = useState(value);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebounced(value), delay);
+    return () => window.clearTimeout(timeout);
+  }, [value, delay]);
+
+  return debounced;
+}
 
 function getSiswaId(siswa: SiswaRow) {
   return String(siswa.id_siswa ?? siswa.id ?? "");
@@ -74,7 +96,6 @@ function isSemesterUmumSma(jenisSekolah: string | undefined, semester: string) {
 
 function shouldShowJurusan(jenisSekolah: string | undefined, selectedSemester: string) {
   if (!isSmaSchool(jenisSekolah)) return true;
-
   return !isSemesterUmumSma(jenisSekolah, selectedSemester);
 }
 
@@ -90,31 +111,6 @@ function getDisplayKelas(jenisSekolah: string | undefined, semester: string, sis
   if ([5, 6].includes(value)) return "XII";
 
   return siswa.kelas || "-";
-}
-
-function getStudentJurusanValue(siswa: SiswaRow) {
-  return normalizeKey(
-    (siswa as any).jurusan ??
-      (siswa as any).nama_jurusan ??
-      (siswa as any).jurusan_nama ??
-      (siswa as any).namaJurusan ??
-      ""
-  );
-}
-
-function getStudentKelasValue(siswa: SiswaRow, jenisSekolah: string | undefined, semester: string) {
-  return normalizeKey(
-    getDisplayKelas(jenisSekolah, semester, siswa) ||
-      (siswa as any).kelas ||
-      (siswa as any).nama_kelas ||
-      (siswa as any).kelas_nama ||
-      ""
-  );
-}
-
-function isAllFilter(value: unknown) {
-  const key = normalizeKey(value);
-  return !key || key === "semua" || key === "all" || key === "semua jurusan" || key === "semua kelas";
 }
 
 function formatScore(value: number | null | undefined) {
@@ -170,116 +166,32 @@ function SummaryCard({
 }
 
 export function AdminSchoolDataNilai({
-  siswaRows,
+  siswaRows: _siswaRows,
   jurusanRows,
   jenisSekolah,
+  loadSiswa: _loadSiswa,
 }: Props) {
-  const [allSiswaRows, setAllSiswaRows] = useState<SiswaRow[]>(siswaRows || []);
-  const [loadingSiswa, setLoadingSiswa] = useState(false);
-  const [loadingNilai, setLoadingNilai] = useState(false);
+  const [matrixRows, setMatrixRows] = useState<NilaiMatrixStudent[]>([]);
+  const [mapelColumns, setMapelColumns] = useState<string[]>([]);
+  const [totalStudents, setTotalStudents] = useState(0);
+  const [loadingMatrix, setLoadingMatrix] = useState(false);
+  const [hasLoadedMatrixOnce, setHasLoadedMatrixOnce] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const restoreScrollYRef = useRef<number | null>(null);
 
   const [selectedSemester, setSelectedSemester] = useState<string>("1");
   const [selectedJurusan, setSelectedJurusan] = useState<string>("semua");
+  const [selectedKelas, setSelectedKelas] = useState<KelasFilter>("semua");
   const [searchTerm, setSearchTerm] = useState("");
-
-  const [nilaiBySiswa, setNilaiBySiswa] = useState<NilaiBySiswa>({});
+  const debouncedSearch = useDebouncedValue(searchTerm, 450);
   const [currentPage, setCurrentPage] = useState(1);
 
   const sekolahSma = isSmaSchool(jenisSekolah);
   const jurusanFilterAktif = shouldShowJurusan(jenisSekolah, selectedSemester);
 
-  async function loadAllSiswaForNilai() {
-    setLoadingSiswa(true);
-
-    try {
-      const firstResult = await apiFetch<SiswaListResponse>(
-        `/admin-sekolah/siswa?page=1&limit=${FETCH_LIMIT}`,
-        { method: "GET" }
-      );
-
-      let collected = firstResult.data || [];
-      const total = firstResult.total || collected.length;
-      const totalPages = Math.ceil(total / FETCH_LIMIT);
-
-      if (totalPages > 1) {
-        for (let page = 2; page <= totalPages; page += 1) {
-          const result = await apiFetch<SiswaListResponse>(
-            `/admin-sekolah/siswa?page=${page}&limit=${FETCH_LIMIT}`,
-            { method: "GET" }
-          );
-
-          collected = [...collected, ...(result.data || [])];
-        }
-      }
-
-      setAllSiswaRows(collected);
-      await loadNilaiForStudents(collected);
-    } catch (err) {
-      console.error("Gagal memuat semua siswa:", err);
-      setAllSiswaRows(siswaRows || []);
-      await loadNilaiForStudents(siswaRows || []);
-    } finally {
-      setLoadingSiswa(false);
-    }
-  }
-
-  async function loadNilaiForStudents(rows: SiswaRow[]) {
-    const validRows = rows.filter((siswa) => Boolean(getSiswaId(siswa)));
-
-    if (!validRows.length) {
-      setNilaiBySiswa({});
-      return;
-    }
-
-    setLoadingNilai(true);
-
-    try {
-      const entries = await Promise.all(
-        validRows.map(async (siswa) => {
-          const siswaId = getSiswaId(siswa);
-
-          try {
-            const result = await apiFetch<NilaiResponse>(
-              `/admin-sekolah/siswa/${siswaId}/nilai`,
-              { method: "GET" }
-            );
-
-            return [siswaId, result.data || []] as const;
-          } catch (err) {
-            console.error(`Gagal memuat nilai siswa ${siswaId}:`, err);
-
-            return [siswaId, []] as const;
-          }
-        })
-      );
-
-      setNilaiBySiswa(Object.fromEntries(entries));
-    } finally {
-      setLoadingNilai(false);
-    }
-  }
-
-  useEffect(() => {
-    loadAllSiswaForNilai();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (siswaRows.length > allSiswaRows.length) {
-      setAllSiswaRows(siswaRows);
-      loadNilaiForStudents(siswaRows);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [siswaRows]);
-
-  useEffect(() => {
-    if (!jurusanFilterAktif) {
-      setSelectedJurusan("semua");
-    }
-  }, [jurusanFilterAktif]);
-
   const selectedJurusanName = useMemo(() => {
     if (selectedJurusan === "semua") return "";
+
     const found = jurusanRows.find(
       (jurusan) =>
         String(jurusan.id) === String(selectedJurusan) ||
@@ -287,85 +199,95 @@ export function AdminSchoolDataNilai({
         normalizeKey(jurusan.nama) === normalizeKey(selectedJurusan) ||
         normalizeKey(jurusan.nama_jurusan) === normalizeKey(selectedJurusan)
     );
+
     return String(found?.nama ?? found?.nama_jurusan ?? selectedJurusan);
   }, [jurusanRows, selectedJurusan]);
 
-  const filteredSiswa = useMemo(() => {
-    const keyword = normalizeText(searchTerm);
-    const semesterNumber = Number(selectedSemester);
+  async function loadNilaiMatrix(page = currentPage) {
+    if (jurusanFilterAktif && selectedJurusan === "semua" && jurusanRows.length > 0) {
+      setMatrixRows([]);
+      setMapelColumns([]);
+      setTotalStudents(0);
+      setHasLoadedMatrixOnce(true);
+      return;
+    }
 
-    return allSiswaRows.filter((siswa) => {
-      const siswaId = getSiswaId(siswa);
-      const nilaiSemester = (nilaiBySiswa[siswaId] || []).filter(
-        (item) => Number(item.semester) === semesterNumber
+    setLoadingMatrix(true);
+    setErrorMessage("");
+
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(ITEMS_PER_PAGE),
+      semester: selectedSemester,
+      keyword: debouncedSearch.trim(),
+      kelas: selectedKelas === "semua" ? "" : selectedKelas,
+    });
+
+    if (jurusanFilterAktif && selectedJurusan !== "semua") {
+      const numericJurusan = Number(selectedJurusan);
+
+      if (Number.isFinite(numericJurusan) && numericJurusan > 0) {
+        params.set("id_jurusan", String(numericJurusan));
+      } else {
+        params.set("jurusan", selectedJurusanName || selectedJurusan);
+      }
+    }
+
+    try {
+      const result = await apiFetch<NilaiMatrixResponse>(
+        `/admin-sekolah/nilai-matrix?${params.toString()}`,
+        {
+          method: "GET",
+          alert: false,
+        }
       );
 
-      if (!nilaiSemester.length) return false;
+      setMatrixRows(result.data || []);
+      setMapelColumns(result.mapel_columns || []);
+      setTotalStudents(result.total || 0);
+    } catch (err) {
+      setMatrixRows([]);
+      setMapelColumns([]);
+      setTotalStudents(0);
+      setErrorMessage(
+        err instanceof Error ? err.message : "Data nilai belum bisa dimuat."
+      );
+    } finally {
+      setHasLoadedMatrixOnce(true);
+      setLoadingMatrix(false);
+    }
+  }
 
-      const studentJurusanKey = getStudentJurusanValue(siswa);
-      const selectedJurusanKey = normalizeKey(selectedJurusanName || selectedJurusan);
-      const nilaiJurusanKeys = nilaiSemester
-        .map((item) => normalizeKey(item.id_jurusan))
-        .filter(Boolean);
+  useEffect(() => {
+    if (!jurusanFilterAktif) {
+      setSelectedJurusan("semua");
+      return;
+    }
 
-      const matchJurusan =
-        !jurusanFilterAktif ||
-        isAllFilter(selectedJurusan) ||
-        String(siswa.id_jurusan ?? "") === String(selectedJurusan) ||
-        studentJurusanKey === selectedJurusanKey ||
-        normalizeKey(siswa.jurusan).includes(selectedJurusanKey) ||
-        nilaiJurusanKeys.includes(normalizeKey(selectedJurusan));
+    if (selectedJurusan === "semua" && jurusanRows.length > 0) {
+      const firstJurusan = jurusanRows[0];
+      const firstJurusanId = firstJurusan?.id ?? firstJurusan?.id_jurusan;
 
-      const matchKeyword =
-        !keyword ||
-        normalizeText(siswa.nama).includes(keyword) ||
-        normalizeText(siswa.nisn).includes(keyword) ||
-        normalizeText(siswa.kelas).includes(keyword) ||
-        normalizeText(getDisplayKelas(jenisSekolah, selectedSemester, siswa)).includes(keyword) ||
-        normalizeText(siswa.jurusan).includes(keyword);
-
-      return matchJurusan && matchKeyword;
-    });
-  }, [
-    allSiswaRows,
-    jurusanFilterAktif,
-    nilaiBySiswa,
-    searchTerm,
-    selectedJurusan,
-    selectedJurusanName,
-    selectedSemester,
-  ]);
-
-  const mapelColumns = useMemo(() => {
-    const semesterNumber = Number(selectedSemester);
-    const unique = new Map<string, string>();
-
-    filteredSiswa.forEach((siswa) => {
-      const siswaId = getSiswaId(siswa);
-
-      (nilaiBySiswa[siswaId] || [])
-        .filter((item) => Number(item.semester) === semesterNumber)
-        .forEach((item) => {
-          const key = normalizeKey(item.nama_mapel);
-          if (key && !unique.has(key)) {
-            unique.set(key, item.nama_mapel);
-          }
-        });
-    });
-
-    return Array.from(unique.values()).sort((a, b) => a.localeCompare(b));
-  }, [filteredSiswa, nilaiBySiswa, selectedSemester]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredSiswa.length / ITEMS_PER_PAGE));
-
-  const paginatedSiswa = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredSiswa.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredSiswa, currentPage]);
+      if (firstJurusanId) {
+        setSelectedJurusan(String(firstJurusanId));
+      }
+    }
+  }, [jurusanFilterAktif, jurusanRows, selectedJurusan]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedSemester, selectedJurusan, searchTerm]);
+  }, [selectedSemester, selectedJurusan, selectedKelas, debouncedSearch]);
+
+  useEffect(() => {
+    void loadNilaiMatrix(currentPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, selectedSemester, selectedJurusan, selectedKelas, debouncedSearch, jurusanFilterAktif]);
+
+  const totalPages = Math.max(1, Math.ceil(totalStudents / ITEMS_PER_PAGE));
+  const isWaitingSearch = searchTerm !== debouncedSearch;
+  const isLoading = loadingMatrix || isWaitingSearch;
+  const showInitialSkeleton = isLoading && !hasLoadedMatrixOnce;
+  const showTableOverlay = isLoading && hasLoadedMatrixOnce;
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -373,21 +295,40 @@ export function AdminSchoolDataNilai({
     }
   }, [currentPage, totalPages]);
 
+
+  useEffect(() => {
+    if (loadingMatrix) return;
+    if (restoreScrollYRef.current === null) return;
+
+    const y = restoreScrollYRef.current;
+    restoreScrollYRef.current = null;
+
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: y, behavior: "auto" });
+    });
+  }, [loadingMatrix]);
+
+  function changePage(nextPage: number) {
+    const safePage = Math.min(Math.max(nextPage, 1), totalPages);
+    if (safePage === currentPage || isLoading) return;
+
+    restoreScrollYRef.current = window.scrollY;
+    setCurrentPage(safePage);
+  }
+
   function getJurusanLabel(siswa: SiswaRow) {
     if (isSemesterUmumSma(jenisSekolah, selectedSemester)) return "-";
     return siswa.jurusan || "-";
   }
 
   function getStartNumber() {
-    if (filteredSiswa.length === 0) return 0;
+    if (totalStudents === 0) return 0;
     return (currentPage - 1) * ITEMS_PER_PAGE + 1;
   }
 
   function getEndNumber() {
-    return Math.min(currentPage * ITEMS_PER_PAGE, filteredSiswa.length);
+    return Math.min(currentPage * ITEMS_PER_PAGE, totalStudents);
   }
-
-  const isLoading = loadingSiswa || loadingNilai;
 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60">
@@ -408,8 +349,8 @@ export function AdminSchoolDataNilai({
             </h3>
 
             <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-600">
-              Default menampilkan Semester 1. Data yang tampil adalah nilai mentah
-              per mapel, bukan rata-rata kategori.
+              Data nilai dimuat per halaman dari server, jadi dashboard tidak perlu
+              mengambil semua siswa dan semua nilai sekaligus.
             </p>
           </div>
 
@@ -423,7 +364,7 @@ export function AdminSchoolDataNilai({
         <div className="grid gap-5 md:grid-cols-3">
           <SummaryCard
             title="Total Siswa"
-            value={isLoading ? "..." : filteredSiswa.length}
+            value={isLoading ? "..." : totalStudents}
             desc="Data sesuai filter aktif"
             icon="users"
           />
@@ -448,20 +389,20 @@ export function AdminSchoolDataNilai({
                 Filter Nilai
               </p>
               <h3 className="mt-1 text-xl font-black tracking-tight text-slate-900">
-                Pilih semester dan jurusan
+                Pilih semester, jurusan, dan kelas
               </h3>
               <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-slate-500">
-                Gunakan filter untuk menampilkan nilai siswa sesuai semester, jurusan,
-                atau kata kunci pencarian.
+                Pencarian diberi jeda singkat agar server tidak ditembak request
+                setiap satu huruf diketik.
               </p>
             </div>
 
             <div className="inline-flex items-center justify-center rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-sky-600/20">
-              {filteredSiswa.length} siswa
+              {isLoading ? "Memuat..." : `${totalStudents} siswa`}
             </div>
           </div>
 
-          <div className="grid gap-3 p-5 md:grid-cols-3 xl:grid-cols-[1.2fr_0.8fr_0.9fr_auto]">
+          <div className="grid gap-3 p-5 md:grid-cols-3 xl:grid-cols-[1.2fr_0.75fr_0.9fr_0.75fr_auto]">
             <div className="relative md:col-span-3 xl:col-span-1">
               <Icon
                 name="search"
@@ -496,25 +437,40 @@ export function AdminSchoolDataNilai({
             >
               <option value="semua">
                 {jurusanFilterAktif
-                  ? "Semua jurusan"
+                  ? "Pilih jurusan"
                   : "Semester 1 dan 2 SMA tidak memakai jurusan"}
               </option>
               {jurusanFilterAktif &&
                 jurusanRows.map((jurusan) => (
-                  <option key={jurusan.id ?? jurusan.id_jurusan ?? jurusan.nama} value={String(jurusan.id ?? jurusan.id_jurusan ?? jurusan.nama)}>
+                  <option
+                    key={jurusan.id ?? jurusan.id_jurusan ?? jurusan.nama}
+                    value={String(jurusan.id ?? jurusan.id_jurusan ?? jurusan.nama)}
+                  >
                     {jurusan.nama || jurusan.nama_jurusan}
                   </option>
                 ))}
             </select>
 
+            <select
+              value={selectedKelas}
+              onChange={(event) => setSelectedKelas(event.target.value as KelasFilter)}
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+            >
+              {KELAS_OPTIONS.map((kelas) => (
+                <option key={kelas.value} value={kelas.value}>
+                  {kelas.label}
+                </option>
+              ))}
+            </select>
+
             <button
               type="button"
-              onClick={loadAllSiswaForNilai}
+              onClick={() => loadNilaiMatrix(currentPage)}
               disabled={isLoading}
               className="inline-flex items-center justify-center gap-2 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-2.5 text-sm font-bold text-sky-700 transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-100 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Icon name="refresh" className="h-4 w-4" />
-              Refresh
+              {isLoading ? "Memuat" : "Refresh"}
             </button>
           </div>
         </section>
@@ -526,13 +482,28 @@ export function AdminSchoolDataNilai({
               sesuai data Excel/database.
             </div>
           )}
+
+          {errorMessage && (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold leading-6 text-rose-700">
+              {errorMessage}
+            </div>
+          )}
         </div>
 
-        {isLoading ? (
+        {showInitialSkeleton ? (
           <TableSkeleton rows={6} columns={7} />
         ) : (
-          <section className="overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60">
-            <div className="overflow-x-auto">
+          <section className="relative overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/60">
+            {showTableOverlay && (
+              <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/58 backdrop-blur-[1.5px]">
+                <div className="inline-flex items-center gap-3 rounded-2xl border border-sky-100 bg-white px-4 py-3 text-sm font-extrabold text-sky-700 shadow-xl shadow-sky-950/10">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-sky-200 border-t-sky-700" />
+                  Memuat halaman {currentPage}...
+                </div>
+              </div>
+            )}
+
+            <div className={`overflow-x-auto ${showTableOverlay ? "pointer-events-none select-none opacity-70" : ""}`}>
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-gradient-to-r from-sky-100 via-white to-blue-100 text-xs font-black uppercase tracking-[0.14em] text-sky-800">
                   <tr>
@@ -552,7 +523,7 @@ export function AdminSchoolDataNilai({
                 </thead>
 
                 <tbody className="divide-y divide-slate-100 bg-white">
-                  {paginatedSiswa.length === 0 ? (
+                  {matrixRows.length === 0 ? (
                     <tr>
                       <td
                         colSpan={4 + mapelColumns.length}
@@ -578,9 +549,9 @@ export function AdminSchoolDataNilai({
                       </td>
                     </tr>
                   ) : (
-                    paginatedSiswa.map((siswa) => {
+                    matrixRows.map((siswa) => {
                       const siswaId = getSiswaId(siswa);
-                      const nilaiSemester = (nilaiBySiswa[siswaId] || []).filter(
+                      const nilaiSemester = (siswa.nilai || []).filter(
                         (item) => Number(item.semester) === Number(selectedSemester)
                       );
 
@@ -624,16 +595,16 @@ export function AdminSchoolDataNilai({
 
             <div className="flex flex-col items-center gap-3 border-t border-sky-100 px-5 py-4 md:flex-row md:justify-between">
               <p className="text-sm font-medium text-slate-500">
-                {filteredSiswa.length === 0
+                {totalStudents === 0
                   ? "Total 0 data"
-                  : `Menampilkan ${getStartNumber()} - ${getEndNumber()} dari ${filteredSiswa.length} siswa`}
+                  : `Menampilkan ${getStartNumber()} - ${getEndNumber()} dari ${totalStudents} siswa`}
               </p>
 
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  disabled={currentPage <= 1}
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage <= 1 || isLoading}
+                  onClick={() => changePage(currentPage - 1)}
                   className="inline-flex w-[104px] items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Sebelumnya
@@ -645,8 +616,8 @@ export function AdminSchoolDataNilai({
 
                 <button
                   type="button"
-                  disabled={currentPage >= totalPages}
-                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage >= totalPages || isLoading}
+                  onClick={() => changePage(currentPage + 1)}
                   className="inline-flex w-[104px] items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Berikutnya

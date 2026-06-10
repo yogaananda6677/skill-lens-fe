@@ -1,8 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { JurusanRow, SiswaRow } from "../types";
 
+import { TableSkeleton } from "../../../components/ui/LoadingSkeleton";
 import { Icon } from "../../../components/ui/icons";
+import { AdminSchoolModalPortal } from "./AdminSchoolModalPortal";
+import { API_BASE_URL } from "../../../lib/axios";
+import { getStoredToken } from "../../../lib/auth";
 
 type KelasTingkat = "10" | "11" | "12";
 type KelasFilter = "semua" | KelasTingkat;
@@ -16,21 +20,12 @@ const KELAS_TINGKAT_OPTIONS: Array<{
   { value: "12", label: "Kelas 12" },
 ];
 
-function escapeHtml(value: unknown) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
 function normalizeText(value: unknown) {
   return String(value ?? "").trim().toLowerCase();
 }
 
 function normalizeKey(value: unknown) {
-  return normalizeText(value).replace(/[._-]+/g, " " ).replace(/\s+/g, " " ).trim();
+  return normalizeText(value).replace(/[._-]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
 function isAllFilter(value: unknown) {
@@ -85,94 +80,55 @@ function getKelasFilterLabel(kelasFilter: KelasFilter) {
   );
 }
 
-function downloadExcel(
-  rows: SiswaRow[],
-  options?: { jurusan?: string; kelas?: string }
-) {
-  const tableRows = rows
-    .map((siswa, index) => {
-      return `
-        <tr>
-          <td>${index + 1}</td>
-          <td>${escapeHtml(siswa.nama)}</td>
-          <td>${escapeHtml(siswa.nisn)}</td>
-          <td>${escapeHtml(siswa.kelas || "-")}</td>
-          <td>${escapeHtml(siswa.jurusan || "-")}</td>
-          <td>${escapeHtml(siswa.username || "-")}</td>
-          <td>${escapeHtml(siswa.password_awal || siswa.nisn || "-")}</td>
-          <td>${escapeHtml(siswa.status || "Aktif")}</td>
-        </tr>
-      `;
-    })
-    .join("");
+function getFilenameFromDisposition(disposition: string | null) {
+  if (!disposition) return "kartu-akun-siswa.xlsx";
 
-  const filterInfo = `
-    <tr>
-      <td colspan="8"><b>Filter Jurusan:</b> ${escapeHtml(
-        options?.jurusan || "Semua Jurusan"
-      )}</td>
-    </tr>
-    <tr>
-      <td colspan="8"><b>Filter Kelas:</b> ${escapeHtml(
-        options?.kelas || "Semua Kelas"
-      )}</td>
-    </tr>
-    <tr></tr>
-  `;
+  const utfMatch = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utfMatch?.[1]) {
+    return decodeURIComponent(utfMatch[1].replace(/['"]/g, ""));
+  }
 
-  const html = `
-    <html>
-      <head>
-        <meta charset="UTF-8" />
-      </head>
-      <body>
-        <table border="1">
-          <thead>
-            <tr>
-              <th colspan="8">Data Siswa SkillLens</th>
-            </tr>
-            ${filterInfo}
-            <tr>
-              <th>No</th>
-              <th>Nama Siswa</th>
-              <th>NISN</th>
-              <th>Kelas</th>
-              <th>Jurusan</th>
-              <th>Username</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${tableRows}
-          </tbody>
-        </table>
-      </body>
-    </html>
-  `;
+  const normalMatch = disposition.match(/filename="?([^";]+)"?/i);
+  return normalMatch?.[1] || "kartu-akun-siswa.xlsx";
+}
 
-  const blob = new Blob([html], {
-    type: "application/vnd.ms-excel;charset=utf-8;",
-  });
+async function readBlobError(response: Response) {
+  const text = await response.text();
+  if (!text) return `Export gagal. Status ${response.status}`;
 
-  const url = URL.createObjectURL(blob);
+  try {
+    const data = JSON.parse(text) as { message?: string | string[]; error?: string };
+    if (Array.isArray(data.message)) return data.message.join(", ");
+    return data.message || data.error || text;
+  } catch {
+    return text;
+  }
+}
+
+async function downloadStudentCardsExcel(params: URLSearchParams) {
+  const token = getStoredToken();
+  const response = await fetch(
+    `${API_BASE_URL}/admin-sekolah/siswa/export-kartu?${params.toString()}`,
+    {
+      method: "GET",
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await readBlobError(response));
+  }
+
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
   const link = document.createElement("a");
-  const date = new Date().toISOString().slice(0, 10);
-
-  const jurusanName = normalizeText(options?.jurusan || "semua-jurusan").replaceAll(
-    " ",
-    "-"
-  );
-  const kelasName = normalizeText(options?.kelas || "semua-kelas").replaceAll(
-    " ",
-    "-"
-  );
 
   link.href = url;
-  link.download = `data-siswa-${jurusanName}-${kelasName}-${date}.xls`;
+  link.download = getFilenameFromDisposition(response.headers.get("Content-Disposition"));
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  window.URL.revokeObjectURL(url);
 }
 
 function StudentAvatar({ name }: { name: string }) {
@@ -198,10 +154,13 @@ export function AdminSchoolDataSiswa({
   siswaLimit,
   siswaSearch,
   siswaJurusanFilter,
+  siswaKelasFilter,
   jurusanRows,
   setSiswaSearch,
   setSiswaJurusanFilter,
+  setSiswaKelasFilter,
   setSiswaPage,
+  loadingSiswa = false,
   loadSiswa,
 }: {
   siswaRows: SiswaRow[];
@@ -210,75 +169,84 @@ export function AdminSchoolDataSiswa({
   siswaLimit: number;
   siswaSearch: string;
   siswaJurusanFilter: string;
+  siswaKelasFilter: KelasFilter;
   jurusanRows: JurusanRow[];
   setSiswaSearch: (value: string) => void;
   setSiswaJurusanFilter: (value: string) => void;
+  setSiswaKelasFilter: (value: KelasFilter) => void;
   setSiswaPage: (value: number) => void;
+  loadingSiswa?: boolean;
   loadSiswa: (page?: number) => void;
 }) {
-  const [kelasFilter, setKelasFilter] = useState<KelasFilter>("semua");
+  const kelasFilter = siswaKelasFilter;
+  const restoreScrollYRef = useRef<number | null>(null);
+  const [exportingCards, setExportingCards] = useState(false);
+  const [exportError, setExportError] = useState("");
 
-  const jurusanFilterAktif = siswaJurusanFilter !== "semua";
+  const jurusanFilterAktif = !isAllFilter(siswaJurusanFilter);
+
+  const selectedJurusan = useMemo(() => {
+    if (!jurusanFilterAktif) return null;
+
+    return (
+      jurusanRows.find(
+        (jurusan) =>
+          String(jurusan.id) === String(siswaJurusanFilter) ||
+          String(jurusan.id_jurusan ?? "") === String(siswaJurusanFilter) ||
+          normalizeKey(jurusan.nama) === normalizeKey(siswaJurusanFilter) ||
+          normalizeKey(jurusan.nama_jurusan) === normalizeKey(siswaJurusanFilter)
+      ) || null
+    );
+  }, [jurusanFilterAktif, jurusanRows, siswaJurusanFilter]);
 
   const selectedJurusanName = useMemo(() => {
     if (!jurusanFilterAktif) return "Semua Jurusan";
 
-    const found = jurusanRows.find(
-      (jurusan) =>
-        String(jurusan.id) === String(siswaJurusanFilter) ||
-        String(jurusan.id_jurusan ?? "") === String(siswaJurusanFilter) ||
-        normalizeKey(jurusan.nama) === normalizeKey(siswaJurusanFilter) ||
-        normalizeKey(jurusan.nama_jurusan) === normalizeKey(siswaJurusanFilter)
-    );
+    return selectedJurusan?.nama || selectedJurusan?.nama_jurusan || siswaJurusanFilter || "Jurusan terpilih";
+  }, [jurusanFilterAktif, selectedJurusan, siswaJurusanFilter]);
 
-    return found?.nama || found?.nama_jurusan || siswaJurusanFilter || "Jurusan terpilih";
-  }, [jurusanFilterAktif, jurusanRows, siswaJurusanFilter]);
+  const selectedJurusanId = selectedJurusan?.id ?? selectedJurusan?.id_jurusan ?? null;
 
   const kelasOptions = useMemo(() => {
     if (!jurusanFilterAktif) return [];
 
-    const available = new Set<KelasTingkat>();
+    return KELAS_TINGKAT_OPTIONS;
+  }, [jurusanFilterAktif]);
 
-    siswaRows
-      .filter((siswa) => {
-        if (!jurusanFilterAktif) return true;
-        const byId = String(siswa.id_jurusan ?? "") === String(siswaJurusanFilter);
-        const byName = normalizeKey(siswa.jurusan) === normalizeKey(selectedJurusanName);
-        return byId || byName;
-      })
-      .forEach((siswa) => {
-        const tingkat = getKelasTingkat(siswa.kelas);
-
-        if (tingkat) {
-          available.add(tingkat);
-        }
-      });
-
-    return KELAS_TINGKAT_OPTIONS.filter((kelas) => available.has(kelas.value));
-  }, [jurusanFilterAktif, selectedJurusanName, siswaJurusanFilter, siswaRows]);
-
-  const filteredRows = useMemo(() => {
-    return siswaRows.filter((siswa) => {
-      const matchJurusan =
-        !jurusanFilterAktif ||
-        isAllFilter(siswaJurusanFilter) ||
-        String(siswa.id_jurusan ?? "") === String(siswaJurusanFilter) ||
-        normalizeKey(siswa.jurusan) === normalizeKey(selectedJurusanName);
-
-      const matchKelas =
-        kelasFilter === "semua" || getKelasTingkat(siswa.kelas) === kelasFilter;
-
-      return matchJurusan && matchKelas;
-    });
-  }, [kelasFilter, jurusanFilterAktif, selectedJurusanName, siswaJurusanFilter, siswaRows]);
+  // Data siswa sudah difilter dan dipaginasi dari backend.
+  // Jangan filter ulang di client supaya halaman tidak kosong ketika berpindah page.
+  const filteredRows = siswaRows;
 
   const hasRows = filteredRows.length > 0;
   const safeLimit = siswaLimit > 0 ? siswaLimit : 10;
   const totalPages = Math.max(1, Math.ceil(siswaTotal / safeLimit));
+  const showInitialSkeleton = loadingSiswa && !hasRows && siswaTotal === 0;
+  const showTableOverlay = loadingSiswa && (hasRows || siswaTotal > 0);
+
+  useEffect(() => {
+    if (loadingSiswa) return;
+    if (restoreScrollYRef.current === null) return;
+
+    const y = restoreScrollYRef.current;
+    restoreScrollYRef.current = null;
+
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: y, behavior: "auto" });
+    });
+  }, [loadingSiswa]);
+
+  function changePage(nextPage: number) {
+    const safePage = Math.min(Math.max(nextPage, 1), totalPages);
+    if (safePage === siswaPage || loadingSiswa) return;
+
+    restoreScrollYRef.current = window.scrollY;
+    setSiswaPage(safePage);
+    loadSiswa(safePage);
+  }
 
   function handleJurusanChange(value: string) {
     setSiswaJurusanFilter(value);
-    setKelasFilter("semua");
+    setSiswaKelasFilter("semua");
     setSiswaPage(1);
   }
 
@@ -288,14 +256,44 @@ export function AdminSchoolDataSiswa({
   }
 
   function handleKelasChange(value: string) {
-    setKelasFilter(value as KelasFilter);
+    setSiswaKelasFilter(value as KelasFilter);
+    setSiswaPage(1);
   }
 
-  function handleExport() {
-    downloadExcel(filteredRows, {
-      jurusan: selectedJurusanName,
-      kelas: getKelasFilterLabel(kelasFilter),
-    });
+  async function handleExport() {
+    if (exportingCards) return;
+
+    const params = new URLSearchParams();
+    const keyword = siswaSearch.trim();
+
+    if (keyword) params.set("keyword", keyword);
+
+    if (jurusanFilterAktif) {
+      if (selectedJurusanId) {
+        params.set("id_jurusan", String(selectedJurusanId));
+      }
+
+      params.set("jurusan", selectedJurusanName);
+    }
+
+    if (kelasFilter !== "semua") {
+      params.set("kelas", kelasFilter);
+    }
+
+    setExportError("");
+    setExportingCards(true);
+
+    try {
+      await downloadStudentCardsExcel(params);
+    } catch (error) {
+      setExportError(
+        error instanceof Error
+          ? error.message
+          : "Export kartu siswa gagal diproses."
+      );
+    } finally {
+      setExportingCards(false);
+    }
   }
 
   return (
@@ -317,18 +315,36 @@ export function AdminSchoolDataSiswa({
             </h3>
 
             <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-600">
-              Lihat dan export data siswa berdasarkan nama, NISN, username, kelas, dan jurusan.
+              Tabel tetap dipaginasi supaya ringan. Export kartu siswa mengambil seluruh data sesuai filter, bukan hanya data di halaman aktif.
             </p>
           </div>
 
           <div className="rounded-2xl border border-sky-100 bg-gradient-to-r from-white via-cyan-50/80 to-sky-50/80 px-4 py-3 text-sm font-bold text-sky-700 shadow-sm">
-            Total {siswaTotal} data
+            {jurusanFilterAktif ? `Total ${siswaTotal} data` : "Export satu sekolah tersedia"}
           </div>
         </div>
       </div>
 
       <div className="space-y-5 p-5 md:p-6">
-        <div className="grid gap-3 xl:grid-cols-[1.3fr_0.8fr_0.8fr_auto]">
+        {exportingCards && (
+          <AdminSchoolModalPortal>
+            <div className="fixed inset-0 z-[1600] flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-sm">
+              <div className="w-full max-w-sm rounded-3xl border border-sky-100 bg-white p-6 text-center shadow-2xl shadow-slate-950/25">
+                <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-sky-50 text-sky-700 ring-1 ring-sky-100">
+                  <span className="h-6 w-6 animate-spin rounded-full border-2 border-sky-200 border-t-sky-700" />
+                </div>
+                <h4 className="mt-4 text-lg font-black text-slate-950">
+                  Menyiapkan kartu siswa
+                </h4>
+                <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
+                  Sistem mengambil seluruh data sesuai filter jurusan/kelas, bukan hanya halaman pagination. Tunggu sampai download dimulai.
+                </p>
+              </div>
+            </div>
+          </AdminSchoolModalPortal>
+        )}
+
+        <div className="grid gap-3 xl:grid-cols-[1.25fr_0.9fr_0.75fr_auto]">
           <div className="relative">
             <Icon
               name="search"
@@ -347,9 +363,12 @@ export function AdminSchoolDataSiswa({
             onChange={(event) => handleJurusanChange(event.target.value)}
             className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
           >
-            <option value="semua">Semua jurusan</option>
+            <option value="semua">Semua jurusan / export satu sekolah</option>
             {jurusanRows.map((jurusan) => (
-              <option key={jurusan.id ?? jurusan.id_jurusan ?? jurusan.nama} value={String(jurusan.nama || jurusan.nama_jurusan || jurusan.id || jurusan.id_jurusan)}>
+              <option
+                key={jurusan.id ?? jurusan.id_jurusan ?? jurusan.nama}
+                value={String(jurusan.id ?? jurusan.id_jurusan ?? jurusan.nama ?? jurusan.nama_jurusan)}
+              >
                 {jurusan.nama || jurusan.nama_jurusan}
               </option>
             ))}
@@ -373,17 +392,43 @@ export function AdminSchoolDataSiswa({
 
           <button
             type="button"
-            disabled={!hasRows}
+            disabled={exportingCards || jurusanRows.length === 0}
             onClick={handleExport}
             className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-5 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-sky-600/20 transition hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <Icon name="download" className="h-4 w-4" />
-            Export Excel
+            {exportingCards ? (
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+            ) : (
+              <Icon name="download" className="h-4 w-4" />
+            )}
+            {exportingCards ? "Menyiapkan..." : "Export Kartu"}
           </button>
         </div>
 
-        <div className="overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/50">
-          <div className="overflow-x-auto">
+        <div className="rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3 text-xs font-semibold leading-5 text-sky-800">
+          Export kartu dibuat dalam format Excel (.xlsx), 2 kartu per baris, ada kotak pas foto 3x4, tanpa logo instansi sekolah. Jika memilih semua jurusan, file dibuat per sheet jurusan.
+        </div>
+
+        {exportError && (
+          <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+            {exportError}
+          </div>
+        )}
+
+        {showInitialSkeleton ? (
+          <TableSkeleton rows={6} columns={6} />
+        ) : (
+        <div className="relative overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm shadow-sky-100/50">
+          {showTableOverlay && (
+            <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/60 backdrop-blur-[1.5px]">
+              <div className="inline-flex items-center gap-3 rounded-2xl border border-sky-100 bg-white px-4 py-3 text-sm font-extrabold text-sky-700 shadow-xl shadow-sky-950/10">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-sky-200 border-t-sky-700" />
+                Memuat halaman {siswaPage}...
+              </div>
+            </div>
+          )}
+
+          <div className={`overflow-x-auto ${showTableOverlay ? "pointer-events-none select-none opacity-70" : ""}`}>
             <table className="min-w-full text-left text-sm">
               <thead className="bg-gradient-to-r from-sky-100 via-white to-blue-100 text-xs font-black uppercase tracking-[0.14em] text-sky-800">
                 <tr>
@@ -439,7 +484,7 @@ export function AdminSchoolDataSiswa({
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={7} className="px-5 py-14 text-center">
+                    <td colSpan={6} className="px-5 py-14 text-center">
                       <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200/70">
                         <Icon name="profile" className="h-5 w-5" />
                       </div>
@@ -456,10 +501,11 @@ export function AdminSchoolDataSiswa({
             </table>
           </div>
         </div>
+        )}
 
         <div className="flex flex-col gap-3 border-t border-sky-100 pt-5 md:flex-row md:items-center md:justify-between">
           <div className="text-sm font-medium text-slate-500">
-            <p>Total {siswaTotal} data</p>
+            <p>{jurusanFilterAktif ? `Total ${siswaTotal} data` : "Pilih jurusan untuk melihat siswa"}</p>
             {jurusanFilterAktif && (
               <p className="mt-1 text-xs text-slate-400">
                 Ditampilkan di halaman ini: {filteredRows.length} data
@@ -473,12 +519,8 @@ export function AdminSchoolDataSiswa({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              disabled={siswaPage <= 1}
-              onClick={() => {
-                const next = siswaPage - 1;
-                setSiswaPage(next);
-                loadSiswa(next);
-              }}
+              disabled={siswaPage <= 1 || loadingSiswa}
+              onClick={() => changePage(siswaPage - 1)}
               className="inline-flex w-[104px] items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Sebelumnya
@@ -490,12 +532,8 @@ export function AdminSchoolDataSiswa({
 
             <button
               type="button"
-              disabled={siswaPage >= totalPages}
-              onClick={() => {
-                const next = siswaPage + 1;
-                setSiswaPage(next);
-                loadSiswa(next);
-              }}
+              disabled={siswaPage >= totalPages || loadingSiswa}
+              onClick={() => changePage(siswaPage + 1)}
               className="inline-flex w-[104px] items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Berikutnya

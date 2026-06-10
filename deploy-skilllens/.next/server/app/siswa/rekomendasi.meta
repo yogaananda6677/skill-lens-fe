@@ -1,0 +1,16 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/siswa/layout,_N_T_/siswa/rekomendasi/layout,_N_T_/siswa/rekomendasi/page,_N_T_/siswa/rekomendasi"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/siswa/rekomendasi/__PAGE__",
+    "/siswa/rekomendasi",
+    "/siswa",
+    "/_index",
+    "/_head"
+  ]
+}

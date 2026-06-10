@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../../lib/axios";
 import { ListSkeleton } from "../../../components/ui/LoadingSkeleton";
+import { AdminSchoolModalPortal } from "./AdminSchoolModalPortal";
 import {
   InformationCircleIcon,
   MagnifyingGlassIcon,
@@ -32,9 +33,10 @@ type Props = {
   onShowModal: (
     title: string,
     description: string,
-    type?: "success" | "error"
+    type?: "success" | "error",
   ) => void;
   jurusanRows: Jurusan[];
+  jenisSekolah?: string;
 };
 
 const ITEMS_PER_PAGE = 10;
@@ -91,10 +93,14 @@ export function AdminSchoolMataPelajaran({
   isSchoolApproved,
   onShowModal,
   jurusanRows,
+  jenisSekolah = "SMA",
 }: Props) {
   const [mapelList, setMapelList] = useState<MataPelajaran[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  const isSma = String(jenisSekolah || "SMA").toUpperCase() === "SMA";
+  const isSmk = !isSma;
 
   const [editingId, setEditingId] = useState<number | null>(null);
 
@@ -123,21 +129,21 @@ export function AdminSchoolMataPelajaran({
 
     if (filterSemester !== "semua") {
       filtered = filtered.filter(
-        (item) => item.semester === Number(filterSemester)
+        (item) => item.semester === Number(filterSemester),
       );
     }
 
     if (filterJurusan !== "semua") {
       if (filterJurusan === "umum") {
         filtered = filtered.filter(
-          (item) => item.tipe_mapel === "umum" || item.id_jurusan === null
+          (item) => item.tipe_mapel === "umum" || item.id_jurusan === null,
         );
       } else {
         const jurusanId = Number(filterJurusan);
 
         filtered = filtered.filter(
           (item) =>
-            item.tipe_mapel === "jurusan" && item.id_jurusan === jurusanId
+            item.tipe_mapel === "jurusan" && item.id_jurusan === jurusanId,
         );
       }
     }
@@ -146,7 +152,9 @@ export function AdminSchoolMataPelajaran({
       const keyword = searchTerm.trim().toLowerCase();
 
       filtered = filtered.filter((item) =>
-        String(item.nama_mapel || '').toLowerCase().includes(keyword)
+        String(item.nama_mapel || "")
+          .toLowerCase()
+          .includes(keyword),
       );
     }
 
@@ -161,13 +169,22 @@ export function AdminSchoolMataPelajaran({
 
       if (jurusanA !== jurusanB) return jurusanA.localeCompare(jurusanB);
 
-      return String(a.nama_mapel || '').localeCompare(String(b.nama_mapel || ''));
+      return String(a.nama_mapel || "").localeCompare(
+        String(b.nama_mapel || ""),
+      );
     });
-  }, [mapelList, filterSemester, filterJurusan, searchTerm, jurusanRows]);
+  }, [
+    mapelList,
+    filterSemester,
+    filterJurusan,
+    searchTerm,
+    jurusanRows,
+    isSma,
+  ]);
 
   const totalPages = Math.max(
     1,
-    Math.ceil(allFilteredMapel.length / ITEMS_PER_PAGE)
+    Math.ceil(allFilteredMapel.length / ITEMS_PER_PAGE),
   );
 
   const paginatedMapel = useMemo(() => {
@@ -194,13 +211,15 @@ export function AdminSchoolMataPelajaran({
   }, [currentPage, totalPages]);
 
   const isSemesterUmum =
-    formData.semester === "1" || formData.semester === "2";
+    isSma && (formData.semester === "1" || formData.semester === "2");
 
   const isSemesterJurusan =
-    formData.semester === "3" ||
-    formData.semester === "4" ||
-    formData.semester === "5" ||
-    formData.semester === "6";
+    !!formData.semester &&
+    (isSmk ||
+      formData.semester === "3" ||
+      formData.semester === "4" ||
+      formData.semester === "5" ||
+      formData.semester === "6");
 
   async function loadMataPelajaran(silent = false) {
     if (!silent) setLoading(true);
@@ -210,12 +229,12 @@ export function AdminSchoolMataPelajaran({
         "/admin-sekolah/mata-pelajaran",
         {
           method: "GET",
-        }
+        },
       );
 
       const mapped: MataPelajaran[] = (result.data || []).map((item: any) => ({
         id_mapel: item.id_mapel,
-        nama_mapel: item.nama_mapel ?? item.nama ?? item.nama_mata_pelajaran ?? item.mapel ?? '',
+        nama_mapel: item.nama_mapel ?? "",
         tipe_mapel: item.tipe_mapel === "jurusan" ? "jurusan" : "umum",
         id_jurusan: item.id_jurusan ?? null,
         semester: item.semester ? Number(item.semester) : null,
@@ -229,7 +248,7 @@ export function AdminSchoolMataPelajaran({
       onShowModal(
         "Gagal memuat data",
         err instanceof Error ? err.message : "Terjadi kesalahan",
-        "error"
+        "error",
       );
     } finally {
       if (!silent) setLoading(false);
@@ -263,12 +282,12 @@ export function AdminSchoolMataPelajaran({
   function handleInputChange(
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
+    >,
   ) {
     const { name, value } = e.target;
 
     if (name === "semester") {
-      const semesterIsUmum = value === "1" || value === "2";
+      const semesterIsUmum = isSma && (value === "1" || value === "2");
 
       setFormData((prev) => ({
         ...prev,
@@ -299,7 +318,7 @@ export function AdminSchoolMataPelajaran({
       onShowModal(
         "Tidak dapat mengedit",
         "Mata pelajaran default tidak bisa diedit.",
-        "error"
+        "error",
       );
       return;
     }
@@ -307,7 +326,7 @@ export function AdminSchoolMataPelajaran({
     setEditingId(item.id_mapel);
 
     setFormData({
-      nama_mapel: item.nama_mapel ?? item.nama ?? item.nama_mata_pelajaran ?? item.mapel ?? '',
+      nama_mapel: item.nama_mapel ?? "",
       semester: item.semester ? String(item.semester) : "",
       id_jurusan: item.id_jurusan ? String(item.id_jurusan) : "",
     });
@@ -326,13 +345,15 @@ export function AdminSchoolMataPelajaran({
       return false;
     }
 
-    const isJurusan = [3, 4, 5, 6].includes(semester);
+    const isJurusan = isSmk || [3, 4, 5, 6].includes(semester);
 
     if (isJurusan && !formData.id_jurusan) {
       onShowModal(
         "Validasi",
-        "Untuk semester 3 sampai 6 wajib memilih jurusan.",
-        "error"
+        isSmk
+          ? "Untuk SMK, semua semester wajib memilih jurusan."
+          : "Untuk semester 3 sampai 6 wajib memilih jurusan.",
+        "error",
       );
       return false;
     }
@@ -346,7 +367,7 @@ export function AdminSchoolMataPelajaran({
       onShowModal(
         "Validasi",
         "Isi minimal satu mata pelajaran. Gunakan satu baris untuk satu mapel.",
-        "error"
+        "error",
       );
       return false;
     }
@@ -360,7 +381,7 @@ export function AdminSchoolMataPelajaran({
     if (!validateForm()) return;
 
     const semester = Number(formData.semester);
-    const isUmum = semester === 1 || semester === 2;
+    const isUmum = isSma && (semester === 1 || semester === 2);
 
     setSubmitting(true);
 
@@ -381,7 +402,7 @@ export function AdminSchoolMataPelajaran({
         onShowModal(
           "Berhasil",
           "Mata pelajaran berhasil diperbarui.",
-          "success"
+          "success",
         );
 
         setEditingId(null);
@@ -404,7 +425,7 @@ export function AdminSchoolMataPelajaran({
         onShowModal(
           "Berhasil",
           `${payloads.length} mata pelajaran berhasil ditambahkan.`,
-          "success"
+          "success",
         );
 
         resetMapelOnly();
@@ -415,7 +436,7 @@ export function AdminSchoolMataPelajaran({
       onShowModal(
         "Gagal",
         err instanceof Error ? err.message : "Terjadi kesalahan",
-        "error"
+        "error",
       );
     } finally {
       setSubmitting(false);
@@ -434,7 +455,7 @@ export function AdminSchoolMataPelajaran({
       onShowModal(
         "Validasi",
         "Isi minimal satu mata pelajaran umum terlebih dahulu.",
-        "error"
+        "error",
       );
       return;
     }
@@ -457,7 +478,7 @@ export function AdminSchoolMataPelajaran({
       onShowModal(
         "Berhasil",
         result.message || "Mata pelajaran umum berhasil ditambahkan.",
-        "success"
+        "success",
       );
 
       setShowDefaultMapelModal(false);
@@ -468,7 +489,7 @@ export function AdminSchoolMataPelajaran({
         err instanceof Error
           ? err.message
           : "Gagal menambahkan mata pelajaran umum.",
-        "error"
+        "error",
       );
     } finally {
       setSubmitting(false);
@@ -478,13 +499,13 @@ export function AdminSchoolMataPelajaran({
   async function handleDelete(
     idMapel: number,
     nama: string,
-    isDefault: boolean
+    isDefault: boolean,
   ) {
     if (isDefault) {
       onShowModal(
         "Tidak dapat menghapus",
         "Mata pelajaran default tidak bisa dihapus.",
-        "error"
+        "error",
       );
       return;
     }
@@ -503,13 +524,14 @@ export function AdminSchoolMataPelajaran({
       onShowModal(
         "Gagal",
         err instanceof Error ? err.message : "Terjadi kesalahan",
-        "error"
+        "error",
       );
     }
   }
 
   function getJurusanLabel(item: MataPelajaran): string {
-    if (item.semester === 1 || item.semester === 2) return "Tidak Menjuru";
+    if (isSma && (item.semester === 1 || item.semester === 2))
+      return "Tidak Menjuru";
     if (item.tipe_mapel === "umum") return "Umum";
     if (item.id_jurusan === null) return "Umum";
 
@@ -536,8 +558,12 @@ export function AdminSchoolMataPelajaran({
       return `Mapel akan ditambahkan ke Semester ${formData.semester} sebagai mapel tidak menjuru.`;
     }
 
+    if (isSmk && formData.semester && !formData.id_jurusan) {
+      return `SMK langsung menjuru sejak semester ${formData.semester}. Pilih jurusan terlebih dahulu.`;
+    }
+
     const selectedJurusan = jurusanRows.find(
-      (item) => String(item.id) === formData.id_jurusan
+      (item) => String(item.id) === formData.id_jurusan,
     );
 
     if (!selectedJurusan) {
@@ -553,7 +579,9 @@ export function AdminSchoolMataPelajaran({
         <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-amber-100 text-amber-700 ring-1 ring-amber-200">
           <InformationCircleIcon className="h-6 w-6" />
         </div>
-        <h3 className="mt-4 text-lg font-black text-amber-800">Fitur terkunci</h3>
+        <h3 className="mt-4 text-lg font-black text-amber-800">
+          Fitur terkunci
+        </h3>
         <p className="mt-2 text-sm font-medium leading-6 text-amber-700">
           Data mata pelajaran hanya dapat dikelola setelah sekolah disetujui.
         </p>
@@ -579,8 +607,9 @@ export function AdminSchoolMataPelajaran({
           </h2>
 
           <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-600">
-            Input banyak mapel sekaligus berdasarkan semester. Semester 1 dan 2
-            tidak menjuru, sedangkan semester 3 sampai 6 berdasarkan jurusan.
+            {isSma
+              ? "Input banyak mapel sekaligus. Semester 1 dan 2 tidak menjuru, sedangkan semester 3 sampai 6 berdasarkan jurusan."
+              : "Mode SMK aktif. Semua semester langsung menggunakan jurusan agar mapel tidak masuk sebagai umum/tidak menjuru."}
           </p>
         </div>
       </div>
@@ -664,7 +693,8 @@ export function AdminSchoolMataPelajaran({
                           const isDefault = item.is_default === true;
                           const jurusanLabel = getJurusanLabel(item);
                           const isTidakMenjuru =
-                            item.semester === 1 || item.semester === 2;
+                            isSma &&
+                            (item.semester === 1 || item.semester === 2);
 
                           return (
                             <tr
@@ -672,7 +702,7 @@ export function AdminSchoolMataPelajaran({
                               className="transition hover:bg-sky-50/50"
                             >
                               <td className="whitespace-nowrap px-5 py-4 font-bold text-slate-900">
-                                {item.nama_mapel || '-'}
+                                {item.nama_mapel || "-"}
 
                                 {isDefault && (
                                   <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-600 ring-1 ring-slate-200">
@@ -715,7 +745,7 @@ export function AdminSchoolMataPelajaran({
                                         handleDelete(
                                           item.id_mapel,
                                           item.nama_mapel,
-                                          item.is_default
+                                          item.is_default,
                                         )
                                       }
                                       className="grid h-9 w-9 place-items-center rounded-xl border border-rose-100 bg-rose-50 text-rose-600 transition hover:-translate-y-0.5 hover:bg-rose-100 hover:shadow-sm"
@@ -725,7 +755,9 @@ export function AdminSchoolMataPelajaran({
                                     </button>
                                   </div>
                                 ) : (
-                                  <span className="text-xs text-slate-400">-</span>
+                                  <span className="text-xs text-slate-400">
+                                    -
+                                  </span>
                                 )}
                               </td>
                             </tr>
@@ -762,9 +794,7 @@ export function AdminSchoolMataPelajaran({
                       type="button"
                       disabled={currentPage >= totalPages}
                       onClick={() =>
-                        setCurrentPage((prev) =>
-                          Math.min(prev + 1, totalPages)
-                        )
+                        setCurrentPage((prev) => Math.min(prev + 1, totalPages))
                       }
                       className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                     >
@@ -839,6 +869,13 @@ export function AdminSchoolMataPelajaran({
                 </div>
               )}
 
+              {isSmk && (
+                <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-semibold leading-6 text-sky-800">
+                  Mode SMK: pilih jurusan untuk setiap semester. Sistem akan
+                  menyimpan mapel sebagai mapel jurusan, bukan mapel umum.
+                </div>
+              )}
+
               <form onSubmit={submitForm} className="space-y-4">
                 <div>
                   <label className="block text-sm font-bold text-slate-700">
@@ -885,7 +922,9 @@ export function AdminSchoolMataPelajaran({
                         <p className="font-bold">
                           {isSemesterUmum
                             ? "Semester 1 dan 2 Tidak Menjuru"
-                            : "Semester 3 sampai 6 Menjuru"}
+                            : isSmk
+                              ? "SMK Langsung Menjuru"
+                              : "Semester 3 sampai 6 Menjuru"}
                         </p>
 
                         <p>{getCurrentScopeText()}</p>
@@ -1021,151 +1060,154 @@ Kimia`}
           </div>
         </div>
 
-        {showDefaultMapelModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/58 px-4 py-6 backdrop-blur-[4px]">
-            <div className="w-full max-w-5xl overflow-hidden rounded-[2rem] border border-sky-100 bg-white shadow-2xl shadow-slate-950/20">
-              <div className="relative overflow-hidden border-b border-sky-100 bg-gradient-to-br from-white via-cyan-50/45 to-sky-50/70 px-6 py-5 text-slate-900">
-                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(14,165,233,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(14,165,233,0.045)_1px,transparent_1px)] bg-[size:32px_32px]" />
-                <div className="relative flex items-start justify-between gap-4">
-                  <div>
-                    <h3 className="text-lg font-black text-slate-900">
-                      Atur Mata Pelajaran Umum
-                    </h3>
-                    <p className="mt-1 text-sm font-medium text-slate-500">
-                      Mapel umum akan ditambahkan otomatis ke semester 1 sampai 6.
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowDefaultMapelModal(false)}
-                    className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-white/90 text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-800"
-                    aria-label="Tutup modal"
-                  >
-                    <XMarkIcon className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid gap-0 lg:grid-cols-[0.9fr_1.1fr]">
-                <div className="border-b border-sky-100 bg-gradient-to-br from-white via-sky-50/70 to-blue-50/70 p-6 lg:border-b-0 lg:border-r">
-                  <div className="rounded-3xl border border-sky-100 bg-white p-5 shadow-sm shadow-sky-100/50">
-                    <div className="mb-4 grid h-11 w-11 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200">
-                      <InformationCircleIcon className="h-6 w-6" />
+        {showDefaultMapelModal && isSma && (
+          <AdminSchoolModalPortal>
+            <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/50 px-4 py-6 backdrop-blur-[3px]">
+              <div className="w-full max-w-5xl overflow-hidden rounded-[2rem] border border-sky-100 bg-white shadow-2xl shadow-slate-950/20">
+                <div className="relative overflow-hidden border-b border-sky-100 bg-gradient-to-br from-white via-cyan-50/45 to-sky-50/70 px-6 py-5 text-slate-900">
+                  <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(14,165,233,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(14,165,233,0.045)_1px,transparent_1px)] bg-[size:32px_32px]" />
+                  <div className="relative flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-black text-slate-900">
+                        Atur Mata Pelajaran Umum
+                      </h3>
+                      <p className="mt-1 text-sm font-medium text-slate-500">
+                        Mapel umum akan ditambahkan otomatis ke semester 1
+                        sampai 6.
+                      </p>
                     </div>
 
-                    <h4 className="text-base font-black text-slate-900">
-                      Cara kerja fitur ini
-                    </h4>
-
-                    <div className="mt-4 space-y-4 text-sm leading-6 text-slate-600">
-                      <div>
-                        <p className="font-bold text-slate-800">
-                          1. Isi daftar mapel umum
-                        </p>
-                        <p>
-                          Tulis satu mata pelajaran per baris. Kamu bisa
-                          mengubah, menambah, atau menghapus daftar mapel sesuai
-                          kebutuhan sekolah.
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="font-bold text-slate-800">
-                          2. Sistem menambahkan ke semester 1–6
-                        </p>
-                        <p>
-                          Mapel umum akan dibuat untuk semua semester tanpa
-                          jurusan, sehingga tidak perlu input berulang.
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="font-bold text-slate-800">
-                          3. Data lama tidak dibuat dobel
-                        </p>
-                        <p>
-                          Jika mapel dengan nama dan semester yang sama sudah
-                          ada, sistem akan melewatinya.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-800">
-                      Setelah mapel umum dibuat, kamu cukup menambahkan mapel
-                      khusus jurusan seperti Fisika, Kimia, Ekonomi, Geografi,
-                      dan lainnya.
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-6">
-                  <label className="block text-sm font-bold text-slate-700">
-                    Daftar Mata Pelajaran Umum
-                  </label>
-
-                  <textarea
-                    value={defaultMapelText}
-                    onChange={(e) => setDefaultMapelText(e.target.value)}
-                    rows={13}
-                    className="mt-2 w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm leading-6 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
-                    placeholder={`Contoh:
-Bahasa Indonesia
-Bahasa Inggris
-Pendidikan Agama`}
-                  />
-
-                  <p className="mt-2 text-xs leading-5 text-slate-500">
-                    Tulis satu mata pelajaran per baris. Mapel ini akan dibuat
-                    sebagai mapel umum untuk semester 1 sampai 6.
-                  </p>
-
-                  <div className="mt-4 rounded-2xl border border-sky-100 bg-sky-50/50 p-3">
-                    <p className="text-xs font-bold uppercase tracking-wide text-sky-600">
-                      Preview
-                    </p>
-
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {parsedDefaultMapelNames.slice(0, 10).map((name) => (
-                        <span
-                          key={name}
-                          className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-sky-100"
-                        >
-                          {name}
-                        </span>
-                      ))}
-
-                      {parsedDefaultMapelNames.length > 10 && (
-                        <span className="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-bold text-sky-700">
-                          +{parsedDefaultMapelNames.length - 10} lainnya
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mt-6 flex justify-end gap-3">
                     <button
                       type="button"
                       onClick={() => setShowDefaultMapelModal(false)}
-                      disabled={submitting}
-                      className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                      className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-white/90 text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-800"
+                      aria-label="Tutup modal"
                     >
-                      Batal
+                      <XMarkIcon className="h-5 w-5" />
                     </button>
+                  </div>
+                </div>
 
-                    <button
-                      type="button"
-                      onClick={generateMapelUmumDefault}
-                      disabled={submitting}
-                      className="rounded-xl bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-sky-600/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {submitting ? "Menambahkan..." : "Tambah Mapel Umum"}
-                    </button>
+                <div className="grid gap-0 lg:grid-cols-[0.9fr_1.1fr]">
+                  <div className="border-b border-sky-100 bg-gradient-to-br from-white via-sky-50/70 to-blue-50/70 p-6 lg:border-b-0 lg:border-r">
+                    <div className="rounded-3xl border border-sky-100 bg-white p-5 shadow-sm shadow-sky-100/50">
+                      <div className="mb-4 grid h-11 w-11 place-items-center rounded-2xl bg-sky-100 text-sky-700 ring-1 ring-sky-200">
+                        <InformationCircleIcon className="h-6 w-6" />
+                      </div>
+
+                      <h4 className="text-base font-black text-slate-900">
+                        Cara kerja fitur ini
+                      </h4>
+
+                      <div className="mt-4 space-y-4 text-sm leading-6 text-slate-600">
+                        <div>
+                          <p className="font-bold text-slate-800">
+                            1. Isi daftar mapel umum
+                          </p>
+                          <p>
+                            Tulis satu mata pelajaran per baris. Kamu bisa
+                            mengubah, menambah, atau menghapus daftar mapel
+                            sesuai kebutuhan sekolah.
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="font-bold text-slate-800">
+                            2. Sistem menambahkan ke semester 1–6
+                          </p>
+                          <p>
+                            Mapel umum akan dibuat untuk semua semester tanpa
+                            jurusan, sehingga tidak perlu input berulang.
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="font-bold text-slate-800">
+                            3. Data lama tidak dibuat dobel
+                          </p>
+                          <p>
+                            Jika mapel dengan nama dan semester yang sama sudah
+                            ada, sistem akan melewatinya.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-800">
+                        Setelah mapel umum dibuat, kamu cukup menambahkan mapel
+                        khusus jurusan seperti Fisika, Kimia, Ekonomi, Geografi,
+                        dan lainnya.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-6">
+                    <label className="block text-sm font-bold text-slate-700">
+                      Daftar Mata Pelajaran Umum
+                    </label>
+
+                    <textarea
+                      value={defaultMapelText}
+                      onChange={(e) => setDefaultMapelText(e.target.value)}
+                      rows={13}
+                      className="mt-2 w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm leading-6 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                      placeholder={`Contoh:
+Bahasa Indonesia
+Bahasa Inggris
+Pendidikan Agama`}
+                    />
+
+                    <p className="mt-2 text-xs leading-5 text-slate-500">
+                      Tulis satu mata pelajaran per baris. Mapel ini akan dibuat
+                      sebagai mapel umum untuk semester 1 sampai 6.
+                    </p>
+
+                    <div className="mt-4 rounded-2xl border border-sky-100 bg-sky-50/50 p-3">
+                      <p className="text-xs font-bold uppercase tracking-wide text-sky-600">
+                        Preview
+                      </p>
+
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {parsedDefaultMapelNames.slice(0, 10).map((name) => (
+                          <span
+                            key={name}
+                            className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-sky-100"
+                          >
+                            {name}
+                          </span>
+                        ))}
+
+                        {parsedDefaultMapelNames.length > 10 && (
+                          <span className="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-bold text-sky-700">
+                            +{parsedDefaultMapelNames.length - 10} lainnya
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-6 flex justify-end gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowDefaultMapelModal(false)}
+                        disabled={submitting}
+                        className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                      >
+                        Batal
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={generateMapelUmumDefault}
+                        disabled={submitting}
+                        className="rounded-xl bg-gradient-to-r from-[#0b2450] via-[#0e3a6b] to-sky-600 px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-sky-600/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {submitting ? "Menambahkan..." : "Tambah Mapel Umum"}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          </AdminSchoolModalPortal>
         )}
       </div>
     </section>

@@ -47,6 +47,8 @@ type AdminSchoolStatusWithJenis = AdminSchoolStatus & {
   jenis_sekolah?: string | null;
 };
 
+type SiswaKelasFilter = "semua" | "10" | "11" | "12";
+
 export default function AdminSekolahPage() {
   const fileRef = useRef<HTMLInputElement | null>(null);
 
@@ -79,7 +81,11 @@ export default function AdminSekolahPage() {
   const [siswaLimit] = useState(10);
   const [siswaTotal, setSiswaTotal] = useState(0);
   const [siswaSearch, setSiswaSearch] = useState("");
+  const [debouncedSiswaSearch, setDebouncedSiswaSearch] = useState("");
   const [siswaJurusanFilter, setSiswaJurusanFilter] = useState("semua");
+  const [siswaKelasFilter, setSiswaKelasFilter] = useState<SiswaKelasFilter>("semua");
+  const [loadingSiswa, setLoadingSiswa] = useState(false);
+  const siswaRequestRef = useRef(0);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -204,6 +210,17 @@ export default function AdminSekolahPage() {
   async function loadSiswa(page = siswaPage) {
     if (!isSchoolApproved) return;
 
+    if (siswaJurusanFilter === "semua") {
+      setSiswaRows([]);
+      setSiswaTotal(0);
+      setLoadingSiswa(false);
+      return;
+    }
+
+    const requestId = siswaRequestRef.current + 1;
+    siswaRequestRef.current = requestId;
+    setLoadingSiswa(true);
+
     const selectedJurusan = jurusanRows.find(
       (jurusan) =>
         String(jurusan.id) === String(siswaJurusanFilter) ||
@@ -217,9 +234,10 @@ export default function AdminSekolahPage() {
     const params = new URLSearchParams({
       page: String(page),
       limit: String(siswaLimit),
-      keyword: siswaSearch.trim(),
-      id_jurusan: siswaJurusanFilter === "semua" ? "" : selectedJurusanId,
-      jurusan: siswaJurusanFilter === "semua" ? "" : selectedJurusanName,
+      keyword: debouncedSiswaSearch.trim(),
+      id_jurusan: selectedJurusanId,
+      jurusan: selectedJurusanName,
+      kelas: siswaKelasFilter === "semua" ? "" : siswaKelasFilter,
     });
 
     try {
@@ -228,15 +246,32 @@ export default function AdminSekolahPage() {
         total?: number;
       }>(`/admin-sekolah/siswa?${params.toString()}`, {
         method: "GET",
+        alert: false,
       });
+
+      if (requestId !== siswaRequestRef.current) return;
 
       setSiswaRows(result.data || []);
       setSiswaTotal(result.total || 0);
     } catch {
+      if (requestId !== siswaRequestRef.current) return;
+
       setSiswaRows([]);
       setSiswaTotal(0);
+    } finally {
+      if (requestId === siswaRequestRef.current) {
+        setLoadingSiswa(false);
+      }
     }
   }
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setDebouncedSiswaSearch(siswaSearch);
+    }, 420);
+
+    return () => window.clearTimeout(timeout);
+  }, [siswaSearch]);
 
   useEffect(() => {
     loadSchoolStatus();
@@ -246,17 +281,30 @@ export default function AdminSekolahPage() {
     if (isSchoolApproved) {
       loadTeachers();
       loadJurusan();
-      setSiswaPage(1);
-      loadSiswa(1);
     }
   }, [isSchoolApproved]);
+
+  useEffect(() => {
+    if (!isSchoolApproved || siswaJurusanFilter !== "semua" || jurusanRows.length === 0) {
+      return;
+    }
+
+    const firstJurusan = jurusanRows[0];
+    const firstJurusanId = firstJurusan?.id ?? firstJurusan?.id_jurusan;
+
+    if (firstJurusanId) {
+      setSiswaJurusanFilter(String(firstJurusanId));
+      setSiswaKelasFilter("semua");
+      setSiswaPage(1);
+    }
+  }, [isSchoolApproved, jurusanRows, siswaJurusanFilter]);
 
   useEffect(() => {
     if (isSchoolApproved) {
       setSiswaPage(1);
       loadSiswa(1);
     }
-  }, [siswaSearch, siswaJurusanFilter]);
+  }, [debouncedSiswaSearch, siswaJurusanFilter, siswaKelasFilter, jurusanRows.length]);
 
   function isLockedFeature(key: string) {
     return (
@@ -335,8 +383,9 @@ export default function AdminSekolahPage() {
     setSchoolError("");
 
     if (hasErrors(schoolErrors)) {
-      setSchoolError("Periksa kembali data sekolah yang belum sesuai.");
-      return;
+      const message = "Periksa kembali data sekolah yang belum sesuai.";
+      setSchoolError(message);
+      throw new Error(message);
     }
 
     setLoadingSchool(true);
@@ -366,11 +415,13 @@ export default function AdminSekolahPage() {
 
       await loadSchoolStatus();
     } catch (err) {
-      setSchoolError(
+      const message =
         err instanceof Error
           ? err.message
-          : "Pengajuan sekolah gagal diproses."
-      );
+          : "Pengajuan sekolah gagal diproses.";
+
+      setSchoolError(message);
+      throw new Error(message);
     } finally {
       setLoadingSchool(false);
     }
@@ -710,10 +761,13 @@ export default function AdminSekolahPage() {
           siswaLimit={siswaLimit}
           siswaSearch={siswaSearch}
           siswaJurusanFilter={siswaJurusanFilter}
+          siswaKelasFilter={siswaKelasFilter}
           jurusanRows={jurusanRows}
           setSiswaSearch={setSiswaSearch}
           setSiswaJurusanFilter={setSiswaJurusanFilter}
+          setSiswaKelasFilter={(value) => setSiswaKelasFilter(value)}
           setSiswaPage={setSiswaPage}
+          loadingSiswa={loadingSiswa || siswaSearch !== debouncedSiswaSearch}
           loadSiswa={loadSiswa}
         />
       );
@@ -733,6 +787,7 @@ export default function AdminSekolahPage() {
           isSchoolApproved={isSchoolApproved}
           onShowModal={showModal}
           jurusanRows={jurusanRows}
+          jenisSekolah={jenisSekolah}
         />
       );
     }

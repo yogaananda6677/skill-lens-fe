@@ -35,7 +35,7 @@ export function FeedbackModal({ open, type = "success", title, description, acti
   }[type];
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/58 px-4 py-6 text-slate-950 backdrop-blur-[4px]">
+    <div className="fixed inset-0 z-[1200] grid place-items-center bg-slate-950/50 px-4 py-6 text-slate-950 backdrop-blur-[4px]">
       <button type="button" onClick={onClose} className="absolute inset-0 cursor-default" aria-label="Tutup notifikasi" />
       <section className="relative w-full max-w-md overflow-hidden rounded-[1.75rem] border border-white/30 bg-white shadow-[0_28px_90px_rgba(15,23,42,0.35)]">
         <button type="button" onClick={onClose} className="absolute right-4 top-4 z-10 grid h-10 w-10 place-items-center rounded-2xl bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-950" aria-label="Tutup">

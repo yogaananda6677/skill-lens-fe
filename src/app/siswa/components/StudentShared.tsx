@@ -16,7 +16,7 @@ export function Panel({
   return (
     <section
       id={id}
-      className={`scroll-mt-28 rounded-[1.9rem] p-5 md:p-6 skilllens-smooth-card ${className}`}
+      className={`scroll-mt-24 rounded-[1.35rem] p-4 sm:scroll-mt-28 sm:rounded-[1.9rem] sm:p-5 md:p-6 skilllens-smooth-card ${className}`}
     >
       {children}
     </section>
@@ -34,10 +34,10 @@ export function SectionTitle({
 }) {
   return (
     <div>
-      <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-600">
+      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-sky-600 sm:text-xs sm:tracking-[0.2em]">
         {eyebrow}
       </p>
-      <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+      <h2 className="mt-2 text-xl font-bold tracking-tight text-slate-950 sm:text-2xl">
         {title}
       </h2>
       {description ? (
@@ -137,7 +137,7 @@ export function OptionPicker({
   const totalMatched = filteredOptions.length;
 
   return (
-    <div className="rounded-[1.55rem] border border-sky-100/80 bg-white/80 p-4 shadow-sm shadow-sky-950/5 backdrop-blur-md">
+    <div className="rounded-[1.35rem] border border-sky-100/80 bg-white/80 p-3 shadow-sm shadow-sky-950/5 backdrop-blur-md sm:rounded-[1.55rem] sm:p-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-bold text-slate-900">{title}</p>
         <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-sky-700 ring-1 ring-sky-100">
@@ -161,7 +161,7 @@ export function OptionPicker({
         ) : null}
       </div>
 
-      <div className="mt-3 flex max-h-72 flex-wrap gap-2 overflow-y-auto pr-1">
+      <div className="mt-3 flex max-h-64 flex-wrap gap-2 overflow-y-auto pr-1 sm:max-h-72">
         {visible.map((option) => (
           <ToggleChip
             key={option}

@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -15,11 +16,18 @@ import {
   selectStudentRoadmap,
 } from "../../../features/siswa/api";
 import type { Recommendation, StudentSpkHistoryItem } from "../../../features/siswa/types";
-import { StudentRecommendationPanel } from "../components/StudentRecommendationPanel";
 import { useStudentData } from "../hooks/useStudentData";
 import { buildStudentPayload } from "../utils/buildStudentPayload";
 
 const MIN_RECOMMENDATION_LOADING_MS = 1800;
+
+const StudentRecommendationPanel = dynamic(
+  () => import("../components/StudentRecommendationPanel").then((mod) => mod.StudentRecommendationPanel),
+  {
+    ssr: false,
+    loading: () => <CardGridSkeleton count={3} />,
+  },
+);
 
 function wait(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -386,19 +394,31 @@ export default function SiswaRekomendasiPage() {
 
   useEffect(() => {
     let active = true;
+    let historyTimer: number | null = null;
+
+    async function loadSpkHistoryLater() {
+      setLoadingSpkHistory(true);
+
+      try {
+        const history = await getStudentSpkHistory();
+        if (active) setSpkHistory(history);
+      } catch {
+        if (active) setSpkHistory([]);
+      } finally {
+        if (active) setLoadingSpkHistory(false);
+      }
+    }
 
     async function loadLatestRecommendation() {
       setLoadingLatest(true);
-      setLoadingSpkHistory(true);
 
       try {
         const shouldAutoProcess =
           new URLSearchParams(window.location.search).get("auto") === "1";
 
-        const [latestResult, activeRoadmapResult, historyResult] = await Promise.allSettled([
+        const [latestResult, activeRoadmapResult] = await Promise.allSettled([
           getLatestSiswaSpk(),
           getActiveStudentRoadmap(),
-          getStudentSpkHistory(),
         ]);
 
         if (!active) return;
@@ -426,11 +446,6 @@ export default function SiswaRekomendasiPage() {
           setActiveRoadmapId(activeRoadmapResult.value.id);
           setGeneratedRoadmapId(activeRoadmapResult.value.id);
         }
-
-
-        if (historyResult.status === "fulfilled") {
-          setSpkHistory(historyResult.value);
-        }
       } catch {
         /**
          * Tidak perlu tampil error di awal.
@@ -439,7 +454,9 @@ export default function SiswaRekomendasiPage() {
       } finally {
         if (active) {
           setLoadingLatest(false);
-          setLoadingSpkHistory(false);
+          historyTimer = window.setTimeout(() => {
+            void loadSpkHistoryLater();
+          }, 180);
         }
       }
     }
@@ -448,6 +465,7 @@ export default function SiswaRekomendasiPage() {
 
     return () => {
       active = false;
+      if (historyTimer !== null) window.clearTimeout(historyTimer);
     };
   }, []);
 
@@ -709,6 +727,7 @@ export default function SiswaRekomendasiPage() {
 
                   <Link
                     href="/siswa/profil"
+                    prefetch={false}
                     className="inline-flex items-center justify-center gap-2 rounded-full border border-white/[0.15] bg-white/10 px-5 py-3 text-sm font-bold text-white backdrop-blur-md skilllens-smooth hover:-translate-y-0.5 hover:bg-white hover:text-[#07142f]"
                   >
                     <Icon name="profile" className="h-4 w-4" />

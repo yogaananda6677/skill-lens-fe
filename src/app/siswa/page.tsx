@@ -176,7 +176,7 @@ export default function SiswaHomePage() {
           }}
         />
 
-        <section className="mx-auto max-w-7xl px-5 py-8 skilllens-page-enter">
+        <section className="mx-auto max-w-7xl px-3 py-5 skilllens-page-enter sm:px-5 sm:py-8">
           {mustChangePassword && (
             <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-semibold leading-6 text-amber-800 shadow-sm">
               Password akunmu masih default. Kamu bisa tetap memakai dashboard,
@@ -196,33 +196,34 @@ export default function SiswaHomePage() {
 
           <section
             id="student-tour-hero"
-            className="scroll-mt-32 overflow-hidden rounded-[2rem] border border-white/10 skilllens-hero-grid text-white shadow-2xl shadow-blue-950/20"
+            className="scroll-mt-28 overflow-hidden rounded-[1.45rem] border border-white/10 skilllens-hero-grid text-white shadow-2xl shadow-blue-950/20 sm:scroll-mt-32 sm:rounded-[2rem]"
           >
-            <div className="relative grid gap-8 p-6 md:p-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center">
+            <div className="relative grid gap-6 p-4 sm:p-6 md:p-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center">
               <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,255,0.08)_1px,transparent_1px)] bg-[size:48px_48px]" />
               <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-cyan-300/[0.35] blur-3xl skilllens-orbit-glow" />
               <div className="absolute -bottom-24 left-16 h-60 w-60 rounded-full bg-blue-500/30 blur-3xl skilllens-orbit-glow" />
               <div className="absolute right-1/3 top-10 h-24 w-24 rounded-full bg-cyan-200/30 blur-2xl" />
 
               <div className="relative">
-                <p className="text-xs font-bold uppercase tracking-[0.24em] text-cyan-300">
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-cyan-300 sm:text-xs sm:tracking-[0.24em]">
                   Ruang Siswa SkillLens
                 </p>
 
-                <h1 className="mt-3 max-w-3xl text-3xl font-extrabold tracking-tight text-white md:text-5xl">
+                <h1 className="mt-3 max-w-3xl text-2xl font-extrabold tracking-tight text-white sm:text-3xl md:text-5xl">
                   Mulai perjalanan belajarmu dengan langkah yang jelas.
                 </h1>
 
-                <p className="mt-4 max-w-2xl text-sm font-semibold leading-7 text-sky-100/80">
+                <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-sky-100/80 sm:mt-4 sm:leading-7">
                   Lengkapi profil, cek ringkasan akademik, proses rekomendasi
                   SPK, lalu pilih roadmap yang paling sesuai dengan tujuanmu.
                 </p>
 
-                <div className="mt-6 flex flex-wrap gap-3">
+                <div className="mt-6 grid gap-3 min-[420px]:flex min-[420px]:flex-wrap">
                   <Link
                     id="student-tour-profile-action"
                     href="/siswa/profil"
-                    className="inline-flex scroll-mt-32 items-center gap-2 rounded-full px-5 py-3 text-sm font-bold text-white skilllens-button-primary"
+                    prefetch={false}
+                    className="inline-flex scroll-mt-32 items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold text-white skilllens-button-primary"
                   >
                     Mulai isi profil
                     <Icon name="chevronRight" className="h-4 w-4" />
@@ -231,7 +232,8 @@ export default function SiswaHomePage() {
                   <Link
                     id="student-tour-recommendation-action"
                     href="/siswa/rekomendasi"
-                    className="inline-flex scroll-mt-32 items-center gap-2 rounded-full border border-white/[0.15] bg-white/10 px-5 py-3 text-sm font-bold text-white skilllens-smooth hover:-translate-y-0.5 hover:bg-white hover:text-[#07142f]"
+                    prefetch={false}
+                    className="inline-flex scroll-mt-32 items-center justify-center gap-2 rounded-full border border-white/[0.15] bg-white/10 px-5 py-3 text-sm font-bold text-white skilllens-smooth hover:-translate-y-0.5 hover:bg-white hover:text-[#07142f]"
                   >
                     Lihat rekomendasi
                   </Link>
@@ -295,6 +297,7 @@ export default function SiswaHomePage() {
                     id={item.id}
                     key={item.title}
                     href={item.href}
+                    prefetch={false}
                     className="group relative overflow-hidden rounded-[1.5rem] border border-sky-100 bg-white p-5 shadow-md shadow-sky-900/5 transition-all duration-200 hover:-translate-y-1 hover:border-cyan-300 hover:shadow-xl hover:shadow-sky-900/10"
                   >
                     <div className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#08224f_0%,#0a54c7_58%,#39d9ff_100%)]" />
